@@ -1,0 +1,65 @@
+#ifndef _BOARD_CONFIG_H_
+#define _BOARD_CONFIG_H_
+
+#include <driver/gpio.h>
+
+#define AUDIO_INPUT_SAMPLE_RATE 16000
+#define AUDIO_OUTPUT_SAMPLE_RATE 16000
+
+#define USB_CHG_STA_PIN GPIO_NUM_53
+
+#define NT26_RX_PIN GPIO_NUM_29
+#define NT26_TX_PIN GPIO_NUM_28
+#define NT26_MRDY_PIN GPIO_NUM_13
+#define NT26_SRDY_PIN GPIO_NUM_4  
+
+#define AUDIO_I2S_MIC_GPIO_WS GPIO_NUM_10
+#define AUDIO_I2S_MIC_GPIO_DIN GPIO_NUM_11
+#define AUDIO_I2S_SPK_GPIO_DOUT GPIO_NUM_9
+#define AUDIO_I2S_SPK_GPIO_BCLK GPIO_NUM_12
+
+#define POWER_BUTTON_PIN GPIO_NUM_NC 
+
+#define BT_AUDIO_TX_PIN GPIO_NUM_26
+#define BT_AUDIO_RX_PIN GPIO_NUM_27
+
+#define BOOT_BUTTON_GPIO GPIO_NUM_35
+#define VOLUME_UP_BUTTON_GPIO GPIO_NUM_NC
+#define VOLUME_DOWN_BUTTON_GPIO GPIO_NUM_NC
+
+#define DISPLAY_WIDTH 720
+#define DISPLAY_HEIGHT 720
+
+#define I2C_SDA_PIN  GPIO_NUM_7
+#define I2C_SCL_PIN  GPIO_NUM_8
+
+#define LCD_BIT_PER_PIXEL (16)
+#define PIN_NUM_LCD_RST GPIO_NUM_3
+
+#define DELAY_TIME_MS (3000)
+#define LCD_MIPI_DSI_LANE_NUM (2) // 2 data lanes
+
+#define MIPI_DSI_PHY_PWR_LDO_CHAN (3)
+#define MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV (2500)
+
+#define DISPLAY_SWAP_XY false
+#define DISPLAY_MIRROR_X false
+#define DISPLAY_MIRROR_Y false
+
+#define DISPLAY_OFFSET_X 0
+#define DISPLAY_OFFSET_Y 0
+
+#define DISPLAY_BACKLIGHT_PIN GPIO_NUM_52
+#define DISPLAY_BACKLIGHT_OUTPUT_INVERT false
+
+// SDMMC (SD card) pins for ESP32-P4. Uses SDMMC slot 0 with 4-bit bus.
+// Verify these GPIO assignments against the actual xingzhi-395 schematic.
+#define SDMMC_CLK_PIN  GPIO_NUM_43
+#define SDMMC_CMD_PIN  GPIO_NUM_44
+#define SDMMC_D0_PIN   GPIO_NUM_39
+#define SDMMC_D1_PIN   GPIO_NUM_40
+#define SDMMC_D2_PIN   GPIO_NUM_41
+#define SDMMC_D3_PIN   GPIO_NUM_42
+#define SDMMC_LDO_CHAN_ID     4    // On-chip LDO channel for SDMMC PHY power
+
+#endif // _BOARD_CONFIG_H_

@@ -6,6 +6,7 @@
 #include <esp_network.h>
 #include <esp_pm.h>
 #include <esp_timer.h>
+#include "freertos/event_groups.h"
 #include "board.h"
 
 struct Nt26CeregState {
@@ -38,6 +39,7 @@ protected:
     esp_pm_lock_handle_t pm_lock_cpu_max_ = nullptr;
     PowerSaveLevel current_power_level_ = PowerSaveLevel::LOW_POWER;
     esp_timer_handle_t network_ready_timer_ = nullptr;
+    EventGroupHandle_t network_wait_event_ = nullptr;
 
     virtual std::string GetBoardJson() override;
     

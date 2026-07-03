@@ -27,7 +27,6 @@
 13. [Development Environment](#13-development-environment)
 14. [Build & Flash](#14-build--flash)
 15. [Debugging & FAQ](#15-debugging--faq)
-16. [Appendix](#16-appendix)
 
 ---
 
@@ -268,7 +267,8 @@ Metalio Claw4 uses **ESP32-P4 + ESP32-C5** with Espressif **ESP-Hosted**:
 ## 7. Peripherals & Pins
 
 Pin definitions: `main/boards/metalio-claw-4/config.h`  
-IO expander map: `main/boards/common/IOExpander.hpp`
+IO expander map: `main/boards/common/IOExpander.hpp`  
+P4 ↔ C5 SDIO pins: `sdkconfig` `CONFIG_ESP_HOSTED_SDIO_*` (configurable on P4 Host; fixed IOMUX on C5 Slave)
 
 ### 7.1 ESP32-P4 Direct GPIO
 
@@ -298,15 +298,26 @@ IO expander map: `main/boards/common/IOExpander.hpp`
 
 ### 7.2 ESP-Hosted SDIO (P4 ↔ C5)
 
-| Signal | GPIO |
-|:---|:---:|
-| CMD | 50 |
-| CLK | 51 |
-| D0 | 49 |
-| D1 | 34 |
-| D2 | 31 |
-| D3 | 53 |
-| RESET | 54 |
+Metalio Claw4 connects P4 and C5 over **SDIO Slot 1**, **4-bit** bus at **40 MHz**. P4 Host pins are **custom-configured** in `sdkconfig` (not ESP-Hosted default Slot 1 pins). C5 Slave SDIO pins are **fixed** by chip IOMUX and cannot be changed in software.
+
+| Signal | ESP32-P4 GPIO (Host) | ESP32-C5 GPIO (Slave) | Notes |
+|:---|:---:|:---:|:---|
+| CMD | 50 | 10 | |
+| CLK | 51 | 9 | |
+| D0 | 49 | 8 | |
+| D1 | 34 | 7 | |
+| D2 | 31 | 14 | |
+| D3 | 53 | 13 | |
+| RESET | 54 | RST/EN | P4 output, **active high**; resets C5 on every P4 boot |
+
+| Parameter | Value | `sdkconfig` key |
+|:---|:---|:---|
+| SDIO slot | Slot 1 | `CONFIG_ESP_HOSTED_SDIO_SLOT_1` |
+| Bus width | 4-bit | `CONFIG_ESP_HOSTED_SDIO_4_BIT_BUS` |
+| Clock | 40 MHz | `CONFIG_ESP_HOSTED_SDIO_CLOCK_FREQ_KHZ=40000` |
+| Reset polarity | Active high | `CONFIG_ESP_HOSTED_SDIO_RESET_ACTIVE_HIGH` |
+
+> P4 default Slot 1 pins are CLK=18 / CMD=19 / D0–D3=14–17. Metalio Claw4 uses the table above due to PCB routing. After changing P4-side pins, rebuild and flash **both** the P4 host firmware and the **C5 co-processor firmware** (C5 pins must match hardware).
 
 ### 7.3 TCA9555 IO Expander (I2C 16-bit)
 
@@ -319,7 +330,7 @@ IO expander map: `main/boards/common/IOExpander.hpp`
 | PWR_KEY_PULSE | P0-4 | OUT | Pulse to PMIC (software shutdown) |
 | PWR_KEY | P0-5 | IN | Side power key |
 | BT_POWER | P0-6 | OUT | BT chip power (**active high**) |
-| RST_4G | P0-7 | OUT | 4G module reset (**high** = release reset) |
+| RST_4G | P0-7 | OUT | 4G module power (**active high**) |
 | PA | P1-0 | OUT | Audio PA enable (**active high**) |
 | ACCEL_INT | P1-1 | IN | Accelerometer interrupt |
 | USB_INSERT_DET | P1-2 | IN | USB insert detect |
@@ -348,7 +359,7 @@ IO expander map: `main/boards/common/IOExpander.hpp`
   I2C Bus ─────────►│ GPIO 7/8  ──► TCA9555 ──┬──► GPS    │
                     │              BQ27220     ├──► CAM     │
                     │              NU1680       ├──► BT      │
-                    │              QMC6309     ├──► 4G RST  │
+                    │              QMC6309     ├──► 4G Power │
                     │                          └──► SD/PA   │
                     │                                     │
   MIPI-CSI ◄───────►│ OV2710 Camera                       │
@@ -403,7 +414,7 @@ starting → configuring → idle ⇄ connecting ⇄ listening ⇄ speaking
 `metalio-claw-4.cc` constructor order:
 
 1. I2C bus (GPIO 7/8)
-2. IO expander (TCA9555) — peripheral power/reset (BT, PA, 4G RST on; camera/SD off by default)
+2. IO expander (TCA9555) — peripheral power/reset (BT, PA, 4G module on; camera/SD off by default)
 3. BQ27220 gauge + low-battery protection
 4. BT audio UART + default Mode 1
 5. SD card mount
@@ -785,41 +796,17 @@ Requires **4G network mode** and registered module — see [§2.4 4G-Assisted Lo
 **Q: SD card mount fails**
 
 1. FAT32 format
-2. IO expander `SD` (P0-3) powers SD card — active low
-3. SDMMC pins in `config.h`
+2. Confirm SD slot **external power** is on: IO expander `SD` (P0-3) is **active low**; firmware pulls it low at boot
+3. ESP32-P4 SDMMC **high-speed mode (4-bit SDR50)** also requires the on-chip **SDMMC PHY power domain** (`SDMMC_LDO_CHAN_ID` in `config.h`, default LDO **chan 4**). `SdCardManager` acquires this LDO automatically during mount; if serial logs show `Failed to create SD power control driver`, the power domain was not ready
+4. SDMMC pins in `config.h`
 
 **Q: Device shuts down on home screen after a while**
 
 Expected: [§2.5 Power & Battery](#25-power--battery) — 5-minute home idle timeout.
 
----
+**Q: Screen suddenly turns blue (blue screen)**
 
-## 16. Appendix
-
-### 16.1 Version History
-
-| Version | Date | Notes |
-|:---|:---|:---|
-| Wiki v1.1 | 2026-07 | Reduced redundancy; fixed pins & sdkconfig notes |
-| Wiki v1.0 | 2026-07 | Initial full-stack product Wiki |
-
-### 16.2 Glossary
-
-| Term | Meaning |
-|:---|:---|
-| **OpenClaw** | Metalio cloud AI Agent; voice chat & sessions |
-| **ESP-Hosted** | Espressif host-slave framework; P4 uses C5 Wi-Fi over SDIO |
-| **MCP** | Model Context Protocol; LLM invokes device capabilities |
-| **SJPG** | LVGL tiled JPEG for SD card avatars |
-| **TCA9555** | 16-bit I2C GPIO expander; peripheral power & keys |
-| **NU1680** | Qi wireless charge receiver, I2C 0x60 |
-| **BT Mode 1/2/3** | BT chip modes: daily chat / pair peripheral / BT speaker |
-
-### 16.3 Links
-
-- [ESP-IDF ESP32-P4 Programming Guide](https://docs.espressif.com/projects/esp-idf/en/v5.5.4/esp32p4/index.html)
-- [ESP-Hosted](https://github.com/espressif/esp-hosted)
-- [Xiaozhi AI upstream](https://github.com/78/xiaozhi-esp32)
+If the screen **suddenly turns blue** during use, the device has **crashed** and the system has automatically restarted. After reboot you should see the boot animation and return to the home screen; operation usually continues normally. If blue screens occur repeatedly, connect over serial to inspect crash logs and confirm you are on the latest firmware; open an Issue if the problem persists.
 
 ---
 

@@ -2,12 +2,24 @@
 #include "display.h"
 #include "application.h"
 #include "audio_codec.h"
+#include "assets/lang_config.h"
 #include <esp_log.h>
 #include <font_awesome.h>
 #include <cJSON.h>
 #include "board.h"
 
 #define TAG "Nt26Board"
+
+namespace {
+
+constexpr uint32_t kWaitNetworkConnected = (1 << 0);
+constexpr uint32_t kWaitNetworkFailed = (1 << 1);
+constexpr uint32_t kWaitNetworkInFlight = (1 << 2);
+constexpr uint32_t kWaitNetworkAll =
+    kWaitNetworkConnected | kWaitNetworkFailed | kWaitNetworkInFlight;
+constexpr uint32_t kNetworkWaitTimeoutMs = 60 * 1000;
+
+}  // namespace
 
 Nt26Board::Nt26Board(gpio_num_t tx_pin, gpio_num_t rx_pin, gpio_num_t dtr_pin, gpio_num_t ri_pin, gpio_num_t reset_pin)
     : tx_pin_(tx_pin), rx_pin_(rx_pin), dtr_pin_(dtr_pin), ri_pin_(ri_pin), reset_pin_(reset_pin) {
@@ -40,6 +52,11 @@ Nt26Board::~Nt26Board() {
         esp_timer_delete(network_ready_timer_);
     }
 
+    if (network_wait_event_) {
+        vEventGroupDelete(network_wait_event_);
+        network_wait_event_ = nullptr;
+    }
+
     if (modem_) {
         modem_->Stop();
     }
@@ -62,6 +79,9 @@ void Nt26Board::OnNetworkEvent(NetworkEvent event, const std::string& data) {
 void Nt26Board::OnNetworkReadyTimeout(void* arg) {
     auto* self = static_cast<Nt26Board*>(arg);
     ESP_LOGW(TAG, "Network ready timeout");
+    if (self->network_wait_event_) {
+        xEventGroupSetBits(self->network_wait_event_, kWaitNetworkFailed);
+    }
     self->OnNetworkEvent(NetworkEvent::ModemErrorTimeout, "网络连接超时");
 }
 
@@ -77,13 +97,24 @@ void Nt26Board::StartNetwork() {
         .srdy_pin = ri_pin_
     };
     
+    network_wait_event_ = xEventGroupCreate();
+    if (!network_wait_event_) {
+        ESP_LOGE(TAG, "Failed to create network wait event group");
+        OnNetworkEvent(NetworkEvent::ModemErrorInitFailed);
+        return;
+    }
+
     modem_ = std::make_unique<UartEthModem>(config);
     modem_->SetDebug(false);
     modem_->SetNetworkEventCallback([this](UartEthModem::UartEthModemEvent event) {
+        ESP_LOGI(TAG, "Modem event: %s", UartEthModem::GetNetworkEventName(event));
         switch (event) {
             case UartEthModem::UartEthModemEvent::Connected:
             {
                 esp_timer_stop(network_ready_timer_);
+                if (network_wait_event_) {
+                    xEventGroupSetBits(network_wait_event_, kWaitNetworkConnected);
+                }
                 OnNetworkEvent(NetworkEvent::Connected);
                 break;
             }
@@ -92,11 +123,17 @@ void Nt26Board::StartNetwork() {
                 break;
             case UartEthModem::UartEthModemEvent::ErrorNoSim:
                 esp_timer_stop(network_ready_timer_);
+                if (network_wait_event_) {
+                    xEventGroupSetBits(network_wait_event_, kWaitNetworkFailed);
+                }
                 ScheduleAsyncStop();
                 OnNetworkEvent(NetworkEvent::ModemErrorNoSim);
                 break;
             case UartEthModem::UartEthModemEvent::ErrorRegistrationDenied:
                 esp_timer_stop(network_ready_timer_);
+                if (network_wait_event_) {
+                    xEventGroupSetBits(network_wait_event_, kWaitNetworkFailed);
+                }
                 ScheduleAsyncStop();
                 OnNetworkEvent(NetworkEvent::ModemErrorRegDenied);
                 break;
@@ -106,11 +143,17 @@ void Nt26Board::StartNetwork() {
             case UartEthModem::UartEthModemEvent::ErrorInitFailed:
             case UartEthModem::UartEthModemEvent::ErrorNoCarrier:
                 esp_timer_stop(network_ready_timer_);
+                if (network_wait_event_) {
+                    xEventGroupSetBits(network_wait_event_, kWaitNetworkFailed);
+                }
                 ScheduleAsyncStop();
                 OnNetworkEvent(NetworkEvent::ModemErrorInitFailed);
                 break;
             case UartEthModem::UartEthModemEvent::InFlightMode:
                 ESP_LOGW(TAG, "Modem in flight mode");
+                if (network_wait_event_) {
+                    xEventGroupSetBits(network_wait_event_, kWaitNetworkInFlight);
+                }
                 break;
             case UartEthModem::UartEthModemEvent::RequestingPdpContext:
                 break;
@@ -118,12 +161,37 @@ void Nt26Board::StartNetwork() {
     });
 
     if (modem_->Start() != ESP_OK) {
+        vEventGroupDelete(network_wait_event_);
+        network_wait_event_ = nullptr;
         OnNetworkEvent(NetworkEvent::ModemErrorInitFailed);
         return;
     }
 
     esp_timer_start_once(network_ready_timer_, 30000 * 1000ULL);
     OnNetworkEvent(NetworkEvent::Connecting);
+
+    auto display = Board::GetInstance().GetDisplay();
+    if (display) {
+        display->SetStatus(Lang::Strings::REGISTERING_NETWORK);
+    }
+
+    ESP_LOGI(TAG, "Waiting for network ready...");
+    EventBits_t bits = xEventGroupWaitBits(
+        network_wait_event_, kWaitNetworkAll, pdFALSE, pdFALSE,
+        pdMS_TO_TICKS(kNetworkWaitTimeoutMs));
+    vEventGroupDelete(network_wait_event_);
+    network_wait_event_ = nullptr;
+
+    if (bits & kWaitNetworkConnected) {
+        ESP_LOGI(TAG, "Network ready");
+        return;
+    }
+    if (bits & kWaitNetworkInFlight) {
+        ESP_LOGW(TAG, "Network unavailable (flight mode / no SIM)");
+        return;
+    }
+
+    ESP_LOGW(TAG, "Network wait failed or timed out (bits=0x%lx)", (unsigned long)bits);
 }
 
 void Nt26Board::ScheduleAsyncStop() {

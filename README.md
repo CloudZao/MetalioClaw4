@@ -27,7 +27,6 @@
 13. [开发环境](#13-开发环境)
 14. [编译与烧录](#14-编译与烧录)
 15. [调试与常见问题](#15-调试与常见问题)
-16. [附录](#16-附录)
 
 ---
 
@@ -268,7 +267,8 @@ Metalio Claw4 采用 **ESP32-P4 + ESP32-C5** 异构双芯设计，通过乐鑫 *
 ## 7. 外设与引脚
 
 引脚定义源文件：`main/boards/metalio-claw-4/config.h`  
-IO 扩展器映射源文件：`main/boards/common/IOExpander.hpp`
+IO 扩展器映射源文件：`main/boards/common/IOExpander.hpp`  
+P4 ↔ C5 SDIO 引脚：`sdkconfig` 中 `CONFIG_ESP_HOSTED_SDIO_*`（P4 Host 侧可配置；C5 Slave 侧为固定 IOMUX）
 
 ### 7.1 ESP32-P4 直接 GPIO
 
@@ -298,15 +298,26 @@ IO 扩展器映射源文件：`main/boards/common/IOExpander.hpp`
 
 ### 7.2 ESP-Hosted SDIO（P4 ↔ C5）
 
-| 信号 | GPIO |
-|:---|:---:|
-| CMD | 50 |
-| CLK | 51 |
-| D0 | 49 |
-| D1 | 34 |
-| D2 | 31 |
-| D3 | 53 |
-| RESET | 54 |
+Metalio Claw4 经 **SDIO Slot 1**、**4-bit** 总线连接 P4 与 C5（时钟 **40 MHz**）。P4 Host 侧引脚在 `sdkconfig` 中**自定义配置**（非 ESP-Hosted 默认 Slot 1 引脚）；C5 Slave 侧 SDIO 引脚由芯片 IOMUX **固定**，不可在软件中更改。
+
+| 信号 | ESP32-P4 GPIO（Host） | ESP32-C5 GPIO（Slave） | 说明 |
+|:---|:---:|:---:|:---|
+| CMD | 50 | 10 | |
+| CLK | 51 | 9 | |
+| D0 | 49 | 8 | |
+| D1 | 34 | 7 | |
+| D2 | 31 | 14 | |
+| D3 | 53 | 13 | |
+| RESET | 54 | RST/EN | P4 输出，**高电平有效**；每次 P4 启动时复位 C5 |
+
+| 参数 | 值 | `sdkconfig` 配置项 |
+|:---|:---|:---|
+| SDIO 槽位 | Slot 1 | `CONFIG_ESP_HOSTED_SDIO_SLOT_1` |
+| 总线宽度 | 4-bit | `CONFIG_ESP_HOSTED_SDIO_4_BIT_BUS` |
+| 时钟频率 | 40 MHz | `CONFIG_ESP_HOSTED_SDIO_CLOCK_FREQ_KHZ=40000` |
+| 复位极性 | 高电平有效 | `CONFIG_ESP_HOSTED_SDIO_RESET_ACTIVE_HIGH` |
+
+> P4 默认 Slot 1 引脚为 CLK=18 / CMD=19 / D0–D3=14–17。Metalio Claw4 因 PCB 布线改用上表引脚。修改 P4 侧引脚后需同步重新编译并烧录 **P4 主固件**与 **C5 协处理器固件**（C5 侧引脚须与硬件一致）。
 
 ### 7.3 TCA9555 IO 扩展器（I2C 16-bit）
 
@@ -319,7 +330,7 @@ IO 扩展器映射源文件：`main/boards/common/IOExpander.hpp`
 | PWR_KEY_PULSE | P0-4 | OUT | 向开关机芯片输出脉冲（软件关机） |
 | PWR_KEY | P0-5 | IN | 侧面电源键 |
 | BT_POWER | P0-6 | OUT | 蓝牙芯片电源（**高电平使能**） |
-| RST_4G | P0-7 | OUT | 4G 模组复位（**高电平**释放复位） |
+| RST_4G | P0-7 | OUT | 4G 模组电源（**高电平使能**） |
 | PA | P1-0 | OUT | 音频功放使能（**高电平使能**） |
 | ACCEL_INT | P1-1 | IN | 加速度计中断 |
 | USB_INSERT_DET | P1-2 | IN | USB 插入检测 |
@@ -348,7 +359,7 @@ IO 扩展器映射源文件：`main/boards/common/IOExpander.hpp`
   I2C Bus ─────────►│ GPIO 7/8  ──► TCA9555 ──┬──► GPS    │
                     │              BQ27220     ├──► CAM     │
                     │              NU1680       ├──► BT      │
-                    │              QMC6309     ├──► 4G RST  │
+                    │              QMC6309     ├──► 4G 电源  │
                     │                          └──► SD/PA   │
                     │                                     │
   MIPI-CSI ◄───────►│ OV2710 Camera                       │
@@ -403,7 +414,7 @@ starting → configuring → idle ⇄ connecting ⇄ listening ⇄ speaking
 `metalio-claw-4.cc` 构造函数中的初始化序列：
 
 1. I2C 总线（GPIO 7/8）
-2. IO 扩展器（TCA9555）— 初始化外设电源/复位（蓝牙、功放、4G RST 等上电；摄像头/SD 默认断电）
+2. IO 扩展器（TCA9555）— 初始化外设电源/复位（蓝牙、功放、4G 模组等上电；摄像头/SD 默认断电）
 3. BQ27220 电量计 + 低电量保护
 4. 蓝牙音频 UART + 默认模式 1
 5. SD 卡挂载
@@ -787,41 +798,17 @@ Metalio Claw4 通过 **ESP-Hosted** 经 SDIO 连接 **ESP32-C5** 协处理器提
 **Q: SD 卡挂载失败**
 
 1. 确认 SD 卡已格式化为 FAT32
-2. IO 扩展器 `SD` 引脚（P0-3）控制 SD 卡供电，低电平有效
-3. SDMMC 引脚见 `config.h`
+2. 确认 SD 卡槽**外部供电**已开启：IO 扩展器 `SD` 引脚（P0-3）**低电平使能**，开机时固件会自动拉低上电
+3. ESP32-P4 SDMMC **高速模式（4-bit SDR50）**还需开启片上 **SDMMC PHY 电源域**（`config.h` 中 `SDMMC_LDO_CHAN_ID`，默认为 LDO **chan 4**）。挂载时 `SdCardManager` 会自动申请该 LDO；若串口日志出现 `Failed to create SD power control driver`，说明电源域未就绪
+4. SDMMC 引脚见 `config.h`
 
 **Q: 首页放一会儿自动关机**
 
 正常行为，详见 [§2.5 电源与续航](#25-电源与续航)。
 
----
+**Q: 屏幕突然变蓝（蓝屏）**
 
-## 16. 附录
-
-### 16.1 版本历史
-
-| 版本 | 日期 | 说明 |
-|:---|:---|:---|
-| Wiki v1.1 | 2026-07 | 精简冗余、修正引脚与 sdkconfig 说明 |
-| Wiki v1.0 | 2026-07 | 首版产品 Wiki，覆盖软硬件全栈 |
-
-### 16.2 术语表
-
-| 术语 | 说明 |
-|:---|:---|
-| **OpenClaw** | Metalio 云端 AI Agent 平台，支持语音对话与会话管理 |
-| **ESP-Hosted** | 乐鑫 Host-Slave 通信框架，P4 经 SDIO 使用 C5 的 Wi-Fi |
-| **MCP** | Model Context Protocol，LLM 调用设备能力的标准协议 |
-| **SJPG** | LVGL 分块 JPEG 格式，用于 SD 卡大表情图 |
-| **TCA9555** | 16-bit I2C GPIO 扩展器，控制外设电源与按键 |
-| **NU1680** | Qi 无线充电接收芯片，I2C 0x60 |
-| **BT 模式 1/2/3** | 蓝牙芯片工作模式：日常对话 / 配对外设 / 蓝牙音箱 |
-
-### 16.3 相关链接
-
-- [ESP-IDF ESP32-P4 编程指南](https://docs.espressif.com/projects/esp-idf/zh_CN/v5.5.4/esp32p4/index.html)
-- [ESP-Hosted 文档](https://github.com/espressif/esp-hosted)
-- [小智 AI 上游项目](https://github.com/78/xiaozhi-esp32)
+若使用过程中屏幕**突然变为蓝屏**，说明设备内部发生了**崩溃**，系统已自动重启。重启后会重新显示开机动画并回到主屏，一般可继续正常使用。若蓝屏反复出现，建议连接串口查看崩溃日志，并确认固件为最新版本；仍无法解决请提交 Issue。
 
 ---
 

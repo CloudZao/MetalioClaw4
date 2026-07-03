@@ -135,7 +135,7 @@ uint8_t              s_last_disconnect_reason = 0;
 constexpr int        kRestartCountdownSec = 3;
 lv_timer_t*          s_restart_timer = nullptr;
 int                  s_restart_remaining = 0;
-std::string          s_restart_ssid;
+std::string          s_restart_headline;
 // 记录进入页面前 WifiStation 是否已经在跑（即设备网络模式是 WiFi），
 // 用来决定离开时是否恢复 WifiStation::Start()。ML307 模式下 WifiStation
 // 根本没起过，恢复时跳过即可，避免空跑一份 wifi 栈。
@@ -168,6 +168,7 @@ void close_password_popup();
 void schedule_scan();
 void schedule_connect(const std::string& ssid, const std::string& password);
 void open_connecting_popup(const std::string& ssid);
+void open_restart_countdown_popup(const std::string& headline);
 void open_success_popup(const std::string& ssid);
 void show_failure_in_status_popup(const std::string& title,
                                   const std::string& detail,
@@ -1169,7 +1170,7 @@ void close_status_popup() {
     s_ui.status_overlay     = nullptr;
     s_ui.status_message_lbl = nullptr;
     s_restart_remaining = 0;
-    s_restart_ssid.clear();
+    s_restart_headline.clear();
 }
 
 void open_connecting_popup(const std::string& ssid) {
@@ -1233,8 +1234,8 @@ void restart_timer_cb(lv_timer_t* /*timer*/) {
         if (s_ui.status_message_lbl != nullptr) {
             char buf[160];
             snprintf(buf, sizeof(buf),
-                     "%s 连接成功！\n设备将在 %d 秒后自动重启…",
-                     s_restart_ssid.c_str(), s_restart_remaining);
+                     "%s\n设备将在 %d 秒后自动重启…",
+                     s_restart_headline.c_str(), s_restart_remaining);
             lv_label_set_text(s_ui.status_message_lbl, buf);
         }
         return;
@@ -1318,7 +1319,7 @@ void show_failure_in_status_popup(const std::string& title,
     lv_timer_set_repeat_count(s_restart_timer, 1);
 }
 
-void open_success_popup(const std::string& ssid) {
+void open_restart_countdown_popup(const std::string& headline) {
     if (s_ui.screen == nullptr) return;
     close_status_popup();
 
@@ -1350,14 +1351,14 @@ void open_success_popup(const std::string& ssid) {
     lv_obj_set_style_text_font(check, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(check, LV_ALIGN_TOP_MID, 0, 20);
 
-    s_restart_ssid = ssid;
+    s_restart_headline = headline;
     s_restart_remaining = kRestartCountdownSec;
 
     lv_obj_t* lbl = lv_label_create(card);
     s_ui.status_message_lbl = lbl;
     char buf[160];
-    snprintf(buf, sizeof(buf), "%s 连接成功！\n设备将在 %d 秒后自动重启…",
-             s_restart_ssid.c_str(), s_restart_remaining);
+    snprintf(buf, sizeof(buf), "%s\n设备将在 %d 秒后自动重启…",
+             s_restart_headline.c_str(), s_restart_remaining);
     lv_label_set_text(lbl, buf);
     lv_obj_set_width(lbl, 520 - 48);
     lv_label_set_long_mode(lbl, LV_LABEL_LONG_WRAP);
@@ -1370,6 +1371,12 @@ void open_success_popup(const std::string& ssid) {
         lv_timer_delete(s_restart_timer);
     }
     s_restart_timer = lv_timer_create(restart_timer_cb, 1000, nullptr);
+}
+
+void open_success_popup(const std::string& ssid) {
+    char buf[160];
+    snprintf(buf, sizeof(buf), "%s 连接成功！", ssid.c_str());
+    open_restart_countdown_popup(buf);
 }
 
 // ---------------------------------------------------------------------------
@@ -1445,7 +1452,7 @@ void on_screen_unloaded(lv_event_t* /*e*/) {
     s_ui.status_overlay     = nullptr;
     s_ui.status_message_lbl = nullptr;
     s_restart_remaining = 0;
-    s_restart_ssid.clear();
+    s_restart_headline.clear();
     s_pending_ssid.clear();
     s_scan_results.clear();
 }
@@ -1590,7 +1597,7 @@ void refresh_network_switch_ui() {
 //   2) AT+ECSIMCFG=SimSlot,X   X=0 外置卡 / X=1 内置卡
 //   3) AT+CFUN=1           重新打开射频
 // 整个过程模组会重新搜网，期间网络短时中断；我们用一个全屏遮罩展示进度。
-// 成功之后只保存 UI 偏好，不重启设备（模组内部已经持久化新槽位）。
+// 成功之后保存 UI 偏好，并弹出倒计时重启提示（与 WiFi 连接成功一致）。
 // ---------------------------------------------------------------------------
 
 // 把两个 SIM 槽位按钮的高亮状态同步成「当前槽位高亮、另一个置灰」。
@@ -1722,22 +1729,20 @@ void async_sim_switch_done(void* user_data) {
     auto* msg = static_cast<SimSwitchResultMsg*>(user_data);
     if (screen_alive()) {
         s_sim_switch_pending = false;
-        close_status_popup();
         if (msg->success) {
             char buf[96];
             snprintf(buf, sizeof(buf), "已切换到%s",
                      SimSlotName(msg->target_slot));
-            post_status(buf, kColorSuccess);
-            // 再向模组发一次 AT+ECSIMCFG? 确认实际生效的槽位，避免「以为
-            // 切了但模组没切成」的脏数据。结果通过 NVS 修正回 UI。
-            schedule_sim_slot_query();
+            open_restart_countdown_popup(buf);
+            refresh_sim_slot_ui();
         } else {
+            close_status_popup();
             post_status(msg->detail.c_str(), kColorError);
             show_failure_in_status_popup("SIM 卡切换失败", msg->detail, 3000);
             // 失败也查一次，保证 UI 与模组当前实际状态对齐
             schedule_sim_slot_query();
+            refresh_sim_slot_ui();
         }
-        refresh_sim_slot_ui();
     } else {
         s_sim_switch_pending = false;
     }
@@ -2246,7 +2251,7 @@ void build_tabview(lv_obj_t* parent) {
 
         lv_obj_t* sim_hint = lv_label_create(sim_card);
         lv_label_set_text(sim_hint,
-                          "选择 4G 模组使用的 SIM 卡。\n切换期间网络会短暂中断。");
+                          "选择 4G 模组使用的 SIM 卡。\n切换后设备将自动重启生效。");
         lv_obj_set_width(sim_hint, LV_PCT(100));
         lv_label_set_long_mode(sim_hint, LV_LABEL_LONG_WRAP);
         lv_obj_set_style_text_color(sim_hint, lv_color_hex(kColorSubtle),

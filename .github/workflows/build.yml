@@ -74,11 +74,16 @@ jobs:
             echo "variants=$ALL_VARIANTS" >> $GITHUB_OUTPUT
           else
             if [[ ${#AFFECTED[@]} -eq 0 ]]; then
-              echo "variants=[]" >> $GITHUB_OUTPUT
+              # PR 未命中具体 board 时，仍编译默认板卡作为冒烟测试，避免跳过编译检查
+              echo 'variants=[{"board":"metalio-claw-4","name":"metalio-claw-4"}]' >> $GITHUB_OUTPUT
             else
               BOARDS_JSON=$(printf '%s\n' "${!AFFECTED[@]}" | sort -u | jq -R -s -c 'split("\n")[:-1]')
               FILTERED=$(echo "$ALL_VARIANTS" | jq -c --argjson boards "$BOARDS_JSON" 'map(select(.board as $b | $boards | index($b)))')
-              echo "variants=$FILTERED" >> $GITHUB_OUTPUT
+              if [[ "$FILTERED" == "[]" ]]; then
+                echo 'variants=[{"board":"metalio-claw-4","name":"metalio-claw-4"}]' >> $GITHUB_OUTPUT
+              else
+                echo "variants=$FILTERED" >> $GITHUB_OUTPUT
+              fi
             fi
           fi
 
@@ -109,3 +114,20 @@ jobs:
           name: xiaozhi_${{ matrix.name }}_${{ github.sha }}.bin
           path: build/merged-binary.bin
           if-no-files-found: error
+
+  compile-check:
+    name: Compile check
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Verify compile check passed
+        shell: bash
+        run: |
+          RESULT="${{ needs.build.result }}"
+          if [[ "$RESULT" == "success" ]]; then
+            echo "All required builds passed."
+            exit 0
+          fi
+          echo "Compile check failed (build result: $RESULT)." >&2
+          exit 1

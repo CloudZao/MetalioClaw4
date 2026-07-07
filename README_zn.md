@@ -226,7 +226,7 @@ Metalio Claw4 自带 20+ 内置 App，开发者可基于现有硬件与软件能
 | **蓝牙**  | 专业蓝牙音频芯片（UART 115200，AT 指令）；详见 [§12.1](#121-蓝牙音频与三种模式)                   |
 | **电源**  | 单节锂电池 + BQ27220 电量计                                                      |
 | **充电**  | USB 有线充电 + Qi 无线充电（[NU1680](#nu1680-充电电流控制)）                             |
-| **振动**  | 振动马达（GPIO / IO 扩展控制）                                                     |
+| **震动**  | 震动马达（GPIO 22，LEDC PWM）                                                     |
 | **按键**  | 电源键（`PWR_KEY` / `PWR_KEY_PULSE`，经 IO 扩展器；见 [开关机芯片](#开关机芯片与电源键)）          |
 
 ---
@@ -295,6 +295,7 @@ P4 ↔ C5 SDIO 引脚：`sdkconfig` 中 `CONFIG_ESP_HOSTED_SDIO_*`（P4 Host 侧
 | SDMMC CLK       | 43    | 4-bit SD 卡                                |
 | SDMMC CMD       | 44    |                                           |
 | SDMMC D0–D3     | 39–42 |                                           |
+| 震动马达          | 22    | LEDC PWM 控制                               |
 
 ### 7.2 ESP-Hosted SDIO（P4 ↔ C5）
 
@@ -477,7 +478,7 @@ API 基址定义于 `main/api_endpoints.h`。
 | 相机       | camera         | OV2710 预览拍照（1920×1080）           |
 | 水平仪      | spirit_level   | 倾斜角度                             |
 | 磁场       | magnet         | QMC6309 三轴可视化                    |
-| 震动       | vibrate        | 振动马达测试                           |
+| 震动       | vibrate        | 震动马达测试（GPIO 22）                    |
 | 蓝牙配置     | bluetooth      | BT 模式 2，扫描配对                     |
 | 计算器      | calculator     | 四则运算                             |
 | 天气       | weather        | 城市天气查询                           |

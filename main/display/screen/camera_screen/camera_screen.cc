@@ -152,6 +152,7 @@ char s_viewer_posix_path[kMaxNameLen + 16] = {};
 // camera_out_buf 与 LVGL canvas 绑定 —— 只分配一次、永不释放，避免重复进入摄像头屏幕时
 // 反复申请 1.3 MB 的 PSRAM。摄像头采集任务直接覆写这个缓冲。
 uint8_t* s_canvas_buf = nullptr;
+lv_obj_t* s_external_canvas = nullptr;
 
 // 拍照冻结标志：true 时摄像头任务暂停刷新画面（屏幕显示最后一帧 = 照片）
 volatile bool s_photo_frozen = false;
@@ -1057,8 +1058,11 @@ void camera_worker_task(void* /*arg*/) {
 
                 // 让 LVGL 在下次刷新时重绘 canvas。
                 if (esp_lv_adapter_lock(20) == ESP_OK) {
-                    if (s_ui.canvas != nullptr) {
-                        lv_obj_invalidate(s_ui.canvas);
+                    lv_obj_t* canvas =
+                        s_external_canvas != nullptr ? s_external_canvas
+                                                     : s_ui.canvas;
+                    if (canvas != nullptr) {
+                        lv_obj_invalidate(canvas);
                     }
                     esp_lv_adapter_unlock();
                 }
@@ -1403,6 +1407,7 @@ void CameraScreen::LifecycleCallback(screen_lifecycle_event_t event) {
         // CAM_PWDN 由 worker 任务在拿到 s_worker_slot 后串行处理。这里如果
         // 直接动 IOExpander，会和上一个 worker 还没完成的 cleanup（也在改
         // CAM_PWDN）撞车。
+        s_external_canvas = nullptr;
         if (start_camera_worker() != ESP_OK) {
             ESP_LOGE(TAG, "start_camera_worker failed");
         }
@@ -1411,5 +1416,42 @@ void CameraScreen::LifecycleCallback(screen_lifecycle_event_t event) {
         // 只发停止信号；worker 在自己的 task 里 cleanup（关流、esp_video_deinit、
         // 断电）。LVGL 主线程不阻塞，避免 adapter 后台任务长时间拿不到锁。
         stop_camera_worker();
+        s_external_canvas = nullptr;
     }
+}
+
+bool CameraScreen::PreparePreviewBuffer(PreviewBuffer* out) {
+    if (out == nullptr) {
+        return false;
+    }
+    const size_t out_size =
+        static_cast<size_t>(kCameraAreaW) * kCameraAreaH * 3;
+    if (s_canvas_buf == nullptr) {
+        s_canvas_buf = static_cast<uint8_t*>(heap_caps_aligned_alloc(
+            64, out_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+        if (s_canvas_buf == nullptr) {
+            ESP_LOGE(TAG, "alloc preview buffer failed");
+            return false;
+        }
+    }
+    std::memset(s_canvas_buf, 0, out_size);
+    out->data   = s_canvas_buf;
+    out->width  = kCameraAreaW;
+    out->height = kCameraAreaH;
+    return true;
+}
+
+esp_err_t CameraScreen::StartExternalPreview(lv_obj_t* canvas) {
+    if (canvas == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    s_external_canvas = canvas;
+    s_photo_frozen    = false;
+    s_frame_interval  = 2;
+    return start_camera_worker();
+}
+
+void CameraScreen::StopExternalPreview() {
+    stop_camera_worker();
+    s_external_canvas = nullptr;
 }

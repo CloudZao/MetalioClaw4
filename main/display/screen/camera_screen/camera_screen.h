@@ -45,4 +45,15 @@ public:
     // 给 home_screen 直接复用的 lifecycle 回调：包含 CAM_PWDN 控制和
     // 摄像头流水线的启动 / 停止。
     static void LifecycleCallback(screen_lifecycle_event_t event);
+
+    // 供硬件测试页复用：720x600 RGB888 预览缓冲与外部 canvas。
+    struct PreviewBuffer {
+        uint8_t* data;
+        int      width;
+        int      height;
+    };
+
+    static bool PreparePreviewBuffer(PreviewBuffer* out);
+    static esp_err_t StartExternalPreview(lv_obj_t* canvas);
+    static void StopExternalPreview();
 };

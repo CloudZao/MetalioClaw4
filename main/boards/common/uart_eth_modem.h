@@ -152,6 +152,17 @@ public:
     esp_err_t SendAt(const std::string& cmd, std::string& response, uint32_t timeout_ms = 1000);
 
     /**
+     * @brief Send AT command and keep collecting URCs until a marker appears.
+     *
+     * Used for commands like AT+ECPING that return OK first, then async URCs.
+     *
+     * @param done_marker Substring that marks completion (e.g. "+ECPING: DONE")
+     */
+    esp_err_t SendAtCollectUntil(const std::string& cmd, std::string& response,
+                                 uint32_t timeout_ms,
+                                 const char* done_marker);
+
+    /**
      * @brief Check if network is initialized
      *
      * @return true if initialized, false otherwise
@@ -421,6 +432,8 @@ private:
     // AT response handling
     std::string at_command_response_;
     bool waiting_for_at_response_ = false;
+    bool at_collect_until_done_ = false;
+    std::string at_until_marker_;
 
     // Callback
     UartEthModemEventCallback network_event_callback_;

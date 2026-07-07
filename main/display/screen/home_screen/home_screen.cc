@@ -38,6 +38,7 @@
 #include "weather_screen/weather_screen.h"
 #include "network_screen/network_screen.h"
 #include "pin_test_screen/pin_test_screen.h"
+#include "test_screen/test_screen.h"
 #include "sd_card_screen/sd_card_screen.h"
 #include "theme_screen/theme_screen.h"
 #include "info_screen/info_screen.h"
@@ -203,6 +204,15 @@ void pin_test_lifecycle_cb(screen_lifecycle_event_t event) {
         ESP_LOGI(TAG_HOME, "unload: pin_test_screen");
     }
     PinTestScreen::LifecycleCallback(event);
+}
+
+void test_lifecycle_cb(screen_lifecycle_event_t event) {
+    if (event == SCREEN_LIFECYCLE_LOAD) {
+        ESP_LOGI(TAG_HOME, "load: test_screen");
+    } else {
+        ESP_LOGI(TAG_HOME, "unload: test_screen");
+    }
+    TestScreen::LifecycleCallback(event);
 }
 
 // 水平仪生命周期：转发给 LevelScreen::LifecycleCallback。LOAD 时确保
@@ -475,6 +485,10 @@ void LaunchPinTest(screen_lifecycle_cb_t lifecycle_cb) {
     }
 }
 
+void LaunchTest(screen_lifecycle_cb_t lifecycle_cb) {
+    TestScreen::LaunchFromHome(lifecycle_cb);
+}
+
 void LaunchOpenClaw(screen_lifecycle_cb_t lifecycle_cb) {
     lv_obj_t* old_scr = lv_screen_active();
     lv_obj_t* app = OpenClawScreen::Create();
@@ -569,6 +583,7 @@ constexpr AppEntry kApps[] = {
     {"backlight",      "屏幕亮度", LaunchBacklight,     backlight_lifecycle_cb},
     {"info",           "系统信息", LaunchInfo,          info_lifecycle_cb},
     {"theme",          "主题",     LaunchTheme,         theme_lifecycle_cb},
+    {"test",          "测试",     LaunchTest,      test_lifecycle_cb},
 };
 
 constexpr int kTotalApps = static_cast<int>(sizeof(kApps) / sizeof(kApps[0]));

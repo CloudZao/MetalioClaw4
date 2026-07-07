@@ -6,6 +6,8 @@
 #include "esp_log.h"
 
 #include "application.h"
+#include "audio_codec.h"
+#include "board.h"
 #include "device_state.h"
 #include "home_screen/home_screen.h"
 #include "screen_util.h"
@@ -21,7 +23,7 @@ constexpr const char* TAG = "ChatScreen";
 // 720x720 视觉参数
 //
 //   ┌───────────────────────────────────────────┐ 0
-//   │ Header   "聊天 待唤醒"        [清空]      │ 88
+//   │ Header   "聊天 待唤醒" [音量- 70% 音量+][清空] │ 88
 //   ├───────────────────────────────────────────┤
 //   │                                           │
 //   │  ┌────────┐                                │
@@ -55,6 +57,16 @@ constexpr int32_t kMaxMessages     = 12;
 constexpr int32_t kToggleBtnSize   = 80;
 constexpr int32_t kToggleIconSize  = 64;
 constexpr int32_t kToggleBtnMargin = 40;
+constexpr int32_t kClearBtnW       = 130;
+constexpr int32_t kClearBtnH       = 56;
+constexpr int32_t kHeaderRightPad  = 20;
+constexpr int32_t kHeaderCtrlGap   = 12;
+constexpr int32_t kVolumeWrapW     = 220;
+constexpr int32_t kVolumeWrapH     = 56;
+constexpr int32_t kVolBtnW         = 72;
+constexpr int32_t kVolBtnH         = 44;
+constexpr int32_t kVolumeValueW    = 52;
+constexpr int32_t kVolumeStep      = 5;
 
 constexpr uint32_t kColorBg              = 0x0E1116;
 constexpr uint32_t kColorHeaderBg        = 0x12151C;
@@ -81,6 +93,7 @@ lv_obj_t* s_screen          = nullptr;
 lv_obj_t* s_msg_list        = nullptr;
 lv_obj_t* s_empty_hint      = nullptr;
 lv_obj_t* s_status_state_lbl = nullptr;
+lv_obj_t* s_volume_value_lbl = nullptr;
 lv_timer_t* s_state_timer   = nullptr;
 lv_timer_t* s_activation_guard_timer = nullptr;
 DeviceState s_last_device_state = kDeviceStateUnknown;
@@ -372,6 +385,60 @@ void on_activation_guard_timer(lv_timer_t* /*timer*/) {
 }
 
 // ---------------------------------------------------------------------------
+// Header 音量按钮
+// ---------------------------------------------------------------------------
+int chat_read_volume() {
+    int volume = 70;
+    if (AudioCodec* codec = Board::GetInstance().GetAudioCodec()) {
+        volume = codec->output_volume();
+    }
+    if (volume < 0) {
+        volume = 0;
+    } else if (volume > 100) {
+        volume = 100;
+    }
+    return volume;
+}
+
+void chat_update_volume_value_label(int volume) {
+    if (s_volume_value_lbl == nullptr) {
+        return;
+    }
+    if (volume < 0) {
+        volume = 0;
+    } else if (volume > 100) {
+        volume = 100;
+    }
+    char buf[8];
+    std::snprintf(buf, sizeof(buf), "%d%%", volume);
+    lv_label_set_text(s_volume_value_lbl, buf);
+}
+
+void chat_apply_volume(int volume) {
+    if (volume < 0) {
+        volume = 0;
+    } else if (volume > 100) {
+        volume = 100;
+    }
+
+    chat_update_volume_value_label(volume);
+
+    AudioCodec* codec = Board::GetInstance().GetAudioCodec();
+    if (codec == nullptr || codec->output_volume() == volume) {
+        return;
+    }
+    codec->SetOutputVolume(volume);
+}
+
+void on_volume_down_clicked(lv_event_t* /*e*/) {
+    chat_apply_volume(chat_read_volume() - kVolumeStep);
+}
+
+void on_volume_up_clicked(lv_event_t* /*e*/) {
+    chat_apply_volume(chat_read_volume() + kVolumeStep);
+}
+
+// ---------------------------------------------------------------------------
 // "清空" 按钮 / 右下角对话切换
 // ---------------------------------------------------------------------------
 void on_clear_clicked(lv_event_t* /*e*/) {
@@ -412,7 +479,7 @@ void build_toggle_button(lv_obj_t* parent) {
                              LV_PART_MAIN);
 
     lv_obj_t* icon = lv_image_create(btn);
-    lv_image_set_src(icon, "A:ic_app_home_toggle.spng");
+    lv_image_set_src(icon, "A:ic_app_chat_toggle.spng");
     lv_image_set_inner_align(icon, LV_IMAGE_ALIGN_CENTER);
     lv_obj_set_size(icon, kToggleIconSize, kToggleIconSize);
     lv_obj_center(icon);
@@ -453,6 +520,7 @@ void on_screen_unloaded(lv_event_t* /*e*/) {
     s_msg_list         = nullptr;
     s_empty_hint       = nullptr;
     s_status_state_lbl = nullptr;
+    s_volume_value_lbl = nullptr;
     s_last_device_state = kDeviceStateUnknown;
 }
 
@@ -469,6 +537,28 @@ void style_header_btn(lv_obj_t* btn) {
     lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_color(btn, lv_color_hex(0x3B4556),
                               LV_PART_MAIN | LV_STATE_PRESSED);
+}
+
+void style_header_icon_btn(lv_obj_t* btn) {
+    style_header_btn(btn);
+    lv_obj_set_style_radius(btn, 12, LV_PART_MAIN);
+}
+
+lv_obj_t* create_volume_btn(lv_obj_t* parent, const char* text,
+                            lv_event_cb_t cb) {
+    lv_obj_t* btn = lv_button_create(parent);
+    lv_obj_set_size(btn, kVolBtnW, kVolBtnH);
+    style_header_icon_btn(btn);
+    lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, nullptr);
+    screen_swipe_back_ignore(btn, true);
+
+    lv_obj_t* lbl = lv_label_create(btn);
+    lv_label_set_text(lbl, text);
+    lv_obj_set_style_text_color(lbl, lv_color_hex(kColorHeaderBtnText),
+                                LV_PART_MAIN);
+    lv_obj_set_style_text_font(lbl, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_center(lbl);
+    return btn;
 }
 
 void build_header(lv_obj_t* parent) {
@@ -528,8 +618,8 @@ void build_header(lv_obj_t* parent) {
     s_state_timer = lv_timer_create(on_chat_status_timer, 500, nullptr);
 
     lv_obj_t* clear = lv_button_create(header);
-    lv_obj_set_size(clear, 130, 56);
-    lv_obj_align(clear, LV_ALIGN_RIGHT_MID, -20, 0);
+    lv_obj_set_size(clear, kClearBtnW, kClearBtnH);
+    lv_obj_align(clear, LV_ALIGN_RIGHT_MID, -kHeaderRightPad, 0);
     style_header_btn(clear);
     lv_obj_add_event_cb(clear, on_clear_clicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* clear_lbl = lv_label_create(clear);
@@ -538,6 +628,35 @@ void build_header(lv_obj_t* parent) {
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(clear_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(clear_lbl);
+
+    const int initial_volume = chat_read_volume();
+
+    lv_obj_t* vol_wrap = lv_obj_create(header);
+    lv_obj_remove_style_all(vol_wrap);
+    lv_obj_set_size(vol_wrap, kVolumeWrapW, kVolumeWrapH);
+    lv_obj_align_to(vol_wrap, clear, LV_ALIGN_OUT_LEFT_MID, -kHeaderCtrlGap, 0);
+    lv_obj_set_style_bg_opa(vol_wrap, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_remove_flag(vol_wrap, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_flex_flow(vol_wrap, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(vol_wrap, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(vol_wrap, 8, LV_PART_MAIN);
+    screen_swipe_back_ignore(vol_wrap, true);
+
+    create_volume_btn(vol_wrap, "音量-", on_volume_down_clicked);
+
+    s_volume_value_lbl = lv_label_create(vol_wrap);
+    lv_obj_set_width(s_volume_value_lbl, kVolumeValueW);
+    lv_label_set_long_mode(s_volume_value_lbl, LV_LABEL_LONG_CLIP);
+    lv_obj_set_style_text_font(s_volume_value_lbl, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_set_style_text_color(s_volume_value_lbl, lv_color_hex(kColorHeaderBtnText),
+                                LV_PART_MAIN);
+    lv_obj_set_style_text_align(s_volume_value_lbl, LV_TEXT_ALIGN_CENTER,
+                                LV_PART_MAIN);
+    chat_update_volume_value_label(initial_volume);
+    screen_make_input_passive(s_volume_value_lbl);
+
+    create_volume_btn(vol_wrap, "音量+", on_volume_up_clicked);
 }
 
 void build_message_list(lv_obj_t* parent) {

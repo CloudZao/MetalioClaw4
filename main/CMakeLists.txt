@@ -45,6 +45,17 @@ set(SOURCES "audio/audio_codec.cc"
             "display/screen/magnet_screen/magnet_screen.cc"
             "display/screen/sd_card_screen/sd_card_screen.cc"
             "display/screen/pin_test_screen/pin_test_screen.cc"
+            "display/screen/test_screen/test_screen.cc"
+            "display/screen/test_screen/test_ui_common.cc"
+            "display/screen/test_screen/vibrate_motor_test.cc"
+            "display/screen/test_screen/audio_test.cc"
+            "display/screen/test_screen/camera_test.cc"
+            "display/screen/test_screen/sc7a20h_test.cc"
+            "display/screen/test_screen/qmc6309_test.cc"
+            "display/screen/test_screen/sd_card_test.cc"
+            "display/screen/test_screen/cell_4g_test.cc"
+            "display/screen/test_screen/wifi_test.cc"
+            "display/screen/test_screen/gps_test.cc"
             "display/screen/openclaw_screen/openclaw_screen.cc"
             "display/lvgl_display/lvgl_display.cc"
             "display/lvgl_display/emoji_collection.cc"
@@ -68,7 +79,7 @@ set(SOURCES "audio/audio_codec.cc"
             "main.cc"
             )
 
-set(INCLUDE_DIRS "." "display" "display/font" "display/lvgl_display" "display/lvgl_display/jpg" "display/screen" "display/screen/boot_screen" "display/screen/ota_screen" "display/screen/home_screen" "display/screen/game_2048_screen" "display/screen/calculator_screen" "display/screen/calendar_screen" "display/screen/music_screen" "display/screen/weather_screen" "display/screen/gps_screen" "display/screen/camera_screen" "display/screen/vibrate_screen" "display/screen/backlight_screen" "display/screen/call_screen" "display/screen/bluetooth_screen" "display/screen/chat_screen" "display/screen/network_screen" "display/screen/digital_people_screen" "display/screen/level_screen" "display/screen/magnet_screen" "display/screen/sd_card_screen" "display/screen/pin_test_screen" "display/screen/openclaw_screen" "display/screen/theme_screen" "display/screen/info_screen" "audio" "protocols")
+set(INCLUDE_DIRS "." "display" "display/font" "display/lvgl_display" "display/lvgl_display/jpg" "display/screen" "display/screen/boot_screen" "display/screen/ota_screen" "display/screen/home_screen" "display/screen/game_2048_screen" "display/screen/calculator_screen" "display/screen/calendar_screen" "display/screen/music_screen" "display/screen/weather_screen" "display/screen/gps_screen" "display/screen/camera_screen" "display/screen/vibrate_screen" "display/screen/backlight_screen" "display/screen/call_screen" "display/screen/bluetooth_screen" "display/screen/chat_screen" "display/screen/network_screen" "display/screen/digital_people_screen" "display/screen/level_screen" "display/screen/magnet_screen" "display/screen/sd_card_screen" "display/screen/pin_test_screen" "display/screen/test_screen" "display/screen/openclaw_screen" "display/screen/theme_screen" "display/screen/info_screen" "audio" "protocols")
 
 # Add board common files
 file(GLOB BOARD_COMMON_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/boards/common/*.cc)

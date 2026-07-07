@@ -295,6 +295,22 @@ esp_err_t Nt26Board::SendAtCommand(const std::string& cmd, std::string& response
     return modem_->SendAt(cmd, response, timeout_ms);
 }
 
+esp_err_t Nt26Board::SendAtCommandCollectUntil(const std::string& cmd,
+                                               std::string& response,
+                                               uint32_t timeout_ms,
+                                               const char* done_marker,
+                                               bool bypass_init_check) {
+    if (!modem_) {
+        ESP_LOGW(TAG, "SendAtCommandCollectUntil: modem 未实例化");
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!bypass_init_check && !modem_->IsInitialized()) {
+        ESP_LOGW(TAG, "SendAtCommandCollectUntil: modem 尚未完成初始化");
+        return ESP_ERR_INVALID_STATE;
+    }
+    return modem_->SendAtCollectUntil(cmd, response, timeout_ms, done_marker);
+}
+
 std::string Nt26Board::GetDeviceStatusJson() {
     auto& board = Board::GetInstance();
     auto root = cJSON_CreateObject();

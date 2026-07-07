@@ -1,6 +1,6 @@
 # Metalio Claw4
 
-**English** | [Chinese](README_zn.md)
+**English** | [中文](README_zn.md)
 
 **Quick Links**
 
@@ -226,7 +226,7 @@ User speaks → I2S microphone → ESP‑SR wake‑word / VAD
 | **Bluetooth**   | Professional Bluetooth audio codec (UART 115200, AT commands); see [§12.1](#121-bluetooth-audio-and-three-modes)                                       |
 | **Power**       | Single‑cell Li‑ion + BQ27220 fuel gauge                                                                                                                |
 | **Charging**    | Wired USB + Qi wireless (see [NU1680](#nu1680-charging-current-control))                                                                               |
-| **Vibration**   | Vibration motor (GPIO / IO‑expander control)                                                                                                           |
+| **Vibration**   | Vibration motor (GPIO 22, LEDC PWM)                                                                                                                    |
 | **Button**      | Power key (`PWR_KEY` / `PWR_KEY_PULSE` via IO extender; see [Power‑IC & Power Key](#power-ic-and-power-key))                                           |
 
 ---
@@ -295,6 +295,7 @@ P4 ↔ C5 SDIO pins: defined in `sdkconfig` via `CONFIG_ESP_HOSTED_SDIO_*` (P4 h
 | SDMMC CLK           | 43    | 4‑bit SD card                                        |
 | SDMMC CMD           | 44    |                                                      |
 | SDMMC D0‑D3         | 39‑42 |                                                      |
+| Vibration Motor     | 22    | LEDC PWM control                                     |
 
 ### 7.2 ESP‑Hosted SDIO (P4 ↔ C5)
 
@@ -479,7 +480,7 @@ Home‑screen app list (`home_screen.cc` → `kApps[]`):
 | Camera           | `camera`         | OV2710 preview & capture (1920×1080)                                  |
 | Spirit Level     | `spirit_level`   | Tilt angle                                                            |
 | Magnet           | `magnet`         | QMC6309 three‑axis visualization                                      |
-| Vibrate          | `vibrate`        | Vibration‑motor test                                                  |
+| Vibrate          | `vibrate`        | Vibration motor test (GPIO 22)                                        |
 | Bluetooth Config | `bluetooth`      | BT mode 2, scan & pair                                                |
 | Calculator       | `calculator`     | Four‑function arithmetic                                              |
 | Weather          | `weather`        | City weather query                                                    |

@@ -283,6 +283,8 @@ esp_err_t UartEthModem::SendAt(const std::string& cmd, std::string& response, ui
     }
 
     at_command_response_.clear();
+    at_collect_until_done_ = false;
+    at_until_marker_.clear();
     waiting_for_at_response_ = true;
     xEventGroupClearBits(event_group_, kEventAtResponse);  // Clear any pending
 
@@ -300,6 +302,8 @@ esp_err_t UartEthModem::SendAt(const std::string& cmd, std::string& response, ui
     esp_err_t ret = SendFrame(reinterpret_cast<const uint8_t*>(cmd_with_cr.c_str()), cmd_with_cr.size(), FrameType::kAtCommand);
     if (ret != ESP_OK) {
         waiting_for_at_response_ = false;
+        at_collect_until_done_ = false;
+        at_until_marker_.clear();
         return ret;
     }
 
@@ -313,15 +317,21 @@ esp_err_t UartEthModem::SendAt(const std::string& cmd, std::string& response, ui
     );
     if (bits & kEventStop) {
         waiting_for_at_response_ = false;
+        at_collect_until_done_ = false;
+        at_until_marker_.clear();
         return ESP_ERR_INVALID_STATE;
     }
     if (!(bits & kEventAtResponse)) {
         ESP_LOGW(kTag, "AT timeout: %s", cmd.c_str());
         waiting_for_at_response_ = false;
+        at_collect_until_done_ = false;
+        at_until_marker_.clear();
         return ESP_ERR_TIMEOUT;
     }
 
     waiting_for_at_response_ = false;
+    at_collect_until_done_ = false;
+    at_until_marker_.clear();
     response = at_command_response_;
 
     // Check for OK/ERROR
@@ -333,6 +343,78 @@ esp_err_t UartEthModem::SendAt(const std::string& cmd, std::string& response, ui
 
     // Response contains neither OK nor ERROR (unexpected)
     return ESP_FAIL;
+}
+
+esp_err_t UartEthModem::SendAtCollectUntil(const std::string& cmd,
+                                            std::string& response,
+                                            uint32_t timeout_ms,
+                                            const char* done_marker) {
+    std::lock_guard<std::mutex> lock(at_mutex_);
+
+    if (stop_flag_.load()) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!handshake_done_.load() && !initializing_.load() && !initialized_.load()) {
+        ESP_LOGE(kTag, "Failed to send AT command: not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (done_marker == nullptr || done_marker[0] == '\0') {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    at_command_response_.clear();
+    at_collect_until_done_ = true;
+    at_until_marker_ = done_marker;
+    waiting_for_at_response_ = true;
+    xEventGroupClearBits(event_group_, kEventAtResponse);
+
+    std::string cmd_with_cr = cmd;
+    if (cmd_with_cr.empty() || cmd_with_cr.back() != '\r') {
+        cmd_with_cr += '\r';
+    }
+
+    if (debug_enabled_.load()) {
+        ESP_LOGI(kTag, "AT>>> %s (collect until '%s')", cmd.c_str(),
+                 done_marker);
+    }
+
+    esp_err_t ret = SendFrame(
+        reinterpret_cast<const uint8_t*>(cmd_with_cr.c_str()),
+        cmd_with_cr.size(), FrameType::kAtCommand);
+    if (ret != ESP_OK) {
+        waiting_for_at_response_ = false;
+        at_collect_until_done_ = false;
+        at_until_marker_.clear();
+        return ret;
+    }
+
+    EventBits_t bits = xEventGroupWaitBits(
+        event_group_, kEventAtResponse | kEventStop, pdTRUE, pdFALSE,
+        pdMS_TO_TICKS(timeout_ms));
+    if (bits & kEventStop) {
+        waiting_for_at_response_ = false;
+        at_collect_until_done_ = false;
+        at_until_marker_.clear();
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    response = at_command_response_;
+    waiting_for_at_response_ = false;
+    at_collect_until_done_ = false;
+    at_until_marker_.clear();
+
+    if (!(bits & kEventAtResponse)) {
+        ESP_LOGW(kTag, "AT collect timeout: %s", cmd.c_str());
+        return ESP_ERR_TIMEOUT;
+    }
+
+    if (response.find("+CME ERROR") != std::string::npos ||
+        response.find("+CMS ERROR") != std::string::npos ||
+        (response.find("ERROR") != std::string::npos &&
+         response.find("OK") == std::string::npos)) {
+        return ESP_FAIL;
+    }
+    return ESP_OK;
 }
 
 void UartEthModem::SetNetworkEventCallback(UartEthModemEventCallback callback) {
@@ -1433,9 +1515,28 @@ void UartEthModem::HandleAtResponse(const char* data, size_t length) {
     // Parse URC or response
     ParseAtResponse(response);
 
+    if (!waiting_for_at_response_) {
+        return;
+    }
+
+    if (at_collect_until_done_ && !at_until_marker_.empty()) {
+        at_command_response_ += response;
+        if (response.find("+CME ERROR") != std::string::npos ||
+            response.find("+CMS ERROR") != std::string::npos ||
+            (response.find("ERROR") != std::string::npos &&
+             response.find("OK") == std::string::npos)) {
+            xEventGroupSetBits(event_group_, kEventAtResponse);
+            return;
+        }
+        if (at_command_response_.find(at_until_marker_) != std::string::npos) {
+            xEventGroupSetBits(event_group_, kEventAtResponse);
+        }
+        return;
+    }
+
     // Only signal completion for final AT responses (OK/ERROR), not for URCs like ECRDY
-    if (waiting_for_at_response_ &&
-        (response.find("OK") != std::string::npos || response.find("ERROR") != std::string::npos)) {
+    if (response.find("OK") != std::string::npos ||
+        response.find("ERROR") != std::string::npos) {
         at_command_response_ = response;
         xEventGroupSetBits(event_group_, kEventAtResponse);
     }

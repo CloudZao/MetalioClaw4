@@ -92,9 +92,9 @@ lv_obj_t* CreateEmotionWidget(lv_obj_t* parent) {
 //   │        ╰───────────────╯                │
 //   └─────────────────────────────────────────┘ 720
 //
-//   - 气泡背景：深色 80% 透明（保证 gif 仍能透出一点），白色 2px 边框 +
-//     圆角，符合用户要求 "类似聊天气泡白边框"。
-//   - 文本：白色 puhui_30。
+//   - 气泡背景：白色 30% 不透明，白色 2px 边框 +
+//     圆角。
+//   - 文本：深色 puhui_30。
 //   - 文本宽度：根据内容 + padding 计算，封顶 max_w 后换行（LV_LABEL_LONG_WRAP）。
 //   - 屏幕未在前台时静态指针都被清空，所有显示接口直接 no-op。
 // ---------------------------------------------------------------------------
@@ -108,11 +108,11 @@ constexpr int32_t  kUserBubbleBottom = 24;
 constexpr int32_t  kSysBubbleMaxW    = kPanelSize - kSideMargin * 2;       // 688
 constexpr int32_t  kUserBubbleMaxW   = kPanelSize - kSideMargin * 2;       // 688
 
-constexpr uint32_t kColorBubbleBg     = 0x000000;
+constexpr uint32_t kColorBubbleBg     = 0xFFFFFF;
 constexpr uint32_t kColorBubbleBorder = 0xFFFFFF;
-constexpr uint32_t kColorBubbleText   = 0xFFFFFF;
+constexpr uint32_t kColorBubbleText   = 0x1F2937;
 constexpr uint32_t kColorHintText     = 0xC8C9CC;
-constexpr lv_opa_t kBubbleBgOpa       = LV_OPA_80;
+constexpr lv_opa_t kBubbleBgOpa       = LV_OPA_30;
 
 struct UiState {
     lv_obj_t* screen        = nullptr;

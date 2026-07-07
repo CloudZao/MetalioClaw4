@@ -75,6 +75,13 @@ public:
     esp_err_t SendAtCommand(const std::string& cmd, std::string& response,
                             uint32_t timeout_ms = 5000,
                             bool bypass_init_check = false);
+
+    // 发送 AT 并持续收集 URC，直到出现 done_marker（如 "+ECPING: DONE"）。
+    esp_err_t SendAtCommandCollectUntil(const std::string& cmd,
+                                        std::string& response,
+                                        uint32_t timeout_ms,
+                                        const char* done_marker,
+                                        bool bypass_init_check = false);
 };
 
 #endif // NT26_BOARD_H

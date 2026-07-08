@@ -4,7 +4,67 @@
 #include <cstring>
 #include <string>
 
+// 设为 1 时在 OpenClaw 等调用处打印 HTTP 请求 URL、请求体与响应体。
+#ifndef API_HTTP_DEBUG
+#define API_HTTP_DEBUG 0
+#endif
+
+#if API_HTTP_DEBUG
+#include "esp_log.h"
+#endif
+
 namespace api {
+
+#if API_HTTP_DEBUG
+
+namespace detail {
+
+inline const char* HttpBodyForLog(const std::string& body) {
+    return body.empty() ? "(empty)" : body.c_str();
+}
+
+}  // namespace detail
+
+inline void LogHttpRequest(const char* tag, const char* method,
+                           const std::string& url,
+                           const std::string& body = std::string(),
+                           const char* extra = nullptr) {
+    ESP_LOGI(tag, "[API_HTTP] >>> %s %s", method, url.c_str());
+    if (extra != nullptr && extra[0] != '\0') {
+        ESP_LOGI(tag, "[API_HTTP] >>> %s", extra);
+    }
+    ESP_LOGI(tag, "[API_HTTP] >>> body=%s", detail::HttpBodyForLog(body));
+}
+
+inline void LogHttpBinaryRequest(const char* tag, const char* method,
+                                 const std::string& url, size_t body_bytes,
+                                 const char* extra = nullptr) {
+    ESP_LOGI(tag, "[API_HTTP] >>> %s %s", method, url.c_str());
+    if (extra != nullptr && extra[0] != '\0') {
+        ESP_LOGI(tag, "[API_HTTP] >>> %s", extra);
+    }
+    ESP_LOGI(tag, "[API_HTTP] >>> body=(binary %u bytes)",
+              static_cast<unsigned>(body_bytes));
+}
+
+inline void LogHttpResponse(const char* tag, int status,
+                            const std::string& body) {
+    ESP_LOGI(tag, "[API_HTTP] <<< status=%d body=%s", status,
+             detail::HttpBodyForLog(body));
+}
+
+#else
+
+inline void LogHttpRequest(const char*, const char*, const std::string&,
+                           const std::string& = std::string(),
+                           const char* = nullptr) {}
+
+inline void LogHttpBinaryRequest(const char*, const char*, const std::string&,
+                                 size_t, const char* = nullptr) {}
+
+inline void LogHttpResponse(const char*, int, const std::string&) {}
+
+#endif
 
 constexpr const char* kHost = "http://xxxxx.com";
 
@@ -21,6 +81,8 @@ constexpr const char* kOpenClawMessagesFmt =
     "/api/v1/conversation/%s/messages?page=1&size=100";
 constexpr const char* kOpenClawRemoveAll =
     "/api/v1/conversation/removeAll";
+constexpr const char* kOpenClawConversationDeleteFmt =
+    "/api/v1/conversation/delete/%s";
 
 // Weather
 constexpr const char* kWeatherDistrictPath =
@@ -43,6 +105,14 @@ inline std::string WeatherDistrictUrl(const std::string& district_id) {
 inline std::string OpenClawMessagesUrl(const std::string& conversation_id) {
     char path[192];
     std::snprintf(path, sizeof(path), kOpenClawMessagesFmt,
+                  conversation_id.c_str());
+    return Url(path);
+}
+
+inline std::string OpenClawConversationDeleteUrl(
+    const std::string& conversation_id) {
+    char path[192];
+    std::snprintf(path, sizeof(path), kOpenClawConversationDeleteFmt,
                   conversation_id.c_str());
     return Url(path);
 }

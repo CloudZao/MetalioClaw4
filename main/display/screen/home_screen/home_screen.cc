@@ -491,6 +491,7 @@ void LaunchTest(screen_lifecycle_cb_t lifecycle_cb) {
 
 void LaunchOpenClaw(screen_lifecycle_cb_t lifecycle_cb) {
     lv_obj_t* old_scr = lv_screen_active();
+    OpenClawScreen::SetLifecycleCallback(lifecycle_cb);
     lv_obj_t* app = OpenClawScreen::Create();
     screen_attach_lifecycle(app, lifecycle_cb);
     lv_screen_load(app);

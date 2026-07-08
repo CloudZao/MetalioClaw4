@@ -15,6 +15,7 @@ main/mmap_generate_emoji.h
 .cache
 *.pyc
 *.bin
+!/full-xingzhi-ai-395.bin
 !wakeword/
 !wakeword/*.bin
 mmap_generate_*.h

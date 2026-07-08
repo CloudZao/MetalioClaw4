@@ -106,6 +106,7 @@ void Nt26Board::StartNetwork() {
 
     modem_ = std::make_unique<UartEthModem>(config);
     modem_->SetDebug(false);
+    modem_->SetPdpContext("eapn1.net", "IP");
     modem_->SetNetworkEventCallback([this](UartEthModem::UartEthModemEvent event) {
         ESP_LOGI(TAG, "Modem event: %s", UartEthModem::GetNetworkEventName(event));
         switch (event) {

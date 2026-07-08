@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstring>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -113,18 +114,25 @@ std::atomic<State>    s_state{State::Idle};
 std::atomic<int64_t>  s_record_start_us{0};
 std::atomic<bool>     s_stop_requested{false};
 
-// 屏幕静态引用。所有 UI 节点都挂在 s_screen 下，OnScreenUnloaded 里整个
-// 屏幕被 LVGL 销毁，对应静态指针也要清掉，防止后台 task 继续往野指针上
+// 详情页静态引用。所有 UI 节点都挂在 s_detail_screen 下，OnScreenUnloaded
+// 里整个屏幕被 LVGL 销毁，对应静态指针也要清掉，防止后台 task 继续往野指针上
 // 调 lv_label_set_text。
-lv_obj_t* s_screen      = nullptr;
+lv_obj_t* s_detail_screen = nullptr;
 lv_obj_t* s_msg_list    = nullptr;
 lv_obj_t* s_empty_hint  = nullptr;
 lv_obj_t* s_record_btn  = nullptr;
 lv_obj_t* s_record_lbl  = nullptr;
 lv_obj_t* s_status_lbl  = nullptr;
+lv_obj_t* s_detail_title_lbl = nullptr;
+lv_obj_t* s_detail_id_lbl = nullptr;
 lv_timer_t* s_tick_timer = nullptr;
-lv_timer_t* s_activation_guard_timer = nullptr;
 lv_timer_t* s_auto_refresh_timer = nullptr;
+
+// 会话列表页
+lv_obj_t* s_list_screen = nullptr;
+lv_obj_t* s_list_container = nullptr;
+lv_obj_t* s_list_hint = nullptr;
+lv_timer_t* s_activation_guard_timer = nullptr;
 
 // 录音 task 句柄；UNLOAD 时用来等它退出。
 TaskHandle_t s_record_task = nullptr;
@@ -135,6 +143,8 @@ enum class WorkerJob : uint8_t {
     None = 0,
     FetchHistory,
     ClearAll,
+    DeleteOne,
+    FetchConvList,
 };
 TaskHandle_t          s_worker_task = nullptr;
 std::atomic<bool>     s_worker_shutdown{false};
@@ -145,8 +155,15 @@ std::atomic<uint32_t> s_worker_fetch_session{0};
 // 历史会话拉取：session 递增使旧 task 的结果失效。
 std::atomic<uint32_t> s_history_session{0};
 std::atomic<bool>     s_history_loading{false};
+std::atomic<bool>     s_list_loading{false};
 std::atomic<bool>     s_service_available{false};
 std::string           s_conversation_id;
+std::string           s_conversation_title;
+
+struct ConversationRecord {
+    std::string conversation_id;
+    std::string title;
+};
 
 struct RefreshSnapshot {
     bool valid = false;
@@ -163,11 +180,30 @@ struct HistoryMessage {
     bool is_user = true;
 };
 
-// 清空会话确认对话框
+// 清空 / 删除会话确认对话框
+enum class ClearDialogMode : uint8_t {
+    RemoveAll,
+    DeleteOne,
+};
+
 struct ClearDialogUi {
     lv_obj_t* mask = nullptr;
+    ClearDialogMode mode = ClearDialogMode::RemoveAll;
 };
 ClearDialogUi s_clear_dlg;
+
+struct ConvItemCtx {
+    std::string conversation_id;
+    std::string title;
+};
+
+std::atomic<uint32_t> s_list_session{0};
+std::atomic<uint32_t> s_worker_list_session{0};
+std::atomic<bool>     s_navigating_within_openclaw{false};
+
+// OpenClaw 所有 HTTP 串行化，避免 worker 与录音上传 task 并发触发
+// esp-ml307 HttpClient / EspTcp 回调死锁（Interrupt WDT）。
+std::mutex            s_openclaw_http_mutex;
 
 // 未激活拦截：全屏模态弹窗，不可关闭，仅能通过返回键离开。
 struct ActivationBlockedDialogUi {
@@ -175,6 +211,7 @@ struct ActivationBlockedDialogUi {
 };
 ActivationBlockedDialogUi s_activation_dlg;
 bool s_activation_blocked = false;
+screen_lifecycle_cb_t s_lifecycle_cb = nullptr;
 
 const lv_font_t* chat_font() { return &font_puhui_30_4; }
 
@@ -198,15 +235,30 @@ std::string get_remove_all_url() {
     return api::Url(api::kOpenClawRemoveAll);
 }
 
+std::string get_delete_conversation_url(const std::string& conversation_id) {
+    return api::OpenClawConversationDeleteUrl(conversation_id);
+}
+
 void close_clear_dialog();
-void open_clear_confirm_dialog();
-void on_swipe_back();
+void open_clear_confirm_dialog(ClearDialogMode mode);
+void on_swipe_back_home();
+void on_swipe_back_to_list();
 void trigger_fetch_history(bool update_status = true);
+void trigger_fetch_conv_list();
 void ensure_openclaw_worker();
 void stop_openclaw_worker();
 bool submit_worker_job(WorkerJob job);
 void execute_fetch_history(uint32_t session, bool update_status);
 void execute_clear_all();
+void execute_delete_one();
+void execute_fetch_conv_list(uint32_t session);
+lv_obj_t* create_list_screen();
+lv_obj_t* create_detail_screen(const std::string& conversation_id,
+                               const std::string& title);
+void open_conversation_detail(const std::string& conversation_id,
+                              const std::string& title);
+void rebuild_conv_list_locked(const std::vector<ConversationRecord>& records,
+                              int total);
 
 // ---------------------------------------------------------------------------
 // 工具
@@ -234,8 +286,8 @@ void log_activation_blocked() {
     }
 }
 
-void open_activation_blocked_dialog() {
-    if (s_screen == nullptr || s_activation_dlg.mask != nullptr) {
+void open_activation_blocked_dialog(lv_obj_t* parent_screen) {
+    if (parent_screen == nullptr || s_activation_dlg.mask != nullptr) {
         return;
     }
 
@@ -247,7 +299,7 @@ void open_activation_blocked_dialog() {
     constexpr int32_t kBackBtnW = 200;
     constexpr int32_t kBackBtnH = 72;
 
-    lv_obj_t* mask = lv_obj_create(s_screen);
+    lv_obj_t* mask = lv_obj_create(parent_screen);
     screen_strip_obj_chrome(mask);
     lv_obj_add_flag(mask, LV_OBJ_FLAG_FLOATING);
     lv_obj_set_size(mask, kPanelW, kPanelH);
@@ -307,7 +359,7 @@ void open_activation_blocked_dialog() {
     lv_obj_set_style_radius(back, 16, LV_PART_MAIN);
     lv_obj_align(back, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_add_event_cb(back,
-                        [](lv_event_t* /*e*/) { on_swipe_back(); },
+                        [](lv_event_t* /*e*/) { on_swipe_back_home(); },
                         LV_EVENT_CLICKED, nullptr);
     screen_swipe_back_ignore(back, true);
 
@@ -324,7 +376,9 @@ void ensure_activation_blocked_dialog() {
         return;
     }
     if (s_activation_dlg.mask == nullptr) {
-        open_activation_blocked_dialog();
+        lv_obj_t* parent = s_list_screen != nullptr ? s_list_screen
+                                                    : s_detail_screen;
+        open_activation_blocked_dialog(parent);
     }
 }
 
@@ -335,7 +389,8 @@ void on_activation_guard_timer(lv_timer_t* /*timer*/) {
 // ---------------------------------------------------------------------------
 // 工具（续）
 // ---------------------------------------------------------------------------
-bool is_screen_alive() { return s_screen != nullptr; }
+bool is_detail_screen_alive() { return s_detail_screen != nullptr; }
+bool is_list_screen_alive() { return s_list_screen != nullptr; }
 
 const std::string& device_id_header() {
     static const std::string kId = SystemInfo::GetMacAddress();
@@ -551,7 +606,7 @@ void add_right_bubble(const char* text) {
 void post_bubble_from_worker(const std::string& text) {
     if (text.empty()) return;
     if (esp_lv_adapter_lock(-1) != ESP_OK) return;
-    if (is_screen_alive()) {
+    if (is_detail_screen_alive()) {
         add_right_bubble(text.c_str());
     }
     esp_lv_adapter_unlock();
@@ -559,7 +614,7 @@ void post_bubble_from_worker(const std::string& text) {
 
 void post_status_from_worker(const char* text, uint32_t color) {
     if (esp_lv_adapter_lock(-1) != ESP_OK) return;
-    if (is_screen_alive() && s_status_lbl != nullptr) {
+    if (is_detail_screen_alive() && s_status_lbl != nullptr) {
         lv_label_set_text(s_status_lbl, text);
         lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(color),
                                     LV_PART_MAIN);
@@ -579,6 +634,7 @@ struct HttpGetResult {
 
 HttpGetResult http_get_json(const std::string& url) {
     HttpGetResult r;
+    std::lock_guard<std::mutex> http_lock(s_openclaw_http_mutex);
     auto network = Board::GetInstance().GetNetwork();
     if (network == nullptr) {
         r.err = "no network";
@@ -592,19 +648,23 @@ HttpGetResult http_get_json(const std::string& url) {
     http->SetHeader("Connection", "close");
     http->SetHeader("Accept", "application/json");
     http->SetHeader("X-Device-Id", device_id_header());
+    api::LogHttpRequest(TAG, "GET", url);
     if (!http->Open("GET", url)) {
         r.err = "open failed";
+        api::LogHttpResponse(TAG, -1, r.err);
         http->Close();
         return r;
     }
     r.status = http->GetStatusCode();
     if (r.status != 200) {
         r.err = "status " + std::to_string(r.status);
-        (void)http->ReadAll();
+        r.body = http->ReadAll();
+        api::LogHttpResponse(TAG, r.status, r.body);
         http->Close();
         return r;
     }
     r.body = http->ReadAll();
+    api::LogHttpResponse(TAG, r.status, r.body);
     http->Close();
     r.ok = !r.body.empty();
     if (!r.ok) {
@@ -628,12 +688,71 @@ struct DeviceStatusResult {
     std::string err;
 };
 
-struct ConversationListResult {
+struct ConversationListFetchResult {
     bool ok = false;
     int total = 0;
-    std::string conversation_id;
+    std::vector<ConversationRecord> records;
     std::string err;
 };
+
+ConversationListFetchResult fetch_conversation_records() {
+    ConversationListFetchResult r;
+    const std::string url = get_conversation_list_url();
+    ESP_LOGI(TAG, "fetch conversation list");
+
+    HttpGetResult http_res = http_get_json(url);
+    if (!http_res.ok) {
+        r.err = http_res.err;
+        return r;
+    }
+
+    cJSON* root = cJSON_Parse(http_res.body.c_str());
+    if (root == nullptr || !parse_api_code_200(root)) {
+        r.err = "invalid conversation list response";
+        cJSON_Delete(root);
+        return r;
+    }
+
+    cJSON* data = cJSON_GetObjectItemCaseSensitive(root, "data");
+    cJSON* total_item = data ? cJSON_GetObjectItemCaseSensitive(data, "total")
+                             : nullptr;
+    cJSON* records = data ? cJSON_GetObjectItemCaseSensitive(data, "records")
+                          : nullptr;
+    if (!cJSON_IsObject(data) || !cJSON_IsNumber(total_item) ||
+        !cJSON_IsArray(records)) {
+        r.err = "missing conversation list data";
+        cJSON_Delete(root);
+        return r;
+    }
+
+    r.total = total_item->valueint;
+
+    const int count = cJSON_GetArraySize(records);
+    for (int i = 0; i < count; ++i) {
+        cJSON* item = cJSON_GetArrayItem(records, i);
+        if (item == nullptr) {
+            continue;
+        }
+        cJSON* conv_id =
+            cJSON_GetObjectItemCaseSensitive(item, "conversationId");
+        if (!cJSON_IsString(conv_id) || conv_id->valuestring == nullptr ||
+            conv_id->valuestring[0] == '\0') {
+            continue;
+        }
+        ConversationRecord rec;
+        rec.conversation_id = conv_id->valuestring;
+        cJSON* title_item =
+            cJSON_GetObjectItemCaseSensitive(item, "title");
+        if (cJSON_IsString(title_item) && title_item->valuestring != nullptr &&
+            title_item->valuestring[0] != '\0') {
+            rec.title = title_item->valuestring;
+        }
+        r.records.push_back(std::move(rec));
+    }
+    r.ok = true;
+    cJSON_Delete(root);
+    return r;
+}
 
 DeviceStatusResult fetch_device_status() {
     DeviceStatusResult r;
@@ -665,54 +784,6 @@ DeviceStatusResult fetch_device_status() {
     } else {
         r.err = "missing data";
     }
-    cJSON_Delete(root);
-    return r;
-}
-
-ConversationListResult fetch_conversation_list() {
-    ConversationListResult r;
-    const std::string url = get_conversation_list_url();
-    ESP_LOGI(TAG, "fetch conversation list");
-
-    HttpGetResult http_res = http_get_json(url);
-    if (!http_res.ok) {
-        r.err = http_res.err;
-        return r;
-    }
-
-    cJSON* root = cJSON_Parse(http_res.body.c_str());
-    if (root == nullptr || !parse_api_code_200(root)) {
-        r.err = "invalid conversation list response";
-        cJSON_Delete(root);
-        return r;
-    }
-
-    cJSON* data = cJSON_GetObjectItemCaseSensitive(root, "data");
-    cJSON* total_item = data ? cJSON_GetObjectItemCaseSensitive(data, "total")
-                             : nullptr;
-    cJSON* records = data ? cJSON_GetObjectItemCaseSensitive(data, "records")
-                          : nullptr;
-    if (!cJSON_IsObject(data) || !cJSON_IsNumber(total_item) ||
-        !cJSON_IsArray(records)) {
-        r.err = "missing conversation list data";
-        cJSON_Delete(root);
-        return r;
-    }
-
-    r.total = total_item->valueint;
-    if (r.total >= 1 && cJSON_GetArraySize(records) > 0) {
-        const int record_count = cJSON_GetArraySize(records);
-        const int pick_idx = (r.total > 1) ? (record_count - 1) : 0;
-        cJSON* picked = cJSON_GetArrayItem(records, pick_idx);
-        cJSON* conv_id =
-            picked ? cJSON_GetObjectItemCaseSensitive(picked, "conversationId")
-                   : nullptr;
-        if (cJSON_IsString(conv_id) && conv_id->valuestring != nullptr &&
-            conv_id->valuestring[0] != '\0') {
-            r.conversation_id = conv_id->valuestring;
-        }
-    }
-    r.ok = true;
     cJSON_Delete(root);
     return r;
 }
@@ -851,12 +922,11 @@ std::string build_service_unavailable_message(bool bridge_online,
 
 void execute_fetch_history(uint32_t session, bool /*update_status*/) {
     DeviceStatusResult status_res = fetch_device_status();
-    ConversationListResult list_res;
     std::vector<HistoryMessage> messages;
     bool messages_ok = false;
     std::string messages_err;
     std::string messages_json;
-    std::string conversation_id;
+    const std::string conversation_id = s_conversation_id;
     bool service_ok = false;
     std::string status_msg;
     const bool bridge_online =
@@ -866,12 +936,8 @@ void execute_fetch_history(uint32_t session, bool /*update_status*/) {
 
     if (status_res.ok && status_res.bridge_online && status_res.gateway_online) {
         service_ok = true;
-        list_res = fetch_conversation_list();
-        if (list_res.ok) {
-            conversation_id = list_res.conversation_id;
-            messages_ok = fetch_messages_body(conversation_id, messages_json,
-                                              messages_err);
-        }
+        messages_ok = fetch_messages_body(conversation_id, messages_json,
+                                          messages_err);
     } else if (status_res.ok) {
         status_msg = build_service_unavailable_message(
             status_res.bridge_online, status_res.gateway_online);
@@ -886,12 +952,8 @@ void execute_fetch_history(uint32_t session, bool /*update_status*/) {
     }
 
     s_service_available.store(service_ok);
-    if (service_ok) {
-        s_conversation_id = conversation_id;
-    }
 
-    const bool data_ready =
-        service_ok && list_res.ok && messages_ok;
+    const bool data_ready = service_ok && messages_ok;
     if (data_ready &&
         refresh_snapshot_unchanged(service_ok, bridge_online, gateway_online,
                                  conversation_id, messages_json)) {
@@ -908,52 +970,40 @@ void execute_fetch_history(uint32_t session, bool /*update_status*/) {
     if (esp_lv_adapter_lock(-1) != ESP_OK) {
         return;
     }
-    if (is_screen_alive()) {
+    if (is_detail_screen_alive()) {
         if (service_ok) {
-            if (list_res.ok) {
-                if (messages_ok) {
-                    apply_history_locked(messages);
-                    save_refresh_snapshot(service_ok, bridge_online,
-                                          gateway_online, conversation_id,
-                                          messages_json);
-                    if (s_status_lbl != nullptr) {
-                        if (messages.empty()) {
-                            lv_label_set_text(s_status_lbl, "按住说话");
-                        } else {
-                            char buf[64];
-                            std::snprintf(buf, sizeof(buf), "已加载 %u 条消息",
-                                          static_cast<unsigned>(messages.size()));
-                            lv_label_set_text(s_status_lbl, buf);
-                        }
-                        lv_obj_set_style_text_color(
-                            s_status_lbl, lv_color_hex(kColorHintText),
-                            LV_PART_MAIN);
-                    }
-                    ESP_LOGI(TAG, "messages loaded: %u",
-                             static_cast<unsigned>(messages.size()));
-                } else {
-                    if (s_status_lbl != nullptr) {
-                        char buf[80];
-                        std::snprintf(buf, sizeof(buf), "加载消息失败: %s",
-                                      messages_err.c_str());
+            if (messages_ok) {
+                apply_history_locked(messages);
+                save_refresh_snapshot(service_ok, bridge_online,
+                                      gateway_online, conversation_id,
+                                      messages_json);
+                if (s_status_lbl != nullptr) {
+                    if (messages.empty()) {
+                        lv_label_set_text(s_status_lbl, "按住说话");
+                    } else {
+                        char buf[64];
+                        std::snprintf(buf, sizeof(buf), "已加载 %u 条消息",
+                                      static_cast<unsigned>(messages.size()));
                         lv_label_set_text(s_status_lbl, buf);
-                        lv_obj_set_style_text_color(
-                            s_status_lbl, lv_color_hex(kColorErrorText),
-                            LV_PART_MAIN);
                     }
-                    ESP_LOGW(TAG, "fetch messages failed: %s",
-                             messages_err.c_str());
+                    lv_obj_set_style_text_color(
+                        s_status_lbl, lv_color_hex(kColorHintText),
+                        LV_PART_MAIN);
                 }
+                ESP_LOGI(TAG, "messages loaded: %u",
+                         static_cast<unsigned>(messages.size()));
             } else {
                 if (s_status_lbl != nullptr) {
                     char buf[80];
-                    std::snprintf(buf, sizeof(buf), "加载会话失败: %s",
-                                  list_res.err.c_str());
+                    std::snprintf(buf, sizeof(buf), "加载消息失败: %s",
+                                  messages_err.c_str());
                     lv_label_set_text(s_status_lbl, buf);
                     lv_obj_set_style_text_color(
                         s_status_lbl, lv_color_hex(kColorErrorText),
                         LV_PART_MAIN);
                 }
+                ESP_LOGW(TAG, "fetch messages failed: %s",
+                         messages_err.c_str());
             }
             if (s_record_btn != nullptr) {
                 lv_obj_set_style_bg_color(s_record_btn,
@@ -1000,6 +1050,12 @@ void openclaw_worker_task(void* /*arg*/) {
             execute_fetch_history(session, update_status);
         } else if (job == WorkerJob::ClearAll) {
             execute_clear_all();
+        } else if (job == WorkerJob::DeleteOne) {
+            execute_delete_one();
+        } else if (job == WorkerJob::FetchConvList) {
+            const uint32_t session = s_worker_list_session.load(
+                std::memory_order_relaxed);
+            execute_fetch_conv_list(session);
         }
 
         if (s_worker_shutdown.load(std::memory_order_acquire)) {
@@ -1045,7 +1101,7 @@ bool submit_worker_job(WorkerJob job) {
 }
 
 void trigger_fetch_history(bool update_status) {
-    if (!is_screen_alive() || s_state.load() == State::Closing) {
+    if (!is_detail_screen_alive() || s_state.load() == State::Closing) {
         return;
     }
     if (s_activation_blocked) {
@@ -1079,7 +1135,7 @@ void trigger_fetch_history(bool update_status) {
 }
 
 void on_auto_refresh_timer(lv_timer_t* /*t*/) {
-    if (!is_screen_alive() || s_activation_blocked) {
+    if (!is_detail_screen_alive() || s_activation_blocked) {
         return;
     }
     if (s_state.load() != State::Idle) {
@@ -1115,6 +1171,7 @@ struct HttpDeleteResult {
 
 HttpDeleteResult http_remove_all_conversations() {
     HttpDeleteResult r;
+    std::lock_guard<std::mutex> http_lock(s_openclaw_http_mutex);
     auto network = Board::GetInstance().GetNetwork();
     if (network == nullptr) {
         r.err = "no network";
@@ -1129,14 +1186,17 @@ HttpDeleteResult http_remove_all_conversations() {
     const std::string url = get_remove_all_url();
     http->SetHeader("Accept", "application/json");
     http->SetHeader("X-Device-Id", device_id_header());
+    api::LogHttpRequest(TAG, "GET", url);
     if (!http->Open("GET", url)) {
         r.err = "open failed";
+        api::LogHttpResponse(TAG, -1, r.err);
         http->Close();
         return r;
     }
 
     r.status = http->GetStatusCode();
     r.body = http->ReadAll();
+    api::LogHttpResponse(TAG, r.status, r.body);
     http->Close();
     if (r.status != 200) {
         r.err = r.body.empty() ? ("status " + std::to_string(r.status)) : r.body;
@@ -1166,7 +1226,6 @@ HttpDeleteResult http_remove_all_conversations() {
 }
 
 void execute_clear_all() {
-    const std::string url = get_remove_all_url();
     ESP_LOGI(TAG, "remove all conversations");
 
     HttpDeleteResult http_res = http_remove_all_conversations();
@@ -1174,26 +1233,16 @@ void execute_clear_all() {
     if (esp_lv_adapter_lock(-1) != ESP_OK) {
         return;
     }
-    if (is_screen_alive()) {
+    if (is_list_screen_alive()) {
         if (http_res.ok) {
-            s_conversation_id.clear();
-            clear_messages();
-            save_refresh_snapshot(true, true, true, "", "");
-            if (s_status_lbl != nullptr) {
-                lv_label_set_text(s_status_lbl, "已清空全部会话");
-                lv_obj_set_style_text_color(s_status_lbl,
-                                            lv_color_hex(kColorHintText),
-                                            LV_PART_MAIN);
-            }
+            rebuild_conv_list_locked({}, 0);
             ESP_LOGI(TAG, "remove all conversations ok");
-        } else if (s_status_lbl != nullptr) {
-            char buf[80];
+        } else if (s_list_hint != nullptr) {
+            char buf[96];
             std::snprintf(buf, sizeof(buf), "清空失败: %s",
                           http_res.err.c_str());
-            lv_label_set_text(s_status_lbl, buf);
-            lv_obj_set_style_text_color(s_status_lbl,
-                                        lv_color_hex(kColorErrorText),
-                                        LV_PART_MAIN);
+            lv_label_set_text(s_list_hint, buf);
+            lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
             const std::string safe_body =
                 api::RedactClawUrlsForLog(http_res.body);
             ESP_LOGW(TAG, "remove all conversations failed: status=%d err=%s body=%s",
@@ -1204,35 +1253,348 @@ void execute_clear_all() {
     esp_lv_adapter_unlock();
 }
 
-void trigger_clear_all() {
-    if (!is_screen_alive() || s_state.load() == State::Closing) {
+HttpDeleteResult http_delete_conversation(const std::string& conversation_id) {
+    HttpDeleteResult r;
+    std::lock_guard<std::mutex> http_lock(s_openclaw_http_mutex);
+    auto network = Board::GetInstance().GetNetwork();
+    if (network == nullptr) {
+        r.err = "no network";
+        return r;
+    }
+    auto http = network->CreateHttp(0);
+    if (http == nullptr) {
+        r.err = "create http failed";
+        return r;
+    }
+
+    const std::string url = get_delete_conversation_url(conversation_id);
+    http->SetHeader("Accept", "application/json");
+    http->SetHeader("X-Device-Id", device_id_header());
+    api::LogHttpRequest(TAG, "GET", url);
+    if (!http->Open("GET", url)) {
+        r.err = "open failed";
+        api::LogHttpResponse(TAG, -1, r.err);
+        http->Close();
+        return r;
+    }
+
+    r.status = http->GetStatusCode();
+    r.body = http->ReadAll();
+    api::LogHttpResponse(TAG, r.status, r.body);
+    http->Close();
+    if (r.status != 200) {
+        r.err = r.body.empty() ? ("status " + std::to_string(r.status)) : r.body;
+        return r;
+    }
+
+    cJSON* root = cJSON_Parse(r.body.c_str());
+    if (root != nullptr) {
+        if (parse_api_code_200(root)) {
+            r.ok = true;
+            cJSON_Delete(root);
+            return r;
+        }
+        cJSON* msg = cJSON_GetObjectItemCaseSensitive(root, "message");
+        if (cJSON_IsString(msg) && msg->valuestring != nullptr &&
+            msg->valuestring[0] != '\0') {
+            r.err = msg->valuestring;
+        } else {
+            r.err = "code != 200";
+        }
+        cJSON_Delete(root);
+        return r;
+    }
+
+    r.ok = true;
+    return r;
+}
+
+void async_back_to_list_cb(void* /*user_data*/) {
+    on_swipe_back_to_list();
+}
+
+void execute_delete_one() {
+    const std::string conversation_id = s_conversation_id;
+    ESP_LOGI(TAG, "delete conversation: %s", conversation_id.c_str());
+
+    HttpDeleteResult http_res;
+    if (conversation_id.empty()) {
+        http_res.err = "no conversation id";
+    } else {
+        http_res = http_delete_conversation(conversation_id);
+    }
+
+    if (esp_lv_adapter_lock(-1) != ESP_OK) {
         return;
     }
-    if (!s_service_available.load()) {
-        if (s_status_lbl != nullptr) {
-            lv_label_set_text(s_status_lbl, "龙虾服务不可用");
-            lv_obj_set_style_text_color(s_status_lbl,
-                                        lv_color_hex(kColorErrorText),
-                                        LV_PART_MAIN);
-        }
+    const bool should_back =
+        is_detail_screen_alive() &&
+        (http_res.ok || conversation_id.empty());
+    if (should_back) {
+        esp_lv_adapter_unlock();
+        lv_async_call(async_back_to_list_cb, nullptr);
+        return;
+    }
+    if (is_detail_screen_alive() && s_status_lbl != nullptr) {
+        char buf[80];
+        std::snprintf(buf, sizeof(buf), "删除失败: %s", http_res.err.c_str());
+        lv_label_set_text(s_status_lbl, buf);
+        lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorErrorText),
+                                    LV_PART_MAIN);
+        const std::string safe_body = api::RedactClawUrlsForLog(http_res.body);
+        ESP_LOGW(TAG, "delete conversation failed: status=%d err=%s body=%s",
+                 http_res.status, http_res.err.c_str(), safe_body.c_str());
+    }
+    esp_lv_adapter_unlock();
+}
+
+void trigger_clear_all() {
+    if (!is_list_screen_alive()) {
+        return;
+    }
+
+    s_list_session.fetch_add(1, std::memory_order_relaxed);
+
+    if (s_list_hint != nullptr) {
+        lv_label_set_text(s_list_hint, "正在清空…");
+        lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    if (!submit_worker_job(WorkerJob::ClearAll) && s_list_hint != nullptr) {
+        lv_label_set_text(s_list_hint, "无法启动清空任务");
+        lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+void trigger_delete_one() {
+    if (!is_detail_screen_alive() || s_state.load() == State::Closing) {
         return;
     }
 
     s_history_session.fetch_add(1, std::memory_order_relaxed);
 
     if (s_status_lbl != nullptr) {
-        lv_label_set_text(s_status_lbl, "正在清空…");
+        lv_label_set_text(s_status_lbl, "正在删除…");
         lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorHintText),
                                     LV_PART_MAIN);
     }
 
-    if (!submit_worker_job(WorkerJob::ClearAll)) {
-        if (s_status_lbl != nullptr) {
-            lv_label_set_text(s_status_lbl, "无法启动清空任务");
-            lv_obj_set_style_text_color(s_status_lbl,
-                                        lv_color_hex(kColorErrorText),
-                                        LV_PART_MAIN);
+    if (!submit_worker_job(WorkerJob::DeleteOne) && s_status_lbl != nullptr) {
+        lv_label_set_text(s_status_lbl, "无法启动删除任务");
+        lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorErrorText),
+                                    LV_PART_MAIN);
+    }
+}
+
+void trigger_fetch_conv_list() {
+    if (!is_list_screen_alive() || s_activation_blocked) {
+        return;
+    }
+    if (s_list_loading.exchange(true)) {
+        return;
+    }
+
+    const uint32_t session =
+        s_list_session.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_worker_list_session.store(session, std::memory_order_relaxed);
+
+    if (s_list_hint != nullptr) {
+        lv_label_set_text(s_list_hint, "正在加载会话…");
+        lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    if (!submit_worker_job(WorkerJob::FetchConvList)) {
+        s_list_loading.store(false);
+        if (s_list_hint != nullptr) {
+            lv_label_set_text(s_list_hint, "无法启动加载任务");
+            lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
         }
+    }
+}
+
+void execute_fetch_conv_list(uint32_t session) {
+    ConversationListFetchResult res = fetch_conversation_records();
+    s_list_loading.store(false);
+
+    if (session != s_list_session.load(std::memory_order_relaxed)) {
+        return;
+    }
+
+    if (esp_lv_adapter_lock(-1) != ESP_OK) {
+        return;
+    }
+    if (is_list_screen_alive()) {
+        if (res.ok) {
+            rebuild_conv_list_locked(res.records, res.total);
+        } else if (s_list_hint != nullptr) {
+            char buf[96];
+            std::snprintf(buf, sizeof(buf), "加载失败: %s", res.err.c_str());
+            lv_label_set_text(s_list_hint, buf);
+            lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+    esp_lv_adapter_unlock();
+}
+
+void on_conv_item_delete(lv_event_t* e) {
+    auto* ctx = static_cast<ConvItemCtx*>(lv_event_get_user_data(e));
+    delete ctx;
+}
+
+void on_conv_item_clicked(lv_event_t* e) {
+    auto* ctx = static_cast<ConvItemCtx*>(lv_event_get_user_data(e));
+    if (ctx == nullptr) {
+        return;
+    }
+    open_conversation_detail(ctx->conversation_id, ctx->title);
+}
+
+void on_create_conv_clicked(lv_event_t* /*e*/) {
+    open_conversation_detail("", "新会话");
+}
+
+void add_conv_list_row(lv_obj_t* parent, const char* title_text,
+                       const char* id_text, const char* actual_title,
+                       bool is_create) {
+    constexpr int32_t kRowH = 92;
+    constexpr int32_t kCreateRowH = 88;
+    constexpr int32_t kIconSize = 48;
+    constexpr int32_t kCreateIconSize = 64;
+    constexpr int32_t kTextLeft = 14 + kIconSize + 14;
+
+    lv_obj_t* row = lv_obj_create(parent);
+    screen_strip_obj_chrome(row);
+    lv_obj_set_width(row, LV_PCT(100));
+    lv_obj_set_height(row, is_create ? kCreateRowH : kRowH);
+    lv_obj_set_style_radius(row, 12, LV_PART_MAIN);
+    if (is_create) {
+        lv_obj_set_style_bg_color(row, lv_color_hex(0x1A2332), LV_PART_MAIN);
+        lv_obj_set_style_border_color(row, lv_color_hex(0x3B4556),
+                                      LV_PART_MAIN);
+        lv_obj_set_style_border_width(row, 1, LV_PART_MAIN);
+    } else {
+        lv_obj_set_style_bg_color(row, lv_color_hex(0x202736), LV_PART_MAIN);
+        lv_obj_set_style_border_width(row, 0, LV_PART_MAIN);
+    }
+    lv_obj_set_style_bg_opa(row, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_pad_hor(row, 14, LV_PART_MAIN);
+    lv_obj_set_style_pad_ver(row, 10, LV_PART_MAIN);
+    lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
+
+    if (is_create) {
+        lv_obj_t* center = lv_obj_create(row);
+        screen_strip_obj_chrome(center);
+        lv_obj_set_width(center, LV_SIZE_CONTENT);
+        lv_obj_set_height(center, LV_SIZE_CONTENT);
+        lv_obj_set_style_bg_opa(center, LV_OPA_TRANSP, LV_PART_MAIN);
+        lv_obj_set_style_pad_all(center, 0, LV_PART_MAIN);
+        lv_obj_set_style_pad_column(center, 10, LV_PART_MAIN);
+        lv_obj_set_flex_flow(center, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(center, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                              LV_FLEX_ALIGN_CENTER);
+        lv_obj_align(center, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_remove_flag(center, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_remove_flag(center, LV_OBJ_FLAG_CLICKABLE);
+
+        lv_obj_t* icon_wrap = lv_obj_create(center);
+        screen_strip_obj_chrome(icon_wrap);
+        lv_obj_set_size(icon_wrap, kCreateIconSize, kCreateIconSize);
+        lv_obj_set_style_radius(icon_wrap, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+        lv_obj_set_style_clip_corner(icon_wrap, true, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(icon_wrap, LV_OPA_TRANSP, LV_PART_MAIN);
+        lv_obj_set_style_pad_all(icon_wrap, 0, LV_PART_MAIN);
+        lv_obj_set_style_border_width(icon_wrap, 0, LV_PART_MAIN);
+        lv_obj_remove_flag(icon_wrap, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_remove_flag(icon_wrap, LV_OBJ_FLAG_CLICKABLE);
+
+        lv_obj_t* icon = lv_image_create(icon_wrap);
+        lv_image_set_src(icon, "A:ic_s_openclaw_add_message.spng");
+        lv_image_set_inner_align(icon, LV_IMAGE_ALIGN_CONTAIN);
+        lv_obj_set_size(icon, kCreateIconSize, kCreateIconSize);
+        lv_obj_center(icon);
+        lv_obj_remove_flag(icon, LV_OBJ_FLAG_CLICKABLE);
+
+        lv_obj_t* title = lv_label_create(center);
+        lv_label_set_text(title, title_text);
+        lv_obj_set_style_text_color(title, lv_color_hex(kColorHeaderText),
+                                    LV_PART_MAIN);
+        lv_obj_set_style_text_font(title, &font_puhui_20_4, LV_PART_MAIN);
+        lv_obj_remove_flag(title, LV_OBJ_FLAG_CLICKABLE);
+
+        lv_obj_add_event_cb(row, on_create_conv_clicked, LV_EVENT_CLICKED,
+                            nullptr);
+        return;
+    }
+
+    lv_obj_t* icon = lv_image_create(row);
+    lv_image_set_src(icon, "A:ic_s_openclaw_message.spng");
+    lv_obj_set_size(icon, kIconSize, kIconSize);
+    lv_obj_align(icon, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_remove_flag(icon, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* title = lv_label_create(row);
+    lv_label_set_text(title, title_text);
+    lv_label_set_long_mode(title, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(title, kPanelW - kTextLeft - 28);
+    lv_obj_set_style_text_color(title, lv_color_hex(kColorHeaderText),
+                                LV_PART_MAIN);
+    lv_obj_set_style_text_font(title, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_align(title, LV_ALIGN_TOP_LEFT, kTextLeft, 8);
+    lv_obj_remove_flag(title, LV_OBJ_FLAG_CLICKABLE);
+
+    if (id_text != nullptr && id_text[0] != '\0') {
+        lv_obj_t* id_lbl = lv_label_create(row);
+        lv_label_set_text(id_lbl, id_text);
+        lv_label_set_long_mode(id_lbl, LV_LABEL_LONG_DOT);
+        lv_obj_set_width(id_lbl, kPanelW - kTextLeft - 28);
+        lv_obj_set_style_text_color(id_lbl, lv_color_hex(kColorHintText),
+                                    LV_PART_MAIN);
+        lv_obj_set_style_text_font(id_lbl, &font_puhui_20_4, LV_PART_MAIN);
+        lv_obj_align(id_lbl, LV_ALIGN_BOTTOM_LEFT, kTextLeft, -8);
+        lv_obj_remove_flag(id_lbl, LV_OBJ_FLAG_CLICKABLE);
+    }
+
+    auto* ctx = new ConvItemCtx();
+    ctx->conversation_id = id_text != nullptr ? id_text : "";
+    ctx->title = actual_title != nullptr ? actual_title : "";
+    lv_obj_add_event_cb(row, on_conv_item_clicked, LV_EVENT_CLICKED, ctx);
+    lv_obj_add_event_cb(row, on_conv_item_delete, LV_EVENT_DELETE, ctx);
+}
+
+void add_conv_total_hint(lv_obj_t* parent, int total) {
+    char buf[40];
+    std::snprintf(buf, sizeof(buf), "总共%d条会话", total);
+
+    lv_obj_t* hint = lv_label_create(parent);
+    lv_label_set_text(hint, buf);
+    lv_obj_set_width(hint, LV_PCT(100));
+    lv_obj_set_style_text_color(hint, lv_color_hex(kColorHintText),
+                                LV_PART_MAIN);
+    lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_set_style_pad_left(hint, 4, LV_PART_MAIN);
+    lv_obj_set_style_pad_top(hint, 2, LV_PART_MAIN);
+    lv_obj_set_style_pad_bottom(hint, 8, LV_PART_MAIN);
+    screen_make_input_passive(hint);
+}
+
+void rebuild_conv_list_locked(const std::vector<ConversationRecord>& records,
+                              int total) {
+    if (s_list_container == nullptr) {
+        return;
+    }
+    lv_obj_clean(s_list_container);
+
+    add_conv_list_row(s_list_container, "创建会话", nullptr, nullptr, true);
+    add_conv_total_hint(s_list_container, total);
+    for (const auto& rec : records) {
+        const char* title = rec.title.empty() ? "未命名会话" : rec.title.c_str();
+        add_conv_list_row(s_list_container, title, rec.conversation_id.c_str(),
+                          rec.title.c_str(), false);
+    }
+
+    if (s_list_hint != nullptr) {
+        lv_obj_add_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -1303,6 +1665,7 @@ UploadResult upload_wav(const uint8_t* wav_header, size_t header_size,
                         const uint8_t* pcm, size_t pcm_size,
                         const std::string& conversation_id) {
     UploadResult r;
+    std::lock_guard<std::mutex> http_lock(s_openclaw_http_mutex);
     auto network = Board::GetInstance().GetNetwork();
     if (network == nullptr) {
         r.err = "no network";
@@ -1319,6 +1682,17 @@ UploadResult upload_wav(const uint8_t* wav_header, size_t header_size,
     wav_body.assign(reinterpret_cast<const char*>(wav_header), header_size);
     wav_body.append(reinterpret_cast<const char*>(pcm), pcm_size);
 
+    const std::string upload_url = get_upload_url();
+    char extra_hdr[128];
+    if (!conversation_id.empty()) {
+        std::snprintf(extra_hdr, sizeof(extra_hdr),
+                      "header conversationId=%s", conversation_id.c_str());
+    } else {
+        extra_hdr[0] = '\0';
+    }
+    api::LogHttpBinaryRequest(TAG, "POST", upload_url, wav_body.size(),
+                              extra_hdr[0] != '\0' ? extra_hdr : nullptr);
+
     http->SetContent(std::move(wav_body));
     http->SetHeader("Content-Type", "audio/wav");
     http->SetHeader("Connection", "close");
@@ -1327,14 +1701,15 @@ UploadResult upload_wav(const uint8_t* wav_header, size_t header_size,
         http->SetHeader("conversationId", conversation_id.c_str());
     }
 
-    const std::string upload_url = get_upload_url();
     if (!http->Open("POST", upload_url)) {
         r.err = "open failed";
+        api::LogHttpResponse(TAG, -1, r.err);
         return r;
     }
 
     const int status = http->GetStatusCode();
     const std::string body = http->ReadAll();
+    api::LogHttpResponse(TAG, status, body);
     http->Close();
     parse_upload_response(status, body, r);
     return r;
@@ -1381,7 +1756,7 @@ void record_and_upload_task(void* /*arg*/) {
         if (wake_disabled_by_us) as.EnableWakeWordDetection(true);
         s_state.store(State::Idle);
         if (esp_lv_adapter_lock(-1) == ESP_OK) {
-            if (is_screen_alive()) update_button_ui_locked(State::Idle);
+            if (is_detail_screen_alive()) update_button_ui_locked(State::Idle);
             esp_lv_adapter_unlock();
         }
         s_record_task = nullptr;
@@ -1432,7 +1807,7 @@ void record_and_upload_task(void* /*arg*/) {
         heap_caps_free(buffer);
         s_state.store(State::Idle);
         if (esp_lv_adapter_lock(-1) == ESP_OK) {
-            if (is_screen_alive()) update_button_ui_locked(State::Idle);
+            if (is_detail_screen_alive()) update_button_ui_locked(State::Idle);
             esp_lv_adapter_unlock();
         }
         s_record_task = nullptr;
@@ -1443,7 +1818,7 @@ void record_and_upload_task(void* /*arg*/) {
     // 切到 Uploading 状态，刷新按钮
     s_state.store(State::Uploading);
     if (esp_lv_adapter_lock(-1) == ESP_OK) {
-        if (is_screen_alive()) update_button_ui_locked(State::Uploading);
+        if (is_detail_screen_alive()) update_button_ui_locked(State::Uploading);
         esp_lv_adapter_unlock();
     }
     char hint[64];
@@ -1463,6 +1838,13 @@ void record_and_upload_task(void* /*arg*/) {
     if (res.ok) {
         if (!res.conversation_id.empty()) {
             s_conversation_id = res.conversation_id;
+            if (esp_lv_adapter_lock(-1) == ESP_OK) {
+                if (is_detail_screen_alive() && s_detail_id_lbl != nullptr) {
+                    lv_label_set_text(s_detail_id_lbl,
+                                        s_conversation_id.c_str());
+                }
+                esp_lv_adapter_unlock();
+            }
         }
         ESP_LOGI(TAG, "upload ok, asr=%s conv=%s", res.text.c_str(),
                  s_conversation_id.c_str());
@@ -1478,7 +1860,7 @@ void record_and_upload_task(void* /*arg*/) {
                 messages_json);
             if (!unchanged) {
                 if (esp_lv_adapter_lock(-1) == ESP_OK) {
-                    if (is_screen_alive()) {
+                    if (is_detail_screen_alive()) {
                         apply_history_locked(messages);
                     }
                     esp_lv_adapter_unlock();
@@ -1499,7 +1881,7 @@ void record_and_upload_task(void* /*arg*/) {
 
     s_state.store(State::Idle);
     if (esp_lv_adapter_lock(-1) == ESP_OK) {
-        if (is_screen_alive()) update_button_ui_locked(State::Idle);
+        if (is_detail_screen_alive()) update_button_ui_locked(State::Idle);
         esp_lv_adapter_unlock();
     }
     s_record_task = nullptr;
@@ -1582,11 +1964,18 @@ void clear_messages() {
     update_empty_hint();
 }
 
-void on_clear_clicked(lv_event_t* /*e*/) {
+void on_list_clear_clicked(lv_event_t* /*e*/) {
     if (s_activation_blocked) {
         return;
     }
-    open_clear_confirm_dialog();
+    open_clear_confirm_dialog(ClearDialogMode::RemoveAll);
+}
+
+void on_detail_clear_clicked(lv_event_t* /*e*/) {
+    if (s_activation_blocked) {
+        return;
+    }
+    open_clear_confirm_dialog(ClearDialogMode::DeleteOne);
 }
 
 // ---------------------------------------------------------------------------
@@ -1602,8 +1991,13 @@ void on_clear_dialog_mask_clicked(lv_event_t* e) {
 void on_clear_cancel_clicked(lv_event_t* /*e*/) { close_clear_dialog(); }
 
 void on_clear_confirm_clicked(lv_event_t* /*e*/) {
+    const ClearDialogMode mode = s_clear_dlg.mode;
     close_clear_dialog();
-    trigger_clear_all();
+    if (mode == ClearDialogMode::RemoveAll) {
+        trigger_clear_all();
+    } else {
+        trigger_delete_one();
+    }
 }
 
 void close_clear_dialog() {
@@ -1613,8 +2007,14 @@ void close_clear_dialog() {
     s_clear_dlg = ClearDialogUi{};
 }
 
-void open_clear_confirm_dialog() {
-    if (s_screen == nullptr || s_clear_dlg.mask != nullptr) {
+void open_clear_confirm_dialog(ClearDialogMode mode) {
+    lv_obj_t* parent = nullptr;
+    if (mode == ClearDialogMode::RemoveAll) {
+        parent = s_list_screen;
+    } else {
+        parent = s_detail_screen;
+    }
+    if (parent == nullptr || s_clear_dlg.mask != nullptr) {
         return;
     }
 
@@ -1623,7 +2023,7 @@ void open_clear_confirm_dialog() {
     constexpr int32_t kBtnW = 200;
     constexpr int32_t kBtnH = 80;
 
-    lv_obj_t* mask = lv_obj_create(s_screen);
+    lv_obj_t* mask = lv_obj_create(parent);
     screen_strip_obj_chrome(mask);
     lv_obj_add_flag(mask, LV_OBJ_FLAG_FLOATING);
     lv_obj_set_size(mask, kPanelW, kPanelH);
@@ -1636,6 +2036,7 @@ void open_clear_confirm_dialog() {
     lv_obj_add_event_cb(mask, on_clear_dialog_mask_clicked, LV_EVENT_CLICKED,
                         nullptr);
     s_clear_dlg.mask = mask;
+    s_clear_dlg.mode = mode;
 
     lv_obj_t* card = lv_obj_create(mask);
     screen_strip_obj_chrome(card);
@@ -1649,14 +2050,19 @@ void open_clear_confirm_dialog() {
     lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t* title = lv_label_create(card);
-    lv_label_set_text(title, "清空会话");
+    lv_label_set_text(title,
+                      mode == ClearDialogMode::RemoveAll ? "清空会话"
+                                                         : "删除会话");
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_remove_flag(title, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t* desc = lv_label_create(card);
-    lv_label_set_text(desc, "将删除设备下全部会话，是否确定？");
+    lv_label_set_text(desc,
+                      mode == ClearDialogMode::RemoveAll
+                          ? "此操作会清空设备全部会话，是否确定？"
+                          : "是否删除此会话？");
     lv_obj_set_style_text_color(desc, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(desc, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(desc, LV_ALIGN_CENTER, 0, -10);
@@ -1714,7 +2120,7 @@ void style_header_btn(lv_obj_t* btn) {
                               LV_PART_MAIN | LV_STATE_PRESSED);
 }
 
-void on_swipe_back() {
+void on_swipe_back_home() {
     if (!s_activation_blocked) {
         if (s_clear_dlg.mask != nullptr) {
             close_clear_dialog();
@@ -1731,42 +2137,92 @@ void on_swipe_back() {
     }
 }
 
-void on_screen_unloaded(lv_event_t* /*e*/) {
-    // 通知 worker 尽快收尾；不阻塞地等它退出。LVGL 锁里只是把指针清空，
-    // worker 后续若试图碰 UI 会通过 is_screen_alive() 判空被挡掉。
+void on_swipe_back_to_list() {
+    if (s_clear_dlg.mask != nullptr) {
+        close_clear_dialog();
+        return;
+    }
+    s_history_session.fetch_add(1, std::memory_order_relaxed);
+    s_history_loading.store(false);
+    lv_indev_t* indev = lv_indev_active();
+    if (indev != nullptr) lv_indev_wait_release(indev);
+    s_navigating_within_openclaw.store(true, std::memory_order_release);
+    lv_obj_t* old_scr = lv_screen_active();
+    lv_obj_t* list    = create_list_screen();
+    lv_screen_load(list);
+    if (old_scr != nullptr && old_scr != list) {
+        lv_obj_delete_async(old_scr);
+    }
+}
+
+void open_conversation_detail(const std::string& conversation_id,
+                              const std::string& title) {
+    s_list_session.fetch_add(1, std::memory_order_relaxed);
+    s_list_loading.store(false);
+    lv_indev_t* indev = lv_indev_active();
+    if (indev != nullptr) lv_indev_wait_release(indev);
+    s_navigating_within_openclaw.store(true, std::memory_order_release);
+    lv_obj_t* old_scr = lv_screen_active();
+    lv_obj_t* detail  = create_detail_screen(conversation_id, title);
+    lv_screen_load(detail);
+    if (old_scr != nullptr && old_scr != detail) {
+        lv_obj_delete_async(old_scr);
+    }
+}
+
+void on_list_screen_unloaded(lv_event_t* /*e*/) {
+    s_list_session.fetch_add(1, std::memory_order_relaxed);
+    s_list_loading.store(false);
+    s_clear_dlg = ClearDialogUi{};
+    s_list_screen = nullptr;
+    s_list_container = nullptr;
+    s_list_hint = nullptr;
+
+    if (!s_navigating_within_openclaw.exchange(false, std::memory_order_acq_rel)) {
+        stop_openclaw_worker();
+        if (s_activation_guard_timer != nullptr) {
+            lv_timer_delete(s_activation_guard_timer);
+            s_activation_guard_timer = nullptr;
+        }
+        s_activation_dlg = ActivationBlockedDialogUi{};
+        s_activation_blocked = false;
+    }
+}
+
+void on_detail_screen_unloaded(lv_event_t* /*e*/) {
     s_stop_requested.store(true);
     s_state.store(State::Closing);
     s_history_session.fetch_add(1, std::memory_order_relaxed);
     s_history_loading.store(false);
     s_service_available.store(false);
     s_conversation_id.clear();
+    s_conversation_title.clear();
     invalidate_refresh_snapshot();
-    stop_openclaw_worker();
 
     if (s_tick_timer != nullptr) {
         lv_timer_delete(s_tick_timer);
         s_tick_timer = nullptr;
     }
-    if (s_activation_guard_timer != nullptr) {
-        lv_timer_delete(s_activation_guard_timer);
-        s_activation_guard_timer = nullptr;
-    }
     stop_auto_refresh_timer();
     s_clear_dlg = ClearDialogUi{};
-    s_activation_dlg = ActivationBlockedDialogUi{};
-    s_activation_blocked = false;
-    s_screen     = nullptr;
-    s_msg_list   = nullptr;
+    s_detail_screen = nullptr;
+    s_msg_list = nullptr;
     s_empty_hint = nullptr;
     s_record_btn = nullptr;
     s_record_lbl = nullptr;
     s_status_lbl = nullptr;
+    s_detail_title_lbl = nullptr;
+    s_detail_id_lbl = nullptr;
+
+    if (!s_navigating_within_openclaw.exchange(false, std::memory_order_acq_rel)) {
+        stop_openclaw_worker();
+    }
 }
 
 // ---------------------------------------------------------------------------
 // UI 组装
 // ---------------------------------------------------------------------------
-void build_header(lv_obj_t* parent) {
+void build_list_header(lv_obj_t* parent) {
     lv_obj_t* header = lv_obj_create(parent);
     screen_strip_obj_chrome(header);
     lv_obj_set_size(header, kPanelW, kHeaderH);
@@ -1796,7 +2252,7 @@ void build_header(lv_obj_t* parent) {
     lv_obj_set_style_radius(back, LV_RADIUS_CIRCLE, LV_PART_MAIN);
     lv_obj_set_style_shadow_width(back, 0, LV_PART_MAIN);
     lv_obj_add_event_cb(back,
-                        [](lv_event_t* /*e*/) { on_swipe_back(); },
+                        [](lv_event_t* /*e*/) { on_swipe_back_home(); },
                         LV_EVENT_CLICKED, nullptr);
     screen_swipe_back_ignore(back, true);
 
@@ -1812,7 +2268,6 @@ void build_header(lv_obj_t* parent) {
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 16 + kBackBtnSize + 12, 0);
 
-    // 右上角：清空
     constexpr int32_t kHdrBtnW = 88;
     constexpr int32_t kHdrBtnH = 56;
     constexpr int32_t kHdrRightPad = 12;
@@ -1821,9 +2276,124 @@ void build_header(lv_obj_t* parent) {
     lv_obj_set_size(clear, kHdrBtnW, kHdrBtnH);
     lv_obj_align(clear, LV_ALIGN_RIGHT_MID, -kHdrRightPad, 0);
     style_header_btn(clear);
-    lv_obj_add_event_cb(clear, on_clear_clicked, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_event_cb(clear, on_list_clear_clicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* clear_lbl = lv_label_create(clear);
     lv_label_set_text(clear_lbl, "清空");
+    lv_obj_set_style_text_color(clear_lbl, lv_color_hex(kColorHeaderBtnText),
+                                LV_PART_MAIN);
+    lv_obj_set_style_text_font(clear_lbl, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_center(clear_lbl);
+}
+
+void build_list_body(lv_obj_t* parent) {
+    s_list_container = lv_obj_create(parent);
+    lv_obj_set_size(s_list_container, kPanelW, kPanelH - kHeaderH);
+    lv_obj_set_pos(s_list_container, 0, kHeaderH);
+    screen_strip_obj_chrome(s_list_container);
+    lv_obj_set_style_bg_opa(s_list_container, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_pad_hor(s_list_container, 16, LV_PART_MAIN);
+    lv_obj_set_style_pad_top(s_list_container, 12, LV_PART_MAIN);
+    lv_obj_set_style_pad_bottom(s_list_container, 16, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(s_list_container, 10, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(s_list_container, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_scroll_dir(s_list_container, LV_DIR_VER);
+    lv_obj_set_flex_flow(s_list_container, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(s_list_container, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
+
+    s_list_hint = lv_label_create(parent);
+    lv_label_set_text(s_list_hint, "正在加载会话…");
+    lv_obj_set_width(s_list_hint, kPanelW * 80 / 100);
+    lv_label_set_long_mode(s_list_hint, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_align(s_list_hint, LV_TEXT_ALIGN_CENTER,
+                                LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_list_hint, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_set_style_text_color(s_list_hint, lv_color_hex(kColorHintText),
+                                LV_PART_MAIN);
+    lv_obj_align(s_list_hint, LV_ALIGN_TOP_MID, 0,
+                 kHeaderH + (kPanelH - kHeaderH) / 2 - 20);
+    screen_make_input_passive(s_list_hint);
+}
+
+void build_detail_header(lv_obj_t* parent) {
+    lv_obj_t* header = lv_obj_create(parent);
+    screen_strip_obj_chrome(header);
+    lv_obj_set_size(header, kPanelW, kHeaderH);
+    lv_obj_set_pos(header, 0, 0);
+    lv_obj_set_style_bg_color(header, lv_color_hex(kColorHeaderBg),
+                              LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(header, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* divider = lv_obj_create(header);
+    screen_strip_obj_chrome(divider);
+    lv_obj_set_size(divider, kPanelW, 1);
+    lv_obj_align(divider, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_set_style_bg_color(divider, lv_color_hex(kColorDivider),
+                              LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(divider, LV_OPA_COVER, LV_PART_MAIN);
+    screen_make_input_passive(divider);
+
+    lv_obj_t* back = lv_button_create(header);
+    lv_obj_remove_style_all(back);
+    lv_obj_set_size(back, kBackBtnSize, kBackBtnSize);
+    lv_obj_align(back, LV_ALIGN_LEFT_MID, 16, 0);
+    lv_obj_set_style_bg_opa(back, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(back, lv_color_hex(0xFFFFFF),
+                              LV_PART_MAIN | LV_STATE_PRESSED);
+    lv_obj_set_style_bg_opa(back, LV_OPA_20, LV_PART_MAIN | LV_STATE_PRESSED);
+    lv_obj_set_style_radius(back, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(back, 0, LV_PART_MAIN);
+    lv_obj_add_event_cb(back,
+                        [](lv_event_t* /*e*/) { on_swipe_back_to_list(); },
+                        LV_EVENT_CLICKED, nullptr);
+    screen_swipe_back_ignore(back, true);
+
+    lv_obj_t* back_icon = lv_image_create(back);
+    lv_image_set_src(back_icon, "A:ic_app_back.spng");
+    lv_obj_remove_flag(back_icon, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_center(back_icon);
+
+    const int32_t title_left = 16 + kBackBtnSize + 12;
+    const int32_t title_w = kPanelW - title_left - 120;
+
+    s_detail_title_lbl = lv_label_create(header);
+    lv_label_set_text(s_detail_title_lbl,
+                      s_conversation_title.empty() ? "未命名会话"
+                                                   : s_conversation_title.c_str());
+    lv_label_set_long_mode(s_detail_title_lbl, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(s_detail_title_lbl, title_w);
+    lv_obj_set_style_text_color(s_detail_title_lbl,
+                                lv_color_hex(kColorHeaderText), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_detail_title_lbl, &font_puhui_20_4,
+                               LV_PART_MAIN);
+    lv_obj_align(s_detail_title_lbl, LV_ALIGN_LEFT_MID, title_left, -12);
+
+    s_detail_id_lbl = lv_label_create(header);
+    if (s_conversation_id.empty()) {
+        lv_label_set_text(s_detail_id_lbl, "新会话");
+    } else {
+        lv_label_set_text(s_detail_id_lbl, s_conversation_id.c_str());
+    }
+    lv_label_set_long_mode(s_detail_id_lbl, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(s_detail_id_lbl, title_w);
+    lv_obj_set_style_text_color(s_detail_id_lbl, lv_color_hex(kColorHintText),
+                                LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_detail_id_lbl, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_align(s_detail_id_lbl, LV_ALIGN_LEFT_MID, title_left, 14);
+
+    constexpr int32_t kHdrBtnW = 88;
+    constexpr int32_t kHdrBtnH = 56;
+    constexpr int32_t kHdrRightPad = 12;
+
+    lv_obj_t* clear = lv_button_create(header);
+    lv_obj_set_size(clear, kHdrBtnW, kHdrBtnH);
+    lv_obj_align(clear, LV_ALIGN_RIGHT_MID, -kHdrRightPad, 0);
+    style_header_btn(clear);
+    lv_obj_add_event_cb(clear, on_detail_clear_clicked, LV_EVENT_CLICKED,
+                        nullptr);
+    lv_obj_t* clear_lbl = lv_label_create(clear);
+    lv_label_set_text(clear_lbl, "删除");
     lv_obj_set_style_text_color(clear_lbl, lv_color_hex(kColorHeaderBtnText),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(clear_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -1912,62 +2482,108 @@ void build_footer(lv_obj_t* parent) {
     screen_swipe_back_ignore(s_record_btn, true);
 }
 
-}  // namespace
-
-// ===========================================================================
-// 公共接口
-// ===========================================================================
-lv_obj_t* OpenClawScreen::Create() {
-    s_activation_blocked = !is_device_activated();
-    s_worker_shutdown.store(false, std::memory_order_release);
-    if (s_activation_blocked) {
-        log_activation_blocked();
-    }
-
+lv_obj_t* create_list_screen() {
     lv_obj_t* scr = lv_obj_create(nullptr);
-    s_screen = scr;
+    s_list_screen = scr;
     screen_strip_obj_chrome(scr);
     lv_obj_set_size(scr, kPanelW, kPanelH);
     lv_obj_set_style_bg_color(scr, lv_color_hex(kColorBg), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
-    build_header(scr);
+    build_list_header(scr);
+    build_list_body(scr);
+
+    if (s_activation_blocked) {
+        open_activation_blocked_dialog(scr);
+    }
+
+    screen_attach_swipe_back(scr, on_swipe_back_home);
+    if (s_lifecycle_cb != nullptr) {
+        screen_attach_lifecycle(scr, s_lifecycle_cb);
+    }
+    lv_obj_add_event_cb(scr, on_list_screen_unloaded, LV_EVENT_SCREEN_UNLOADED,
+                        nullptr);
+    lv_obj_add_event_cb(scr, [](lv_event_t* e) {
+        if (lv_event_get_code(e) == LV_EVENT_SCREEN_LOADED) {
+            if (s_activation_blocked) {
+                ensure_activation_blocked_dialog();
+                return;
+            }
+            ensure_openclaw_worker();
+            trigger_fetch_conv_list();
+        }
+    }, LV_EVENT_SCREEN_LOADED, nullptr);
+    return scr;
+}
+
+lv_obj_t* create_detail_screen(const std::string& conversation_id,
+                               const std::string& title) {
+    s_conversation_id = conversation_id;
+    s_conversation_title = title;
+    invalidate_refresh_snapshot();
+
+    lv_obj_t* scr = lv_obj_create(nullptr);
+    s_detail_screen = scr;
+    screen_strip_obj_chrome(scr);
+    lv_obj_set_size(scr, kPanelW, kPanelH);
+    lv_obj_set_style_bg_color(scr, lv_color_hex(kColorBg), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+
+    build_detail_header(scr);
     build_message_list(scr);
     build_footer(scr);
 
-    if (s_activation_blocked) {
-        open_activation_blocked_dialog();
-    } else if (s_status_lbl != nullptr) {
+    if (s_status_lbl != nullptr) {
         lv_label_set_text(s_status_lbl, "正在检查龙虾状态…");
     }
 
-    // 100ms 周期 timer 专门刷「已录 N.N 秒」。timer 销毁交给
-    // on_screen_unloaded，避免屏幕已经销毁后 timer 仍试图访问 label。
     s_tick_timer = lv_timer_create(tick_timer_cb, 100, nullptr);
+    s_state.store(State::Idle);
+    s_stop_requested.store(false);
+    s_record_start_us.store(0);
+
+    screen_attach_swipe_back(scr, on_swipe_back_to_list);
+    if (s_lifecycle_cb != nullptr) {
+        screen_attach_lifecycle(scr, s_lifecycle_cb);
+    }
+    lv_obj_add_event_cb(scr, on_detail_screen_unloaded, LV_EVENT_SCREEN_UNLOADED,
+                        nullptr);
+    lv_obj_add_event_cb(scr, [](lv_event_t* e) {
+        if (lv_event_get_code(e) == LV_EVENT_SCREEN_LOADED) {
+            ensure_openclaw_worker();
+            trigger_fetch_history(true);
+            start_auto_refresh_timer();
+        }
+    }, LV_EVENT_SCREEN_LOADED, nullptr);
+    return scr;
+}
+
+}  // namespace
+
+// ===========================================================================
+// 公共接口
+// ===========================================================================
+void OpenClawScreen::SetLifecycleCallback(screen_lifecycle_cb_t cb) {
+    s_lifecycle_cb = cb;
+}
+
+lv_obj_t* OpenClawScreen::Create() {
+    s_activation_blocked = !is_device_activated();
+    s_worker_shutdown.store(false, std::memory_order_release);
+    s_navigating_within_openclaw.store(false, std::memory_order_release);
+    if (s_activation_blocked) {
+        log_activation_blocked();
+    }
+
+    lv_obj_t* scr = create_list_screen();
+
     if (s_activation_blocked) {
         s_activation_guard_timer =
             lv_timer_create(on_activation_guard_timer, 1000, nullptr);
     }
 
-    s_state.store(State::Idle);
-    s_stop_requested.store(false);
-    s_record_start_us.store(0);
-
-    screen_attach_swipe_back(scr, on_swipe_back);
-    lv_obj_add_event_cb(scr, on_screen_unloaded, LV_EVENT_SCREEN_UNLOADED,
-                        nullptr);
-    lv_obj_add_event_cb(scr, [](lv_event_t* e) {
-        if (lv_event_get_code(e) == LV_EVENT_SCREEN_LOADED) {
-            if (s_activation_blocked) {
-                ESP_LOGW(TAG, "screen loaded while not activated, keep dialog");
-                ensure_activation_blocked_dialog();
-                return;
-            }
-            trigger_fetch_history(true);
-            start_auto_refresh_timer();
-        }
-    }, LV_EVENT_SCREEN_LOADED, nullptr);
     return scr;
 }
 
@@ -1980,6 +2596,10 @@ void OpenClawScreen::LifecycleCallback(screen_lifecycle_event_t event) {
             ESP_LOGI(TAG, "load: openclaw_screen");
         }
     } else {
+        if (s_navigating_within_openclaw.load(std::memory_order_acquire)) {
+            ESP_LOGI(TAG, "unload: openclaw_screen (internal navigation)");
+            return;
+        }
         ESP_LOGI(TAG, "unload: openclaw_screen");
         auto& audio_service = Application::GetInstance().GetAudioService();
         Application::GetInstance().ForceReturnToIdle();

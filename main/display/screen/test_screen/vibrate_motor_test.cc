@@ -129,9 +129,20 @@ void OnLoad() {
 
 void OnUnload() {
     StopConfirmTimer();
+    StopMotor();
+    s_status_icon = nullptr;
+}
+
+void StartMotor() {
+    LedcInitOnce();
+    s_motor_on = true;
+    ApplyDutyPct(kOnDutyPct);
+    ESP_LOGI(TAG, "vibrate motor ON (stress)");
+}
+
+void StopMotor() {
     s_motor_on = false;
     ApplyDutyPct(0);
-    s_status_icon = nullptr;
 }
 
 }  // namespace VibrateMotorTest

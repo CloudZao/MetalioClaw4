@@ -49,6 +49,7 @@
 #include "bt_audio_codec.h"
 #include "display/screen/bluetooth_screen/bluetooth_screen.h"
 
+#include "driver/temperature_sensor.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -142,6 +143,16 @@ private:
         };
         gpio_config(&io_conf);
         gpio_set_level(gpio_num, initial_level);
+    }
+
+    // 屏幕初始化前对 RST 引脚做一次硬件复位，时序与 esp_lcd_panel_reset 一致。
+    void ResetLcdBeforeInit() {
+        gpio_output_init(PIN_NUM_LCD_RST, 1);
+        gpio_set_level(PIN_NUM_LCD_RST, 0);
+        vTaskDelay(pdMS_TO_TICKS(20));
+        gpio_set_level(PIN_NUM_LCD_RST, 1);
+        vTaskDelay(pdMS_TO_TICKS(120));
+        ESP_LOGI(TAG, "LCD hardware reset done (GPIO %d)", PIN_NUM_LCD_RST);
     }
 
     void InitializeI2C() {
@@ -533,6 +544,7 @@ public:
         InitializeSdCard();
         // InitializeNoLCD();
         /* 顺序：LCD 上电稳定后再初始化 GT911，最后构造 LVGL 显示（触摸已就绪） */
+        ResetLcdBeforeInit();
         InitializeLCD();
         vTaskDelay(pdMS_TO_TICKS(100));
         InitializeTouch();
@@ -564,6 +576,17 @@ public:
                     prev_idle[c] = ulTaskGetIdleRunTimeCounterForCore(c);
                 }
                 uint64_t prev_us = (uint64_t)esp_timer_get_time();
+
+                // ---- ESP32-P4 内置温度传感器 ----
+                temperature_sensor_handle_t temp_handle = NULL;
+                const temperature_sensor_config_t temp_sensor_config =
+                    TEMPERATURE_SENSOR_CONFIG_DEFAULT(20, 80);
+                const bool temp_sensor_ok =
+                    (temperature_sensor_install(&temp_sensor_config, &temp_handle) == ESP_OK &&
+                     temperature_sensor_enable(temp_handle) == ESP_OK);
+                if (!temp_sensor_ok) {
+                    ESP_LOGW(TAG, "Temperature sensor init failed");
+                }
 
                 while (1) {
                     vTaskDelay(pdMS_TO_TICKS(1000));
@@ -602,6 +625,15 @@ public:
                     ESP_LOGI(kMonitorTag,
                              "@@@内存  | 剩余: %6u KB | 历史最小: %6u KB",
                              free_kb, min_free_kb);
+
+                    if (temp_sensor_ok) {
+                        float chip_temp_c = 0.0f;
+                        if (temperature_sensor_get_celsius(temp_handle, &chip_temp_c) == ESP_OK) {
+                            ESP_LOGI(kMonitorTag, "@@@温度  | 芯片: %5.1f °C", chip_temp_c);
+                        } else {
+                            ESP_LOGW(kMonitorTag, "@@@温度  | 芯片: 读取失败");
+                        }
+                    }
 
                     // ---- 电池电量 ----
                     int battery_level;

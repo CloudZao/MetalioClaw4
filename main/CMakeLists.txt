@@ -46,6 +46,9 @@ set(SOURCES "audio/audio_codec.cc"
             "display/screen/sd_card_screen/sd_card_screen.cc"
             "display/screen/pin_test_screen/pin_test_screen.cc"
             "display/screen/test_screen/test_screen.cc"
+            "display/screen/test_screen/auto_test_screen.cc"
+            "display/screen/test_screen/stress_test_screen.cc"
+            "display/screen/test_screen/stress_demo.c"
             "display/screen/test_screen/test_ui_common.cc"
             "display/screen/test_screen/vibrate_motor_test.cc"
             "display/screen/test_screen/audio_test.cc"
@@ -258,6 +261,8 @@ idf_component_register(SRCS ${SOURCES}
                     WHOLE_ARCHIVE
                     )
 
+target_link_libraries(${COMPONENT_LIB} PRIVATE idf::esp_driver_tsens)
+
 # Use target_compile_definitions to define BOARD_TYPE, BOARD_NAME
 # If BOARD_NAME is empty, use BOARD_TYPE
 if(NOT BOARD_NAME)
@@ -435,3 +440,5 @@ spiffs_create_partition_assets(
     MMAP_SUPPORT_SPNG
     MMAP_SPLIT_HEIGHT 16
 ) 
+
+spiffs_create_partition_image(factory_test ./factory-test-assets FLASH_IN_PROJECT DEPENDS)

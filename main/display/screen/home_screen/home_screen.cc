@@ -947,7 +947,8 @@ void SetPagerSkeletonMode(PagerState* state, bool active) {
         return;
     }
     state->skeleton_active = active;
-    for (int p = 0; p < state->page_count; ++p) {
+    const uint32_t page_child_count = lv_obj_get_child_count(state->pager);
+    for (uint32_t p = 0; p < page_child_count; ++p) {
         lv_obj_t* page = lv_obj_get_child(state->pager, p);
         if (page == nullptr) {
             continue;
@@ -1433,6 +1434,39 @@ void HighlightDot(PagerState* state, int page) {
     }
 }
 
+bool PagerLoopEnabled(const PagerState* state) {
+    return state != nullptr && state->page_count > 1;
+}
+
+// 无限循环翻页：pager 首尾各加一页克隆，布局为
+// [末页克隆][真实页0..N-1][首页克隆]，真实页 i 的 scroll_x = (i+1)*kPanelSize。
+int32_t PagerScrollXForPage(const PagerState* state, int logical_page) {
+    if (state == nullptr) {
+        return 0;
+    }
+    const int physical = PagerLoopEnabled(state) ? logical_page + 1 : logical_page;
+    return static_cast<int32_t>(physical) * kPanelSize;
+}
+
+void PagerMaybeWrapAfterScroll(PagerState* state) {
+    if (!PagerLoopEnabled(state) || state->pager == nullptr) {
+        return;
+    }
+    const int32_t scroll_x = lv_obj_get_scroll_x(state->pager);
+    if (scroll_x == 0) {
+        const int last = state->page_count - 1;
+        lv_obj_scroll_to_x(state->pager, PagerScrollXForPage(state, last),
+                           LV_ANIM_OFF);
+        HighlightDot(state, last);
+        s_last_home_page = last;
+    } else if (scroll_x == static_cast<int32_t>(state->page_count + 1) * kPanelSize) {
+        lv_obj_scroll_to_x(state->pager, PagerScrollXForPage(state, 0),
+                           LV_ANIM_OFF);
+        HighlightDot(state, 0);
+        s_last_home_page = 0;
+    }
+}
+
 void OnPagerScrollBegin(lv_event_t* e) {
     lv_anim_t* a = lv_event_get_scroll_anim(e);
     if (a == nullptr) {
@@ -1453,6 +1487,7 @@ void OnPagerScrollEnd(lv_event_t* e) {
         return;
     }
     if (!lv_obj_is_scrolling(state->pager)) {
+        PagerMaybeWrapAfterScroll(state);
         SetPagerSkeletonMode(state, false);
     }
 }
@@ -1463,11 +1498,25 @@ void GoToPage(PagerState* state, int target_page) {
         return;
     }
     if (target_page < 0 || target_page >= state->page_count) {
-        return;
+        if (!PagerLoopEnabled(state)) {
+            return;
+        }
+        target_page =
+            (target_page % state->page_count + state->page_count) % state->page_count;
     }
-    const int32_t target_x = target_page * kPanelSize;
+
+    const int current = state->current_page;
+    int32_t target_x = PagerScrollXForPage(state, target_page);
+    if (PagerLoopEnabled(state)) {
+        if (target_page == 0 && current == state->page_count - 1) {
+            target_x = static_cast<int32_t>(state->page_count + 1) * kPanelSize;
+        } else if (target_page == state->page_count - 1 && current == 0) {
+            target_x = 0;
+        }
+    }
+
     const int32_t scroll_x = lv_obj_get_scroll_x(state->pager);
-    if (target_page == state->current_page && scroll_x == target_x) {
+    if (target_page == current && scroll_x == target_x) {
         SetPagerSkeletonMode(state, false);
         return;
     }
@@ -1483,7 +1532,7 @@ void SnapPagerToNearestPage(PagerState* state, int release_dx) {
         return;
     }
     const int32_t scroll_x = lv_obj_get_scroll_x(state->pager);
-    const int anchor_x = state->current_page * kPanelSize;
+    const int anchor_x = PagerScrollXForPage(state, state->current_page);
     const int delta = static_cast<int>(scroll_x) - anchor_x;
 
     int target = state->current_page;
@@ -1497,9 +1546,18 @@ void SnapPagerToNearestPage(PagerState* state, int release_dx) {
     }
 
     if (target < 0) {
+        if (PagerLoopEnabled(state) && state->current_page == 0) {
+            GoToPage(state, state->page_count - 1);
+            return;
+        }
         target = 0;
     }
     if (target >= state->page_count) {
+        if (PagerLoopEnabled(state) &&
+            state->current_page == state->page_count - 1) {
+            GoToPage(state, 0);
+            return;
+        }
         target = state->page_count - 1;
     }
     GoToPage(state, target);
@@ -1726,7 +1784,7 @@ void OnHomeReleased(lv_event_t* e) {
     if (!s_home_touch.paging && state != nullptr && state->pager != nullptr &&
         !lv_obj_is_scrolling(state->pager)) {
         const int32_t scroll_x = lv_obj_get_scroll_x(state->pager);
-        const int32_t expected = state->current_page * kPanelSize;
+        const int32_t expected = PagerScrollXForPage(state, state->current_page);
         if (scroll_x == expected) {
             SetPagerSkeletonMode(state, false);
         }
@@ -1760,12 +1818,15 @@ void OnHomeScreenLoaded(lv_event_t* e) {
     // 屏幕加载完成、layout 已经算好，这时再把 pager 滚到「上次停留的页」。
     // 直接在 Create() 末尾 scroll_to_x 经常因为 layout 还没算赶不上首帧。
     auto* state = static_cast<PagerState*>(lv_event_get_user_data(e));
-    if (state != nullptr && state->pager != nullptr &&
-        s_last_home_page > 0 && s_last_home_page < state->page_count) {
+    if (state != nullptr && state->pager != nullptr) {
         lv_obj_update_layout(state->pager);
-        lv_obj_scroll_to_x(state->pager, s_last_home_page * kPanelSize,
+        int page = s_last_home_page;
+        if (page < 0 || page >= state->page_count) {
+            page = 0;
+        }
+        lv_obj_scroll_to_x(state->pager, PagerScrollXForPage(state, page),
                            LV_ANIM_OFF);
-        HighlightDot(state, s_last_home_page);
+        HighlightDot(state, page);
     }
 
     StartHomeIdleTimer();
@@ -2176,8 +2237,15 @@ lv_obj_t* HomeScreen::Create() {
     lv_obj_add_event_cb(pager, OnPagerScrollBegin, LV_EVENT_SCROLL_BEGIN, nullptr);
     lv_obj_add_event_cb(pager, OnPagerScrollEnd, LV_EVENT_SCROLL_END, state);
 
-    for (int p = 0; p < page_count; ++p) {
-        CreatePage(pager, p, kTotalApps);
+    if (page_count > 1) {
+        // 首尾克隆页实现无限循环：末页克隆 | 真实页 | 首页克隆
+        CreatePage(pager, page_count - 1, kTotalApps);
+        for (int p = 0; p < page_count; ++p) {
+            CreatePage(pager, p, kTotalApps);
+        }
+        CreatePage(pager, 0, kTotalApps);
+    } else {
+        CreatePage(pager, 0, kTotalApps);
     }
 
     // ----- Page indicator -----

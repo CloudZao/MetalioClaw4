@@ -46,3 +46,11 @@ void TestUiDismissConfirmDialog();
 lv_obj_t* TestUiCreateValueLabel(lv_obj_t* right_ctrl);
 lv_obj_t* TestUiCreateSwitch(lv_obj_t* right_ctrl, lv_event_cb_t cb,
                              void* user_data);
+
+lv_obj_t* TestUiCreateHeader(lv_obj_t* scr, const char* title,
+                             lv_event_cb_t on_back_cb);
+lv_obj_t* TestUiCreateScrollBody(lv_obj_t* scr);
+lv_obj_t* TestUiCreateMenuRow(lv_obj_t* parent, const char* title,
+                              lv_event_cb_t on_click_cb);
+
+void TestUiNavigateTo(lv_obj_t* (*create_screen)());

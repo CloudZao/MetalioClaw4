@@ -105,3 +105,6 @@ dependencies:
   # 这里只保留它原本声明的两个底层依赖（idf 版本要求合并到上方 idf 段）。
   78/uart-uhci: ~0.2.1
   espressif/iot_eth: ^0.1.0
+  espressif/esp_audio_simple_player: ^0.9.6~1
+  espressif/gmf_audio: ^0.8.1
+  espressif/gmf_io: ^0.8.0

@@ -187,47 +187,22 @@ jobs:
           echo "Release notes:"
           cat release_notes.md
 
-      - name: Upload to Latest release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: latest
-          name: Latest
-          body_path: release_notes.md
-          files: ${{ steps.artifact.outputs.path }}
-          make_latest: true
-
-      - name: Remove old .bin assets
+      - name: Recreate Latest release
         env:
           GH_TOKEN: ${{ github.token }}
-          KEEP_ASSET: ${{ steps.artifact.outputs.path }}
         shell: bash
         run: |
-          if ! gh release view latest --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            echo "No latest release found, skip cleanup."
-            exit 0
+          if gh release view latest --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Deleting existing latest release and tag..."
+            gh release delete latest --repo "${{ github.repository }}" -y --cleanup-tag
+          else
+            echo "No existing latest release."
           fi
 
-          mapfile -t old_assets < <(
-            gh release view latest --repo "${{ github.repository }}" \
-              --json assets \
-              --jq --arg keep "$KEEP_ASSET" \
-                '.assets[]
-                 | select(.name | startswith("Metalio_Claw4_Latest_"))
-                 | select(.name != $keep)
-                 | .name'
-          )
-
-          if [[ ${#old_assets[@]} -eq 0 ]]; then
-            echo "No old .bin assets to remove (keeping ${KEEP_ASSET})."
-            exit 0
-          fi
-
-          for asset_name in "${old_assets[@]}"; do
-            echo "Removing old asset: ${asset_name}"
-            if gh release delete-asset latest "$asset_name" \
-                --repo "${{ github.repository }}" -y; then
-              echo "Removed ${asset_name}"
-            else
-              echo "Warning: failed to remove ${asset_name}" >&2
-            fi
-          done
+          echo "Creating latest release with ${{ steps.artifact.outputs.path }}..."
+          gh release create latest "${{ steps.artifact.outputs.path }}" \
+            --repo "${{ github.repository }}" \
+            --title "Latest" \
+            --notes-file release_notes.md \
+            --latest \
+            --target "${{ github.sha }}"

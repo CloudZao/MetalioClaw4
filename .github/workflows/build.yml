@@ -187,24 +187,31 @@ jobs:
           echo "Release notes:"
           cat release_notes.md
 
-      - name: Remove previous release assets
+      - name: Remove previous .bin assets
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           if ! gh release view latest --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            echo "No existing Latest release, skip cleanup."
+            echo "No existing latest release, skip cleanup."
             exit 0
           fi
 
-          mapfile -t asset_ids < <(gh release view latest --repo "${{ github.repository }}" --json assets --jq '.assets[].id')
+          # 只删历史上传的固件；Source code (zip/tar.gz) 为 GitHub 自动生成，无法删除且会 404
+          mapfile -t asset_ids < <(
+            gh release view latest --repo "${{ github.repository }}" \
+              --json assets \
+              --jq '.assets[] | select(.name | startswith("Metalio_Claw4_Latest_")) | .id'
+          )
           if [[ ${#asset_ids[@]} -eq 0 ]]; then
-            echo "No assets to remove."
+            echo "No previous .bin assets to remove."
             exit 0
           fi
 
           for asset_id in "${asset_ids[@]}"; do
-            gh api -X DELETE "repos/${{ github.repository }}/releases/assets/$asset_id"
+            if ! gh api -X DELETE "repos/${{ github.repository }}/releases/assets/$asset_id" 2>/dev/null; then
+              echo "Asset $asset_id already removed or not found, skip."
+            fi
           done
 
       - name: Upload to Latest release

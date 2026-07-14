@@ -182,6 +182,10 @@ void Application::CheckNewVersion(Ota& ota) {
             break;
         }
 
+        while (activation_suspended_) {
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+
         display->SetStatus(Lang::Strings::ACTIVATION);
         // Activation code is shown to the user and waiting for the user to input
         if (ota.HasActivationCode()) {
@@ -190,6 +194,9 @@ void Application::CheckNewVersion(Ota& ota) {
 
         // This will block the loop until the activation is done or timeout
         for (int i = 0; i < 10; ++i) {
+            while (activation_suspended_) {
+                vTaskDelay(pdMS_TO_TICKS(500));
+            }
             ESP_LOGI(TAG, "Activating... %d/%d", i + 1, 10);
             esp_err_t err = ota.Activate();
             if (err == ESP_OK) {
@@ -212,6 +219,10 @@ void Application::CheckNewVersion(Ota& ota) {
 }
 
 void Application::ShowActivationCode(const std::string& code, const std::string& message) {
+    if (activation_suspended_) {
+        return;
+    }
+
     pending_activation_code_ = code;
 #ifdef HAVE_LVGL
     HomeScreen::RefreshStatusBar();
@@ -238,6 +249,9 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
     Alert(Lang::Strings::ACTIVATION, message.c_str(), "link", Lang::Sounds::OGG_ACTIVATION);
 
     for (const auto& digit : code) {
+        if (activation_suspended_) {
+            return;
+        }
         auto it = std::find_if(digit_sounds.begin(), digit_sounds.end(),
             [digit](const digit_sound& ds) { return ds.digit == digit; });
         if (it != digit_sounds.end()) {
@@ -246,13 +260,60 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
     }
 }
 
+void Application::SetActivationSuspended(bool suspended) {
+    activation_suspended_ = suspended;
+    if (suspended) {
+        DismissAlert();
+        ESP_LOGI(TAG, "Activation suspended for stress test");
+    } else {
+        ESP_LOGI(TAG, "Activation resumed after stress test");
+    }
+}
+
+void Application::StopSystemAudioForStressTest() {
+    if (protocol_ && protocol_->IsAudioChannelOpened()) {
+        protocol_->CloseAudioChannel();
+    }
+
+    if (device_state_ == kDeviceStateSpeaking) {
+        AbortSpeaking(kAbortReasonNone);
+    } else if (device_state_ == kDeviceStateListening && protocol_) {
+        protocol_->SendStopListening();
+    }
+
+    audio_service_.EnableAudioTesting(false);
+    audio_service_.EnableVoiceProcessing(false);
+    audio_service_.EnableWakeWordDetection(false);
+    audio_service_.ResetDecoder();
+
+    for (int i = 0; i < 20 && !audio_service_.IsIdle(); ++i) {
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+
+    if (device_state_ == kDeviceStateListening ||
+        device_state_ == kDeviceStateSpeaking ||
+        device_state_ == kDeviceStateConnecting) {
+        SetDeviceState(kDeviceStateIdle);
+    }
+
+    DismissAlert();
+    ESP_LOGI(TAG, "System audio stopped for stress test");
+}
+
+void Application::RestoreSystemAudioAfterStressTest() {
+    if (device_state_ == kDeviceStateIdle) {
+        audio_service_.EnableWakeWordDetection(true);
+    }
+    ESP_LOGI(TAG, "System audio restored after stress test");
+}
+
 void Application::Alert(const char* status, const char* message, const char* emotion, const std::string_view& sound) {
     ESP_LOGW(TAG, "Alert [%s] %s: %s", emotion, status, message);
     auto display = Board::GetInstance().GetDisplay();
     display->SetStatus(status);
     display->SetEmotion(emotion);
     display->SetChatMessage("system", message);
-    if (!sound.empty()) {
+    if (!sound.empty() && !activation_suspended_) {
         audio_service_.PlaySound(sound);
     }
 }
@@ -766,6 +827,10 @@ void Application::SetDeviceState(DeviceState state) {
 
 void Application::Reboot() {
     ESP_LOGI(TAG, "Rebooting...");
+    // 重启前关背光，避免过渡花屏/蓝屏；不写 NVS，下次启动仍按原亮度恢复。
+    if (Backlight* bl = Board::GetInstance().GetBacklight()) {
+        bl->SetBrightness(0, false);
+    }
     // Disconnect the audio channel
     if (protocol_ && protocol_->IsAudioChannelOpened()) {
         protocol_->CloseAudioChannel();
@@ -773,6 +838,7 @@ void Application::Reboot() {
     protocol_.reset();
     audio_service_.Stop();
 
+    // 等待背光渐暗（SetBrightness 约 5ms/级）后再重启
     vTaskDelay(pdMS_TO_TICKS(1000));
     esp_restart();
 }
@@ -943,6 +1009,9 @@ void Application::SetAecMode(AecMode mode) {
 }
 
 void Application::PlaySound(const std::string_view& sound) {
+    if (activation_suspended_) {
+        return;
+    }
     audio_service_.PlaySound(sound);
 }
 

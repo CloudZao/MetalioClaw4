@@ -11,6 +11,9 @@
 #include "sd_card_test.h"
 #include "cell_4g_test.h"
 #include "wifi_test.h"
+#include "bq27220_test.h"
+#include "nu1680_test.h"
+#include "pin_gpio_test.h"
 #include "screen_util.h"
 #include "test_ui_common.h"
 
@@ -30,6 +33,8 @@ void OnPollTimer(lv_timer_t* /*t*/) {
     Qmc6309Test::Poll();
     SdCardTest::Poll();
     GpsTest::Poll();
+    Bq27220Test::Poll();
+    Nu1680Test::Poll();
 }
 
 void OnSwipeBackToMenu() {
@@ -56,6 +61,9 @@ void OnScreenUnloaded(lv_event_t* /*e*/) {
     Cell4gTest::OnUnload();
     WifiTest::OnUnload();
     GpsTest::OnUnload();
+    Bq27220Test::OnUnload();
+    Nu1680Test::OnUnload();
+    PinGpioTest::OnUnload();
     s_screen = nullptr;
 }
 
@@ -69,6 +77,9 @@ void OnScreenLoadItems() {
     Cell4gTest::OnLoad();
     WifiTest::OnLoad();
     GpsTest::OnLoad();
+    Bq27220Test::OnLoad();
+    Nu1680Test::OnLoad();
+    PinGpioTest::OnLoad();
 }
 
 }  // namespace
@@ -98,6 +109,9 @@ lv_obj_t* AutoTestScreen::Create() {
     Qmc6309Test::BuildRow(body);
     SdCardTest::BuildRow(body);
     GpsTest::BuildRow(body);
+    Bq27220Test::BuildRow(body);
+    Nu1680Test::BuildRow(body);
+    PinGpioTest::BuildRow(body);
 
     OnScreenLoadItems();
 

@@ -95,10 +95,9 @@ LVAdapterDisplay::LVAdapterDisplay(const esp_lcd_panel_handle_t panel,
     ESP_ERROR_CHECK(esp_lv_adapter_init(&adapter_cfg));
 
     // 性能调优要点（720x720 RGB565 屏）：
-    //   - enable_ppa_accel: 打开 ESP32-P4 内置 PPA 硬件单元，专门做 alpha
-    //     混合 / 像素格式转换 / 旋转，过去全靠软件遍历像素。开了之后，主屏
-    //     滑动翻页这种大面积半透明叠加最受益（用户场景里 9 个磁贴 × 20%
-    //     alpha + 圆角 + 文字）。
+    //   - enable_ppa_accel: 开启 PPA。半透明/圆角会触发 adapter「先 msync 再
+    //     软件 fallback」；主屏翻页期间由 home_screen 降级为纯不透明直角绘制
+    //     （见 SetPagerSkeletonMode），避免刷 invalid addr。
     //   - tear_avoid_mode = TRIPLE_FULL：直接把 LCD 驱动里 num_fbs=3 的 3 张
     //     panel 帧缓冲（PSRAM 上 3×720×720×2 ≈ 3MB）当成 LVGL 的 draw buffer
     //     用，渲染→DMA 三级流水，无撕裂。

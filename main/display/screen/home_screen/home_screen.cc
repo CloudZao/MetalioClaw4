@@ -6,6 +6,8 @@
 #include <ctime>
 #include <string>
 #include <esp_log.h>
+#include <esp_ota_ops.h>
+#include <esp_partition.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -480,6 +482,144 @@ void LaunchOpenClaw(screen_lifecycle_cb_t lifecycle_cb) {
     }
 }
 
+// ESPClaw：弹提示 → 将启动分区切到 ota_1 → 重启进入 edge_agent。
+bool s_espclaw_switching = false;
+lv_obj_t* s_espclaw_overlay = nullptr;
+lv_obj_t* s_espclaw_msg_lbl = nullptr;
+lv_timer_t* s_espclaw_fail_timer = nullptr;
+
+void StopHomeIdleTimer();  // defined later in this TU
+
+void CloseEspClawPopup() {
+    if (s_espclaw_fail_timer != nullptr) {
+        lv_timer_delete(s_espclaw_fail_timer);
+        s_espclaw_fail_timer = nullptr;
+    }
+    if (s_espclaw_overlay != nullptr) {
+        lv_obj_delete(s_espclaw_overlay);
+        s_espclaw_overlay = nullptr;
+    }
+    s_espclaw_msg_lbl = nullptr;
+    s_espclaw_switching = false;
+}
+
+void EspClawFailCloseTimer(lv_timer_t* /*timer*/) {
+    s_espclaw_fail_timer = nullptr;
+    CloseEspClawPopup();
+}
+
+void EspClawSwitchFailAsync(void* user_data) {
+    const char* msg = static_cast<const char*>(user_data);
+    if (s_espclaw_msg_lbl != nullptr && msg != nullptr) {
+        lv_label_set_text(s_espclaw_msg_lbl, msg);
+    }
+    s_espclaw_switching = false;
+    if (s_espclaw_fail_timer != nullptr) {
+        lv_timer_delete(s_espclaw_fail_timer);
+    }
+    // 展示错误约 2.5s 后自动收起，便于重试
+    s_espclaw_fail_timer =
+        lv_timer_create(EspClawFailCloseTimer, 2500, nullptr);
+    lv_timer_set_repeat_count(s_espclaw_fail_timer, 1);
+}
+
+void EspClawSwitchTask(void* /*arg*/) {
+    // 给弹窗一点渲染时间
+    vTaskDelay(pdMS_TO_TICKS(1500));
+
+    const esp_partition_t* ota1 = esp_partition_find_first(
+        ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_1, nullptr);
+    if (ota1 == nullptr) {
+        ESP_LOGE(TAG_HOME, "ESPClaw: ota_1 partition not found");
+        lv_async_call(EspClawSwitchFailAsync,
+                      const_cast<char*>("未找到 ESPClaw\n请确认是否已安装到分区"));
+        vTaskDelete(nullptr);
+        return;
+    }
+
+    esp_err_t err = esp_ota_set_boot_partition(ota1);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG_HOME, "ESPClaw: set boot to %s failed: %s", ota1->label,
+                 esp_err_to_name(err));
+        lv_async_call(EspClawSwitchFailAsync,
+                      const_cast<char*>("未找到 ESPClaw\n请确认是否已安装到分区"));
+        vTaskDelete(nullptr);
+        return;
+    }
+
+    ESP_LOGW(TAG_HOME, "ESPClaw: boot -> %s, rebooting", ota1->label);
+    Application::GetInstance().Reboot();
+    vTaskDelete(nullptr);
+}
+
+void ShowEspClawSwitchPopup() {
+    lv_obj_t* scr = lv_screen_active();
+    if (scr == nullptr) {
+        return;
+    }
+    CloseEspClawPopup();
+    s_espclaw_switching = true;
+
+    constexpr int kCardW = 520;
+    constexpr int kCardH = 320;
+
+    lv_obj_t* mask = lv_obj_create(scr);
+    lv_obj_remove_style_all(mask);
+    lv_obj_add_flag(mask, LV_OBJ_FLAG_FLOATING);
+    lv_obj_set_size(mask, kPanelSize, kPanelSize);
+    lv_obj_set_pos(mask, 0, 0);
+    lv_obj_set_style_bg_color(mask, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(mask, LV_OPA_80, LV_PART_MAIN);
+    lv_obj_remove_flag(mask, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(mask, LV_OBJ_FLAG_CLICKABLE);
+    screen_swipe_back_ignore(mask, true);
+    s_espclaw_overlay = mask;
+
+    lv_obj_t* card = lv_obj_create(mask);
+    lv_obj_remove_style_all(card);
+    lv_obj_set_size(card, kCardW, kCardH);
+    lv_obj_center(card);
+    lv_obj_set_style_bg_color(card, lv_color_hex(0x1B2030), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(card, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_radius(card, 20, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(card, 24, LV_PART_MAIN);
+    lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
+    screen_swipe_back_ignore(card, true);
+
+    lv_obj_t* head = lv_label_create(card);
+    lv_label_set_text(head, "ESPClaw");
+    lv_obj_set_style_text_color(head, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_obj_set_style_text_font(head, &font_puhui_30_4, LV_PART_MAIN);
+    lv_obj_align(head, LV_ALIGN_TOP_MID, 0, 20);
+    lv_obj_remove_flag(head, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* body = lv_label_create(card);
+    s_espclaw_msg_lbl = body;
+    lv_label_set_text(body, "即将进入 ESPClaw...");
+    lv_obj_set_width(body, kCardW - 48);
+    lv_label_set_long_mode(body, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_color(body, lv_color_hex(0xE5E7EB), LV_PART_MAIN);
+    lv_obj_set_style_text_font(body, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_set_style_text_align(body, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_align(body, LV_ALIGN_CENTER, 0, 20);
+    lv_obj_remove_flag(body, LV_OBJ_FLAG_CLICKABLE);
+}
+
+void LaunchEspClaw(screen_lifecycle_cb_t /*lifecycle_cb*/) {
+    if (s_espclaw_switching) {
+        return;
+    }
+    StopHomeIdleTimer();
+    ShowEspClawSwitchPopup();
+    if (xTaskCreate(EspClawSwitchTask, "espclaw_sw", 4096, nullptr, 5,
+                    nullptr) != pdPASS) {
+        ESP_LOGE(TAG_HOME, "ESPClaw: failed to create switch task");
+        EspClawSwitchFailAsync(
+            const_cast<char*>("未找到 ESPClaw\n请确认是否已安装到分区"));
+    }
+}
+
 void LaunchTheme(screen_lifecycle_cb_t lifecycle_cb) {
     lv_obj_t* old_scr = lv_screen_active();
     lv_obj_t* app = ThemeScreen::Create();
@@ -550,8 +690,9 @@ constexpr AppEntry kApps[] = {
     {"music",          "音乐",     LaunchMusic,         music_lifecycle_cb},
     {"calendar",       "日历",     LaunchCalendar,      calendar_lifecycle_cb},
     {"openclaw",       "OpenClaw", LaunchOpenClaw,      openclaw_lifecycle_cb},
-    {"gps",            "定位",     LaunchGps,           gps_lifecycle_cb},
+    {"espclaw",       "ESPClaw",     LaunchEspClaw,     nullptr},
     {"camera",         "相机",     LaunchCamera,        camera_lifecycle_cb},
+    {"gps",            "定位",     LaunchGps,           gps_lifecycle_cb},
     {"spirit_level",   "水平仪",   LaunchLevel,         level_lifecycle_cb},
     {"magnet",         "磁场",     LaunchMagnet,        magnet_lifecycle_cb},
     {"vibrate",        "震动",     LaunchVibrate,       vibrate_lifecycle_cb},
@@ -745,8 +886,6 @@ void StartHomeIdleTimer() {
 // App 卡片按压过渡：确认点击/长按后触发缩放。
 constexpr int kCellRadius = 28;
 constexpr uint32_t kCellPressScaleMs = 200;  // 与 GetPressTransition 时长一致
-constexpr uint32_t kSkeletonBg = 0x2A2F3A;
-constexpr uint32_t kSkeletonHighlight = 0x3D4451;
 
 const lv_style_prop_t kPressTransProps[] = {
     LV_STYLE_TRANSFORM_SCALE_X,
@@ -828,27 +967,20 @@ lv_obj_t* FindAppCellFromTarget(lv_obj_t* target, lv_obj_t* screen) {
 }
 
 lv_obj_t* CreateAppCellSkeleton(lv_obj_t* cell) {
+    // 翻页骨架：不透明直角。PPA 开启时半透明/圆角会先 msync 再软件 fallback，
+    // 易刷 invalid addr；静止态图标仍保留圆角。
+    constexpr uint32_t kSkeletonBg = 0x2A2F3A;
+
     lv_obj_t* skeleton = lv_obj_create(cell);
     lv_obj_remove_style_all(skeleton);
     lv_obj_set_size(skeleton, kCellWidth, kCellHeight);
     lv_obj_set_style_bg_color(skeleton, lv_color_hex(kSkeletonBg), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(skeleton, LV_OPA_40, LV_PART_MAIN);
-    lv_obj_set_style_radius(skeleton, kCellRadius, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(skeleton, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_radius(skeleton, 0, LV_PART_MAIN);
     lv_obj_set_style_border_width(skeleton, 0, LV_PART_MAIN);
     lv_obj_align(skeleton, LV_ALIGN_TOP_LEFT, 0, 0);
     lv_obj_remove_flag(skeleton, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(skeleton, LV_OBJ_FLAG_SCROLLABLE);
-
-    lv_obj_t* shine = lv_obj_create(skeleton);
-    lv_obj_remove_style_all(shine);
-    lv_obj_set_size(shine, kCellWidth - 48, 28);
-    lv_obj_align(shine, LV_ALIGN_CENTER, 0, -8);
-    lv_obj_set_style_bg_color(shine, lv_color_hex(kSkeletonHighlight), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(shine, LV_OPA_50, LV_PART_MAIN);
-    lv_obj_set_style_radius(shine, 14, LV_PART_MAIN);
-    lv_obj_set_style_border_width(shine, 0, LV_PART_MAIN);
-    lv_obj_remove_flag(shine, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_remove_flag(shine, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_add_flag(skeleton, LV_OBJ_FLAG_HIDDEN);
     return skeleton;
@@ -911,6 +1043,7 @@ lv_obj_t* CreateAppCell(lv_obj_t* parent, const AppEntry& entry, int idx) {
 
 struct PagerState {
     lv_obj_t* pager;
+    lv_obj_t* indicator = nullptr;  // 底部页码胶囊；翻页中会临时隐藏
     lv_obj_t* dots[kMaxPages];
     int page_count;
     int current_page;
@@ -943,12 +1076,29 @@ struct HomeStatusState {
     bool last_activation_visible = false;
 };
 
+HomeStatusState* s_home_status = nullptr;
+
 void SetPagerSkeletonMode(PagerState* state, bool active) {
     if (state == nullptr || state->pager == nullptr ||
         state->skeleton_active == active) {
         return;
     }
     state->skeleton_active = active;
+
+    // PPA 对半透明 fill 会先 msync 再软件绘制；翻页重绘风暴里极易踩到
+    // 非 cacheable 中间层。翻页期间把半透明装饰关掉/改不透明。
+    if (state->indicator != nullptr) {
+        if (active) {
+            lv_obj_add_flag(state->indicator, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_remove_flag(state->indicator, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+    if (s_home_status != nullptr && s_home_status->bar != nullptr) {
+        lv_obj_set_style_bg_opa(s_home_status->bar,
+                                active ? LV_OPA_COVER : LV_OPA_50, LV_PART_MAIN);
+    }
+
     const uint32_t page_child_count = lv_obj_get_child_count(state->pager);
     for (uint32_t p = 0; p < page_child_count; ++p) {
         lv_obj_t* page = lv_obj_get_child(state->pager, p);
@@ -968,9 +1118,14 @@ void SetPagerSkeletonMode(PagerState* state, bool active) {
             }
             if (active) {
                 lv_obj_remove_state(cell, LV_STATE_PRESSED);
+                // 去掉 clip_corner / 圆角，避免中间 layer + PPA msync。
+                lv_obj_set_style_clip_corner(cell, false, LV_PART_MAIN);
+                lv_obj_set_style_radius(cell, 0, LV_PART_MAIN);
                 lv_obj_add_flag(icon, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_remove_flag(skeleton, LV_OBJ_FLAG_HIDDEN);
             } else {
+                lv_obj_set_style_radius(cell, kCellRadius, LV_PART_MAIN);
+                lv_obj_set_style_clip_corner(cell, true, LV_PART_MAIN);
                 lv_obj_add_flag(skeleton, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_remove_flag(icon, LV_OBJ_FLAG_HIDDEN);
             }
@@ -1011,7 +1166,6 @@ Nt26Board* GetNt26Board() {
 }
 
 // 开机向模组查询一次当前 SIM 槽位，写回 NVS 并刷新状态栏。
-HomeStatusState* s_home_status = nullptr;
 bool s_boot_sim_slot_query_done = false;
 
 int ParseSimSlotFromEcsimcfg(const std::string& resp) {
@@ -2170,6 +2324,7 @@ void CreateIndicator(lv_obj_t* screen, PagerState* state) {
     // The indicator is purely decorative -- touch events fall through to
     // the pager underneath so the user can grab it to swipe pages.
     lv_obj_remove_flag(indicator, LV_OBJ_FLAG_CLICKABLE);
+    state->indicator = indicator;
 
     for (int i = 0; i < state->page_count; ++i) {
         lv_obj_t* dot = lv_obj_create(indicator);

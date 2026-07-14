@@ -64,8 +64,14 @@ public:
     void PlaySound(const std::string_view& sound);
     AudioService& GetAudioService() { return audio_service_; }
 
-    bool HasPendingActivation() const { return !pending_activation_code_.empty(); }
+    bool HasPendingActivation() const {
+        return !activation_suspended_ && !pending_activation_code_.empty();
+    }
     const std::string& GetPendingActivationCode() const { return pending_activation_code_; }
+    void SetActivationSuspended(bool suspended);
+    bool IsActivationSuspended() const { return activation_suspended_; }
+    void StopSystemAudioForStressTest();
+    void RestoreSystemAudioAfterStressTest();
 
     void ForceReturnToIdle();
 private:
@@ -83,6 +89,7 @@ private:
     std::string last_error_message_;
     AudioService audio_service_;
     std::string pending_activation_code_;
+    volatile bool activation_suspended_ = false;
 
     bool has_server_time_ = false;
     bool aborted_ = false;

@@ -680,8 +680,6 @@ idf.py build
 - Wi-Fi / 4G 无法联网
 - 摄像头或 SD 卡初始化失败
 
-如需自定义，建议通过 `sdkconfig.defaults` 或板级 `config.json` 的 `sdkconfig_append` 字段增量覆盖。
-
 ### 14.3 USB 调试端口
 
 设备通过 USB 连接电脑并**通电**后，系统通常会出现 **四个串口**。不同操作系统下的端口号（如 `COM3`、`/dev/ttyUSB0`）可能每次略有不同，请根据下表的**设备描述符**辨认，不要选错端口。

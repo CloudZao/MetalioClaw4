@@ -1,0 +1,39 @@
+# ESP-IDF Partition Table — 32MB dual-boot (xingzhi + esp-claw edge_agent)
+# Name,         Type, SubType,      Offset,   Size, Flags
+#
+# 要求：CONFIG_PARTITION_TABLE_OFFSET=0x9000（与 esp-claw edge_agent 一致）
+# 分区表位于 0x9000，首个数据分区从 0xA000 起（同 edge 的 nvs 起始习惯）。
+#
+# 设计目标（方案 1）：
+# - 本表供烧录到设备；两套固件通过 otadata 在 ota_0 / ota_1 间切换。
+# - 兼容 esp-claw edge_agent/partitions_32MB.csv 的分区标签与关键尺寸，
+#   不修改 esp-claw 仓库；双系统联调时请用本表烧录 Flash。
+# - edge_agent 按 label 查找：nvs / otadata / phy_init / ota_0 / ota_1 /
+#   emote / system / storage（system、storage 为 fat；emote 为 spiffs）。
+# - xingzhi 专用：nvsfactory / model / resources / factory_test。
+#
+# 槽位约定：
+# - ota_0 (9M)：xingzhi / xiaozhi.bin（约 8.3MB）
+# - ota_1 (4M)：edge_agent.bin（约 3.6MB）；原 edge 表为 8M，双系统为腾
+#   数据区改为 4M，仍大于当前固件。
+#
+# 相对 edge 表的尺寸差异（label 仍兼容）：
+# - nvs：840K（edge 为 24K，加大以兼容 xingzhi）
+# - emote：4M（edge 为 6M；emote_assets.bin 约 2.4MB，仍可放入）
+# - system：1M、storage：7M — 与 edge 一致，可直接烧 system.bin / storage.bin
+# - resources：4M（原 32m.csv 为 8M；当前 resources.bin 约 3.6MB）
+# - model：956K（原 960K；OFFSET=0x9000 / 首分区 0xA000 时缩 4K，
+#   使前面分区刚好接到 ota_0@0x200000；srmodels.bin 约 286K，空间充足）
+#
+nvsfactory,     data, nvs,         0xA000,   200K,
+nvs,            data, nvs,                ,   840K,
+otadata,        data, ota,                ,     8K,
+phy_init,       data, phy,                ,     4K,
+model,          data, spiffs,             ,   956K,
+ota_0,          app,  ota_0,      0x200000,     9M,
+ota_1,          app,  ota_1,              ,     4M,
+resources,      data, spiffs,             ,     4M,
+factory_test,   data, spiffs,             ,   600K,
+emote,          data, spiffs,             ,     4M,
+system,         data, fat,                ,     1M,
+storage,        data, fat,                ,     7M,

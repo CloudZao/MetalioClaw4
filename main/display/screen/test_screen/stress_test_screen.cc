@@ -1,5 +1,6 @@
 #include "stress_test_screen.h"
 
+#include "application.h"
 #include "audio_codec.h"
 #include "board.h"
 #include "camera_screen/camera_screen.h"
@@ -580,6 +581,10 @@ void EnterPhase(StressPhase phase) {
 void StartStressCycle() {
     StopStressCycle();
 
+    auto& app = Application::GetInstance();
+    app.SetActivationSuspended(true);
+    app.StopSystemAudioForStressTest();
+
     VibrateMotorTest::OnLoad();
     InitBgMusicSession();
 
@@ -596,6 +601,9 @@ void StopStressCycle() {
     VibrateMotorTest::StopMotor();
     VibrateMotorTest::OnUnload();
     StopCameraPreview();
+    auto& app = Application::GetInstance();
+    app.SetActivationSuspended(false);
+    app.RestoreSystemAudioAfterStressTest();
     LogHeapFree("stress cycle stopped");
 }
 

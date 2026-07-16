@@ -1,4 +1,5 @@
 #include "ota_screen.h"
+#include "i18n.h"
 
 #include <cstdio>
 
@@ -159,7 +160,7 @@ lv_obj_t* BuildScreen(const char* version_text) {
 
     lv_obj_t* time_lbl = lv_label_create(screen);
     s_ui.time_lbl = time_lbl;
-    lv_label_set_text(time_lbl, "用时 00:00");
+    lv_label_set_text(time_lbl, I18n::T("用时 00:00"));
     lv_obj_set_style_text_color(time_lbl, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(time_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(time_lbl, LV_ALIGN_CENTER, 0, 170);
@@ -213,7 +214,7 @@ void UpdateWidgets(int progress, size_t downloaded, size_t total, size_t speed_b
     char elapsed_buf[16];
     FormatDuration(elapsed_buf, sizeof(elapsed_buf), elapsed_sec);
     char time_buf[24];
-    snprintf(time_buf, sizeof(time_buf), "用时 %s", elapsed_buf);
+    snprintf(time_buf, sizeof(time_buf), I18n::T("用时 %s"), elapsed_buf);
     lv_label_set_text(s_ui.time_lbl, time_buf);
 }
 
@@ -286,7 +287,7 @@ void OtaScreen::SetStatusMessage(const char* message) {
         char elapsed_buf[16];
         FormatDuration(elapsed_buf, sizeof(elapsed_buf), elapsed_sec);
         char time_buf[32];
-        snprintf(time_buf, sizeof(time_buf), "用时 %s", elapsed_buf);
+        snprintf(time_buf, sizeof(time_buf), I18n::T("用时 %s"), elapsed_buf);
         lv_label_set_text(s_ui.time_lbl, time_buf);
     }
     esp_lv_adapter_refresh_now(nullptr);

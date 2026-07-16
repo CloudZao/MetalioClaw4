@@ -1,4 +1,5 @@
 #include "weather_screen.h"
+#include "i18n.h"
 
 #include "Weather.hpp"
 #include "home_screen/home_screen.h"
@@ -346,7 +347,7 @@ void OpenCityPickerDialog() {
     lv_obj_set_style_pad_row(card, 8, LV_PART_MAIN);
 
     lv_obj_t* dlg_title = lv_label_create(card);
-    lv_label_set_text(dlg_title, "选择地区");
+    lv_label_set_text(dlg_title, I18n::T("选择地区"));
     lv_obj_set_style_text_color(dlg_title, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(dlg_title, font_main(), LV_PART_MAIN);
     lv_obj_set_style_text_align(dlg_title, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -377,14 +378,14 @@ void OpenCityPickerDialog() {
         lv_obj_add_event_cb(*out_dd, OnDropdownListOpened, LV_EVENT_READY, nullptr);
     };
 
-    make_picker_row("省份", &s_prov_dd);
+    make_picker_row(I18n::T("省份"), &s_prov_dd);
     lv_obj_add_event_cb(s_prov_dd, OnProvinceChanged, LV_EVENT_VALUE_CHANGED,
                         nullptr);
 
-    make_picker_row("城市", &s_city_dd);
+    make_picker_row(I18n::T("城市"), &s_city_dd);
     lv_obj_add_event_cb(s_city_dd, OnCityChanged, LV_EVENT_VALUE_CHANGED, nullptr);
 
-    make_picker_row("区县", &s_dist_dd);
+    make_picker_row(I18n::T("区县"), &s_dist_dd);
     lv_obj_add_event_cb(s_dist_dd, OnDistrictChanged, LV_EVENT_VALUE_CHANGED,
                         nullptr);
 
@@ -407,7 +408,7 @@ void OpenCityPickerDialog() {
     lv_obj_add_event_cb(cancel, OnCityPickerCancelClicked, LV_EVENT_CLICKED,
                         nullptr);
     lv_obj_t* cancel_lbl = lv_label_create(cancel);
-    lv_label_set_text(cancel_lbl, "取消");
+    lv_label_set_text(cancel_lbl, I18n::T("取消"));
     lv_obj_set_style_text_font(cancel_lbl, font_sub(), LV_PART_MAIN);
     lv_obj_set_style_text_color(cancel_lbl, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_center(cancel_lbl);
@@ -422,7 +423,7 @@ void OpenCityPickerDialog() {
     screen_swipe_back_ignore(save, true);
     lv_obj_add_event_cb(save, OnCityPickerSaveClicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* save_lbl = lv_label_create(save);
-    lv_label_set_text(save_lbl, "保存");
+    lv_label_set_text(save_lbl, I18n::T("保存"));
     lv_obj_set_style_text_font(save_lbl, font_sub(), LV_PART_MAIN);
     lv_obj_set_style_text_color(save_lbl, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_center(save_lbl);
@@ -538,8 +539,9 @@ lv_obj_t* CreateForecastCard(lv_obj_t* parent, const WeatherForecastDay& day,
 
     const int32_t text_w = kForecastCardW - kForecastCardPad * 2;
 
-    lv_obj_t* week_lbl = MakeLabel(card, day.week.empty() ? "--" : day.week.c_str(),
-                                   font_sub(), fg, LV_TEXT_ALIGN_CENTER);
+    lv_obj_t* week_lbl =
+        MakeLabel(card, day.week.empty() ? "--" : I18n::T(day.week.c_str()),
+                  font_sub(), fg, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_width(week_lbl, text_w);
 
     char date_buf[16];
@@ -563,13 +565,14 @@ lv_obj_t* CreateForecastCard(lv_obj_t* parent, const WeatherForecastDay& day,
     lv_obj_t* temp_lbl = MakeLabel(card, temp_buf, font_sub(), fg, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_width(temp_lbl, text_w);
 
-    lv_obj_t* day_lbl = MakeLabel(card, day.text_day.c_str(), font_sub(), fg2,
-                                  LV_TEXT_ALIGN_CENTER);
+    lv_obj_t* day_lbl = MakeLabel(card, I18n::T(day.text_day.c_str()), font_sub(),
+                                  fg2, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_width(day_lbl, text_w);
     lv_label_set_long_mode(day_lbl, LV_LABEL_LONG_WRAP);
 
-    lv_obj_t* night_lbl = MakeLabel(card, day.text_night.c_str(), font_sub(), fg2,
-                                    LV_TEXT_ALIGN_CENTER);
+    lv_obj_t* night_lbl =
+        MakeLabel(card, I18n::T(day.text_night.c_str()), font_sub(), fg2,
+                  LV_TEXT_ALIGN_CENTER);
     lv_obj_set_width(night_lbl, text_w);
     lv_label_set_long_mode(night_lbl, LV_LABEL_LONG_WRAP);
 
@@ -612,16 +615,17 @@ lv_obj_t* CreateHourRow(lv_obj_t* parent, const WeatherForecastHour& hour) {
     std::snprintf(temp_buf, sizeof(temp_buf), "%" PRId32 "°", hour.temp_fc);
     MakeLabel(row1, temp_buf, font_sub(), kColorAccent);
 
-    MakeLabel(row1, hour.text.c_str(), font_sub(), kColorText);
+    MakeLabel(row1, I18n::T(hour.text.c_str()), font_sub(), kColorText);
 
     char detail[240];
+    // 完整 format 必须是单一字符串；不能把 I18n::T() 与 PRId32 字面量拼接。
     std::snprintf(detail, sizeof(detail),
-                  "%s %s  湿度%" PRId32 "%%  降水%.1f  云量%" PRId32 "%%  "
-                  "降水概率%" PRId32 "%%  UV%" PRId32 "  %" PRId32 "hPa 露点%" PRId32 "°  "
-                  "风向角%" PRId32 "°",
-                  hour.wind_dir.c_str(), hour.wind_class.c_str(), hour.rh, hour.prec1h,
-                  hour.clouds, hour.pop, hour.uvi, hour.pressure, hour.dpt,
-                  hour.wind_angle);
+                  I18n::T("%s %s  湿度%d%%  降水%.1f  云量%d%%  降水概率%d%%  UV%d  %dhPa 露点%d°  风向角%d°"),
+                  I18n::T(hour.wind_dir.c_str()), I18n::T(hour.wind_class.c_str()),
+                  static_cast<int>(hour.rh), hour.prec1h,
+                  static_cast<int>(hour.clouds), static_cast<int>(hour.pop),
+                  static_cast<int>(hour.uvi), static_cast<int>(hour.pressure),
+                  static_cast<int>(hour.dpt), static_cast<int>(hour.wind_angle));
     lv_obj_t* det = MakeLabel(card, detail, font_sub(), kColorSubtle);
     lv_obj_set_width(det, LV_PCT(100));
 
@@ -696,22 +700,24 @@ void BuildOverviewTab(const WeatherDistrictData& data) {
 
     char temp_line[48];
     std::snprintf(temp_line, sizeof(temp_line), "%" PRId32 "°  %s", data.temp,
-                  data.text.c_str());
+                  I18n::T(data.text.c_str()));
     MakeLabel(hero_text, temp_line, font_main(), kColorAccent);
 
     char feel_line[48];
-    std::snprintf(feel_line, sizeof(feel_line), "体感 %" PRId32 "°  湿度 %" PRId32 "%%",
-                  data.feels_like, data.rh);
+    std::snprintf(feel_line, sizeof(feel_line), I18n::T("体感 %d°  湿度 %d%%"),
+                  static_cast<int>(data.feels_like), static_cast<int>(data.rh));
     MakeLabel(hero_text, feel_line, font_sub(), kColorSubtle);
 
     char wind_line[64];
-    std::snprintf(wind_line, sizeof(wind_line), "%s %s  风向角 %" PRId32 "°",
-                  data.wind_dir.c_str(), data.wind_class.c_str(), data.wind_angle);
+    std::snprintf(wind_line, sizeof(wind_line), I18n::T("%s %s  风向角 %d°"),
+                  I18n::T(data.wind_dir.c_str()),
+                  I18n::T(data.wind_class.c_str()),
+                  static_cast<int>(data.wind_angle));
     MakeLabel(hero_text, wind_line, font_sub(), kColorSubtle);
 
     screen_make_input_passive(hero);
 
-    MakeSectionTitle(s_tab_overview, "实况详情");
+    MakeSectionTitle(s_tab_overview, I18n::T("实况详情"));
     lv_obj_t* detail_grid = lv_obj_create(s_tab_overview);
     lv_obj_set_width(detail_grid, LV_PCT(100));
     lv_obj_set_height(detail_grid, LV_SIZE_CONTENT);
@@ -724,17 +730,17 @@ void BuildOverviewTab(const WeatherDistrictData& data) {
 
     char buf[64];
     FormatVis(data.vis, buf, sizeof(buf));
-    AppendDetailRow(detail_grid, "能见度", buf);
+    AppendDetailRow(detail_grid, I18n::T("能见度"), buf);
     std::snprintf(buf, sizeof(buf), "%" PRId32 "%%", data.clouds);
-    AppendDetailRow(detail_grid, "云量", buf);
+    AppendDetailRow(detail_grid, I18n::T("云量"), buf);
     std::snprintf(buf, sizeof(buf), "%.1f mm/h", data.prec1h);
-    AppendDetailRow(detail_grid, "1h降水", buf);
+    AppendDetailRow(detail_grid, I18n::T("1h降水"), buf);
     std::snprintf(buf, sizeof(buf), "%" PRId32 " hPa", data.pressure);
-    AppendDetailRow(detail_grid, "气压", buf);
+    AppendDetailRow(detail_grid, I18n::T("气压"), buf);
     std::snprintf(buf, sizeof(buf), "%" PRId32 "°", data.dpt);
-    AppendDetailRow(detail_grid, "露点", buf);
+    AppendDetailRow(detail_grid, I18n::T("露点"), buf);
     std::snprintf(buf, sizeof(buf), "%" PRId32, data.uvi);
-    AppendDetailRow(detail_grid, "紫外线", buf);
+    AppendDetailRow(detail_grid, I18n::T("紫外线"), buf);
     std::snprintf(buf, sizeof(buf), "%" PRId32, data.aqi);
     AppendDetailRow(detail_grid, "AQI", buf);
     std::snprintf(buf, sizeof(buf), "%" PRId32 " µg/m³", data.pm25);
@@ -750,15 +756,15 @@ void BuildOverviewTab(const WeatherDistrictData& data) {
     std::snprintf(buf, sizeof(buf), "%.1f mg/m³", data.co);
     AppendDetailRow(detail_grid, "CO", buf);
     FormatUptime(data.uptime, buf, sizeof(buf));
-    AppendDetailRow(detail_grid, "更新", buf);
+    AppendDetailRow(detail_grid, I18n::T("更新"), buf);
     std::snprintf(buf, sizeof(buf), "%s", data.district_id.c_str());
-    AppendDetailRow(detail_grid, "区划ID", buf);
+    AppendDetailRow(detail_grid, I18n::T("区划ID"), buf);
     std::snprintf(buf, sizeof(buf), "%s", data.country.c_str());
-    AppendDetailRow(detail_grid, "国家", buf);
+    AppendDetailRow(detail_grid, I18n::T("国家"), buf);
     screen_make_input_passive(detail_grid);
 
     if (!data.alerts.empty()) {
-        MakeSectionTitle(s_tab_overview, "预警");
+        MakeSectionTitle(s_tab_overview, I18n::T("预警"));
         for (const auto& alert : data.alerts) {
             lv_obj_t* card = lv_obj_create(s_tab_overview);
             lv_obj_set_width(card, LV_PCT(100));
@@ -790,7 +796,7 @@ void BuildForecastTab(const WeatherDistrictData& data) {
     ClearContainer(s_tab_forecast);
 
     if (data.forecasts.size() <= 1) {
-        MakeLabel(s_tab_forecast, "暂无6日预报", font_main(), kColorSubtle,
+        MakeLabel(s_tab_forecast, I18n::T("暂无6日预报"), font_main(), kColorSubtle,
                   LV_TEXT_ALIGN_CENTER);
         return;
     }
@@ -842,7 +848,7 @@ void BuildIndexTab(const WeatherDistrictData& data) {
     ClearContainer(s_tab_index);
 
     if (data.indexes.empty()) {
-        MakeLabel(s_tab_index, "暂无生活指数", font_main(), kColorSubtle,
+        MakeLabel(s_tab_index, I18n::T("暂无生活指数"), font_main(), kColorSubtle,
                   LV_TEXT_ALIGN_CENTER);
         return;
     }
@@ -869,12 +875,12 @@ void BuildHoursTab(const WeatherDistrictData& data) {
     ClearContainer(s_tab_hours);
 
     if (data.forecast_hours.empty()) {
-        MakeLabel(s_tab_hours, "暂无24小时预报", font_main(), kColorSubtle,
+        MakeLabel(s_tab_hours, I18n::T("暂无24小时预报"), font_main(), kColorSubtle,
                   LV_TEXT_ALIGN_CENTER);
         return;
     }
 
-    MakeSectionTitle(s_tab_hours, "24小时预报");
+    MakeSectionTitle(s_tab_hours, I18n::T("24小时预报"));
     lv_obj_t* hour_box = lv_obj_create(s_tab_hours);
     lv_obj_set_width(hour_box, LV_PCT(100));
     lv_obj_set_height(hour_box, LV_SIZE_CONTENT);
@@ -912,16 +918,16 @@ void ApplyWeatherData(const WeatherDistrictData& data) {
         BuildWeatherUi(data);
         ShowStatus("");
     } else {
-        ClearTabMessage(s_tab_overview, "暂无天气数据");
+        ClearTabMessage(s_tab_overview, I18n::T("暂无天气数据"));
         ClearTabMessage(s_tab_forecast, nullptr);
         ClearTabMessage(s_tab_hours, nullptr);
         ClearTabMessage(s_tab_index, nullptr);
-        ShowStatus("加载失败");
+        ShowStatus(I18n::T("加载失败"));
     }
 }
 
 void ShowLoadingPlaceholder() {
-    ClearTabMessage(s_tab_overview, "加载中...");
+    ClearTabMessage(s_tab_overview, I18n::T("加载中..."));
     ClearTabMessage(s_tab_forecast, nullptr);
     ClearTabMessage(s_tab_hours, nullptr);
     ClearTabMessage(s_tab_index, nullptr);
@@ -938,7 +944,7 @@ void FetchTask(void* arg) {
                 ApplyWeatherData(data);
             } else {
                 ApplyWeatherData(WeatherDistrictData{});
-                ShowStatus("加载失败");
+                ShowStatus(I18n::T("加载失败"));
             }
         }
         esp_lv_adapter_unlock();
@@ -949,14 +955,14 @@ void FetchTask(void* arg) {
 void TriggerFetch() {
     const uint32_t session =
         s_session.fetch_add(1, std::memory_order_relaxed) + 1;
-    ShowStatus("加载中...");
+    ShowStatus(I18n::T("加载中..."));
     ShowLoadingPlaceholder();
 
     BaseType_t ok = xTaskCreate(
         FetchTask, "weather_fetch", 12 * 1024,
         reinterpret_cast<void*>(static_cast<uintptr_t>(session)), 4, nullptr);
     if (ok != pdPASS) {
-        ShowStatus("任务创建失败");
+        ShowStatus(I18n::T("任务创建失败"));
     }
 }
 
@@ -991,16 +997,16 @@ void BuildTabView(lv_obj_t* scr) {
     lv_obj_t* content = lv_tabview_get_content(tv);
     screen_swipe_back_ignore(content, true);
 
-    s_tab_overview = lv_tabview_add_tab(tv, "今日天气");
+    s_tab_overview = lv_tabview_add_tab(tv, I18n::T("今日天气"));
     StyleScrollTab(s_tab_overview);
 
-    s_tab_forecast = lv_tabview_add_tab(tv, "6日天气");
+    s_tab_forecast = lv_tabview_add_tab(tv, I18n::T("6日天气"));
     StyleScrollTab(s_tab_forecast);
 
-    s_tab_hours = lv_tabview_add_tab(tv, "24时天气");
+    s_tab_hours = lv_tabview_add_tab(tv, I18n::T("24时天气"));
     StyleScrollTab(s_tab_hours);
 
-    s_tab_index = lv_tabview_add_tab(tv, "生活指数");
+    s_tab_index = lv_tabview_add_tab(tv, I18n::T("生活指数"));
     StyleScrollTab(s_tab_index);
 }
 
@@ -1076,7 +1082,7 @@ lv_obj_t* WeatherScreen::Create() {
     lv_obj_remove_flag(back_icon, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_center(back_icon);
 
-    lv_obj_t* title = MakeLabel(top, "天气", font_main(), kColorText);
+    lv_obj_t* title = MakeLabel(top, I18n::T("天气"), font_main(), kColorText);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, kHeaderSidePad + kBackBtnSize + 12, 0);
 
     s_status_lbl = MakeLabel(top, "", font_sub(), kColorSubtle);
@@ -1088,7 +1094,7 @@ lv_obj_t* WeatherScreen::Create() {
     StyleHeaderBtn(refresh);
     lv_obj_add_event_cb(refresh, OnRefreshClicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* refresh_lbl = lv_label_create(refresh);
-    lv_label_set_text(refresh_lbl, "刷新");
+    lv_label_set_text(refresh_lbl, I18n::T("刷新"));
     lv_obj_set_style_text_font(refresh_lbl, font_sub(), LV_PART_MAIN);
     lv_obj_set_style_text_color(refresh_lbl, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_center(refresh_lbl);
@@ -1101,7 +1107,7 @@ lv_obj_t* WeatherScreen::Create() {
     StyleHeaderBtn(region);
     lv_obj_add_event_cb(region, OnCityPickerOpenClicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* region_lbl = lv_label_create(region);
-    lv_label_set_text(region_lbl, "地区");
+    lv_label_set_text(region_lbl, I18n::T("地区"));
     lv_obj_set_style_text_font(region_lbl, font_sub(), LV_PART_MAIN);
     lv_obj_set_style_text_color(region_lbl, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_center(region_lbl);

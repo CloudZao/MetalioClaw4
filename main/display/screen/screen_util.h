@@ -59,8 +59,3 @@ typedef enum {
 typedef void (*screen_lifecycle_cb_t)(screen_lifecycle_event_t event);
 
 void screen_attach_lifecycle(lv_obj_t* scr, screen_lifecycle_cb_t cb);
-
-// PWR_KEY 单击切换对话状态：在 chat / digital_people 等屏幕 LOAD 时注册，
-// UNLOAD 时注销，避免离开页面后仍响应电源键。
-void screen_register_pwr_key_toggle_chat();
-void screen_unregister_pwr_key_toggle_chat();

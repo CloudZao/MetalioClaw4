@@ -1,4 +1,5 @@
 #include "home_screen.h"
+#include "i18n.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -34,7 +35,9 @@
 #include "magnet_screen/magnet_screen.h"
 #include "music_screen/music_screen.h"
 #include "openclaw_screen/openclaw_screen.h"
+#include "pwr_key_handler.h"
 #include "screen_util.h"
+#include "idle_power_policy.h"
 #include "vibrate_screen/vibrate_screen.h"
 #include "weather_screen/weather_screen.h"
 #include "network_screen/network_screen.h"
@@ -71,6 +74,7 @@ constexpr const char* TAG_HOME = "HomeScreen";
 // ---------------------------------------------------------------------------
 
 void game_2048_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("game_2048", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: game_2048");
     } else {
@@ -79,6 +83,7 @@ void game_2048_lifecycle_cb(screen_lifecycle_event_t event) {
 }
 
 void calculator_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("calculator", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: calculator");
     } else {
@@ -87,6 +92,7 @@ void calculator_lifecycle_cb(screen_lifecycle_event_t event) {
 }
 
 void call_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("call", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: call_screen");
     } else {
@@ -97,6 +103,7 @@ void call_lifecycle_cb(screen_lifecycle_event_t event) {
 }
 
 void calendar_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("calendar", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: calendar_screen");
     } else {
@@ -107,6 +114,7 @@ void calendar_lifecycle_cb(screen_lifecycle_event_t event) {
 // 音乐界面的生命周期回调：把 BT 切到模式3、注册 / 摘 UART 回调全部
 // 由 MusicScreen::LifecycleCallback 内部统一处理。
 void music_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("music", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: music_screen");
     } else {
@@ -116,6 +124,7 @@ void music_lifecycle_cb(screen_lifecycle_event_t event) {
 }
 
 void weather_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("weather", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: weather_screen");
     } else {
@@ -126,6 +135,7 @@ void weather_lifecycle_cb(screen_lifecycle_event_t event) {
 // GPS 屏幕的 GPS_POWER 开关已经搬到 GpsScreen::LifecycleCallback；这里
 // 只保留日志 + 转发，与 camera / vibrate / bluetooth 等屏幕的写法对齐。
 void gps_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("gps", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: gps_screen");
     } else {
@@ -138,6 +148,7 @@ void gps_lifecycle_cb(screen_lifecycle_event_t event) {
 // 那里实现了 CAM_PWDN（TCA9555 IO2，低电平通电）的拉低 / 拉高，以及
 // esp_video / V4L2 流水线的启停。这样摄像头只在该 App 处于前台时通电。
 void camera_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("camera", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: camera_screen");
     } else {
@@ -150,6 +161,7 @@ void camera_lifecycle_cb(screen_lifecycle_event_t event) {
 // LOAD 时确保 LEDC 初始化、duty=0；UNLOAD 时停掉 pattern timer 并把 duty=0，
 // 保证用户离开屏幕马达不会还在响。
 void vibrate_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("vibrate", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: vibrate_screen");
     } else {
@@ -161,6 +173,7 @@ void vibrate_lifecycle_cb(screen_lifecycle_event_t event) {
 // 网络配置：进入页面停掉 WifiStation 并自己接管 STA 栈用于扫描 / 连接，
 // 离开时还原。详细逻辑在 NetworkScreen::LifecycleCallback 内。
 void wifi_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("network", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: network_screen");
     } else {
@@ -169,9 +182,13 @@ void wifi_lifecycle_cb(screen_lifecycle_event_t event) {
     NetworkScreen::LifecycleCallback(event);
 }
 
-void chat_lifecycle_cb(screen_lifecycle_event_t event) { ChatScreen::LifecycleCallback(event); }
+void chat_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("chat", event);
+    ChatScreen::LifecycleCallback(event);
+}
 
 void digital_people_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("digital_people", event);
     DigitalPeopleScreen::LifecycleCallback(event);
 }
 
@@ -179,6 +196,7 @@ void digital_people_lifecycle_cb(screen_lifecycle_event_t event) {
 // LOAD 时挂载 SD 卡并刷新文件列表，UNLOAD 时安全卸载 SD 卡、
 // 断电省电。
 void sd_card_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("sd_card", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: sd_card_screen");
     } else {
@@ -190,6 +208,7 @@ void sd_card_lifecycle_cb(screen_lifecycle_event_t event) {
 // 引脚测试生命周期：屏幕自身会在 UNLOAD 时清掉输入轮询 / 周期方波 timer，
 // 这里只多兜底一次以及打 log。
 void pin_test_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("pin_test", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: pin_test_screen");
     } else {
@@ -199,6 +218,7 @@ void pin_test_lifecycle_cb(screen_lifecycle_event_t event) {
 }
 
 void test_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("test", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: test_screen");
     } else {
@@ -211,6 +231,7 @@ void test_lifecycle_cb(screen_lifecycle_event_t event) {
 // SC7A20H 已经 probe + configure 过，UNLOAD 时让 LevelScreen 自己关掉
 // sample timer（OnScreenUnloaded 里实现）。
 void level_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("level", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: level_screen");
     } else {
@@ -223,6 +244,7 @@ void level_lifecycle_cb(screen_lifecycle_event_t event) {
 // 磁力计 probe + configure 一遍；UNLOAD 由 MagnetScreen 自身在
 // OnScreenUnloaded 里关掉采样 timer。
 void magnet_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("magnet", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: magnet_screen");
     } else {
@@ -234,6 +256,7 @@ void magnet_lifecycle_cb(screen_lifecycle_event_t event) {
 // OpenClaw 生命周期：转发给 OpenClawScreen::LifecycleCallback，让屏幕
 // 自己负责录音 / 上传任务的兜底关闭与 wake word 恢复。
 void openclaw_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("openclaw", event);
     OpenClawScreen::LifecycleCallback(event);
 }
 
@@ -246,10 +269,13 @@ constexpr int kPagerHeight =
 constexpr int kAppsPerPage = 9;           // 3x3
 constexpr int kPageCols = 3;
 constexpr int kPageRows = 3;
+constexpr int kIconSize = 128;            // 图标边长；下方再留名称
 constexpr int kCellWidth = 160;
-constexpr int kCellHeight = 160;
+constexpr int kNameGap = 6;
+constexpr int kNameAreaH = 24;            // font_puhui_20_4 一行高度
+constexpr int kCellHeight = kIconSize + kNameGap + kNameAreaH;  // 158
 constexpr int kGridColGap = 60;
-constexpr int kGridRowGap = 45;
+constexpr int kGridRowGap = 36;
 constexpr int kPagePadHor =
     (kPanelSize - kPageCols * kCellWidth - (kPageCols - 1) * kGridColGap) / 2;
 constexpr int kPagePadVer =
@@ -532,7 +558,7 @@ void EspClawSwitchTask(void* /*arg*/) {
     if (ota1 == nullptr) {
         ESP_LOGE(TAG_HOME, "ESPClaw: ota_1 partition not found");
         lv_async_call(EspClawSwitchFailAsync,
-                      const_cast<char*>("未找到 ESPClaw\n请确认是否已安装到分区"));
+                      const_cast<char*>(I18n::T("未找到 ESPClaw\n请确认是否已安装到分区")));
         vTaskDelete(nullptr);
         return;
     }
@@ -542,7 +568,7 @@ void EspClawSwitchTask(void* /*arg*/) {
         ESP_LOGE(TAG_HOME, "ESPClaw: set boot to %s failed: %s", ota1->label,
                  esp_err_to_name(err));
         lv_async_call(EspClawSwitchFailAsync,
-                      const_cast<char*>("未找到 ESPClaw\n请确认是否已安装到分区"));
+                      const_cast<char*>(I18n::T("未找到 ESPClaw\n请确认是否已安装到分区")));
         vTaskDelete(nullptr);
         return;
     }
@@ -596,7 +622,7 @@ void ShowEspClawSwitchPopup() {
 
     lv_obj_t* body = lv_label_create(card);
     s_espclaw_msg_lbl = body;
-    lv_label_set_text(body, "即将进入 ESPClaw...");
+    lv_label_set_text(body, I18n::T("即将进入 ESPClaw..."));
     lv_obj_set_width(body, kCardW - 48);
     lv_label_set_long_mode(body, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_color(body, lv_color_hex(0xE5E7EB), LV_PART_MAIN);
@@ -616,7 +642,7 @@ void LaunchEspClaw(screen_lifecycle_cb_t /*lifecycle_cb*/) {
                     nullptr) != pdPASS) {
         ESP_LOGE(TAG_HOME, "ESPClaw: failed to create switch task");
         EspClawSwitchFailAsync(
-            const_cast<char*>("未找到 ESPClaw\n请确认是否已安装到分区"));
+            const_cast<char*>(I18n::T("未找到 ESPClaw\n请确认是否已安装到分区")));
     }
 }
 
@@ -651,6 +677,7 @@ void LaunchInfo(screen_lifecycle_cb_t lifecycle_cb) {
 }
 
 void theme_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("theme", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: theme_screen");
     } else {
@@ -660,6 +687,7 @@ void theme_lifecycle_cb(screen_lifecycle_event_t event) {
 }
 
 void settings_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("settings", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: settings_screen");
     } else {
@@ -669,6 +697,7 @@ void settings_lifecycle_cb(screen_lifecycle_event_t event) {
 }
 
 void info_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("info", event);
     if (event == SCREEN_LIFECYCLE_LOAD) {
         ESP_LOGI(TAG_HOME, "load: info_screen");
     } else {
@@ -678,10 +707,10 @@ void info_lifecycle_cb(screen_lifecycle_event_t event) {
 }
 
 // 主屏 app 表。icon_suffix 对应 ic_app_home_theme{N}_{suffix}.spng 的
-// 中间 suffix 部分；name 是图标下方文字（注：当前主屏只画图标，文字
-// label 已经移除，name 仅在日志 / 未来可访问性场景里用）。
+// 中间 suffix 部分；name 显示在图标正下方（传统手机桌面样式）。
 // 注意 "定位" 的 suffix 是 "gps"（资源命名），不是 "map"；"磁场" 暂无
 // 主题图标，资源 ic_app_home_themeN_magnet.spng 缺失时该格会显示为空。
+// name 存 zh-CN msgid（源文案）；显示时用 I18n::T(entry.name)。
 constexpr AppEntry kApps[] = {
     {"chat",           "聊天",     LaunchChat,          chat_lifecycle_cb},
     {"wifi",           "网络配置", LaunchWifi,          wifi_lifecycle_cb},
@@ -780,111 +809,19 @@ struct HomeTouchSession {
 HomeTouchSession s_home_touch;
 
 // ---------------------------------------------------------------------------
-// 主屏无操作计时：停留在 HomeScreen 时，无触摸/滑动超过设定时长则自动关机；
-// 任意用户操作重置计时。仅在主屏 LOADED→DELETE 生命周期内运行。
+// 主屏无操作计时：由 idle_power_policy 统一管理（进入待机 + 累计关机）。
 // ---------------------------------------------------------------------------
-struct HomeIdleTimerState {
-    lv_timer_t* timer = nullptr;
-    uint32_t last_activity_tick = 0;
-    uint32_t last_status_log_tick = 0;
-    bool timeout_logged = false;
-};
-
-HomeIdleTimerState* s_home_idle = nullptr;
-
-constexpr int kDefaultIdleShutdownMin = 5;
-constexpr int kMaxIdleShutdownMin = 60;
-constexpr const char* kIdleShutdownNvsKey = "idle_off_min";
-constexpr uint32_t kHomeIdleStatusIntervalMs = 60 * 1000;
-constexpr uint32_t kHomeIdleTimerPeriodMs = 1000;
-
-uint32_t s_home_idle_timeout_ms = kDefaultIdleShutdownMin * 60U * 1000U;
-
-void ReloadHomeIdleTimeoutMs() {
-    s_home_idle_timeout_ms =
-        static_cast<uint32_t>(HomeScreen::GetIdleShutdownMinutes()) * 60U * 1000U;
-}
-
 void BeginSystemShutdown(const char* reason);
 
-void ResetHomeIdleTimer() {
-    if (s_home_idle == nullptr) {
-        return;
-    }
-    s_home_idle->last_activity_tick = lv_tick_get();
-    s_home_idle->last_status_log_tick = lv_tick_get();
-    s_home_idle->timeout_logged = false;
-}
+void ResetHomeIdleTimer() { IdlePower_NotifyActivity(); }
 
-void StopHomeIdleTimer() {
-    if (s_home_idle == nullptr) {
-        return;
-    }
-    if (s_home_idle->timer != nullptr) {
-        lv_timer_delete(s_home_idle->timer);
-        s_home_idle->timer = nullptr;
-    }
-    delete s_home_idle;
-    s_home_idle = nullptr;
-}
-
-void OnHomeIdleTimerTick(lv_timer_t* timer) {
-    auto* st = static_cast<HomeIdleTimerState*>(lv_timer_get_user_data(timer));
-    if (st == nullptr) {
-        return;
-    }
-
-    const uint32_t idle_ms = lv_tick_elaps(st->last_activity_tick);
-    if (s_home_idle_timeout_ms == 0) {
-        return;
-    }
-    if (idle_ms >= s_home_idle_timeout_ms) {
-        if (!st->timeout_logged) {
-            st->timeout_logged = true;
-            ESP_LOGW(TAG_HOME,
-                     "idle timer timeout: no user activity for %u s on HomeScreen, shutting down",
-                     idle_ms / 1000);
-            char reason[64];
-            const unsigned int shutdown_min =
-                static_cast<unsigned int>(s_home_idle_timeout_ms / (60U * 1000U));
-            std::snprintf(reason, sizeof(reason),
-                          "主屏 %u 分钟无操作自动关机", shutdown_min);
-            BeginSystemShutdown(reason);
-        }
-        return;
-    }
-
-    if (lv_tick_elaps(st->last_status_log_tick) < kHomeIdleStatusIntervalMs) {
-        return;
-    }
-
-    st->last_status_log_tick = lv_tick_get();
-    const uint32_t remaining_s = (s_home_idle_timeout_ms - idle_ms) / 1000;
-    ESP_LOGI(TAG_HOME,
-             "idle timer: idle=%u s, remaining=%u s until auto shutdown",
-             idle_ms / 1000, remaining_s);
-}
+void StopHomeIdleTimer() { IdlePower_Detach(IdlePowerSession::Home); }
 
 void StartHomeIdleTimer() {
-    StopHomeIdleTimer();
-    ReloadHomeIdleTimeoutMs();
-
-    s_home_idle = new HomeIdleTimerState{};
-    s_home_idle->last_activity_tick = lv_tick_get();
-    s_home_idle->last_status_log_tick = lv_tick_get();
-    s_home_idle->timer =
-        lv_timer_create(OnHomeIdleTimerTick, kHomeIdleTimerPeriodMs, s_home_idle);
-    if (s_home_idle_timeout_ms == 0) {
-        ESP_LOGI(TAG_HOME, "idle timer started (auto shutdown disabled)");
-    } else {
-        ESP_LOGI(TAG_HOME,
-                 "idle timer started (auto shutdown in %u s, status log every %u s)",
-                 s_home_idle_timeout_ms / 1000, kHomeIdleStatusIntervalMs / 1000);
-    }
+    IdlePower_Attach(IdlePowerSession::Home, /*reset_activity=*/true);
 }
 
 // App 卡片按压过渡：确认点击/长按后触发缩放。
-constexpr int kCellRadius = 28;
 constexpr uint32_t kCellPressScaleMs = 200;  // 与 GetPressTransition 时长一致
 
 const lv_style_prop_t kPressTransProps[] = {
@@ -968,17 +905,17 @@ lv_obj_t* FindAppCellFromTarget(lv_obj_t* target, lv_obj_t* screen) {
 
 lv_obj_t* CreateAppCellSkeleton(lv_obj_t* cell) {
     // 翻页骨架：不透明直角。PPA 开启时半透明/圆角会先 msync 再软件 fallback，
-    // 易刷 invalid addr；静止态图标仍保留圆角。
+    // 易刷 invalid addr；静止态图标仍保留圆角。尺寸与图标一致；骨架态隐藏名称。
     constexpr uint32_t kSkeletonBg = 0x2A2F3A;
 
     lv_obj_t* skeleton = lv_obj_create(cell);
     lv_obj_remove_style_all(skeleton);
-    lv_obj_set_size(skeleton, kCellWidth, kCellHeight);
+    lv_obj_set_size(skeleton, kIconSize, kIconSize);
     lv_obj_set_style_bg_color(skeleton, lv_color_hex(kSkeletonBg), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(skeleton, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_radius(skeleton, 0, LV_PART_MAIN);
     lv_obj_set_style_border_width(skeleton, 0, LV_PART_MAIN);
-    lv_obj_align(skeleton, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_align(skeleton, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_remove_flag(skeleton, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(skeleton, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -993,28 +930,40 @@ lv_obj_t* CreateAppCell(lv_obj_t* parent, const AppEntry& entry, int idx) {
     lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_pad_all(cell, 0, LV_PART_MAIN);
 
-    // 图标占满 160x160 区域；clip_corner 在按下放大时裁切溢出部分。
+    // 单元格：上图标、下名称；不对整格 clip，避免裁切底部文字。
     lv_obj_set_style_bg_opa(cell, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_radius(cell, kCellRadius, LV_PART_MAIN);
+    lv_obj_set_style_radius(cell, 0, LV_PART_MAIN);
     lv_obj_set_style_border_width(cell, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_width(cell, 0, LV_PART_MAIN);
-    lv_obj_set_style_clip_corner(cell, true, LV_PART_MAIN);
+    lv_obj_set_style_clip_corner(cell, false, LV_PART_MAIN);
     lv_obj_set_style_transition(cell, &GetPressTransition(), LV_PART_MAIN);
 
-    // 缩放仅在 screen 确认 Click / LongPress 后通过 add_state(PRESSED) 触发。
-    lv_obj_set_style_transform_pivot_x(cell, LV_PCT(50), LV_PART_MAIN | LV_STATE_PRESSED);
-    lv_obj_set_style_transform_pivot_y(cell, LV_PCT(50), LV_PART_MAIN | LV_STATE_PRESSED);
+    // 缩放绕图标中心；仅在 screen 确认 Click / LongPress 后 add_state(PRESSED)。
+    lv_obj_set_style_transform_pivot_x(cell, kCellWidth / 2,
+                                       LV_PART_MAIN | LV_STATE_PRESSED);
+    lv_obj_set_style_transform_pivot_y(cell, kIconSize / 2,
+                                       LV_PART_MAIN | LV_STATE_PRESSED);
     lv_obj_set_style_transform_scale(cell, 262, LV_PART_MAIN | LV_STATE_PRESSED);
 
-    // 图标满铺整张区域（160x160）。
     // 路径取自 s_icon_paths[idx]：已按当前主题前缀解析好（ic_app_home_themeN_xxx）。
     lv_obj_t* icon = lv_image_create(cell);
     lv_image_set_src(icon, s_icon_paths[idx]);
-    lv_obj_set_size(icon, kCellWidth, kCellHeight);
-    lv_obj_align(icon, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_set_size(icon, kIconSize, kIconSize);
+    lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_remove_flag(icon, LV_OBJ_FLAG_CLICKABLE);
 
+    // child[1]：翻页骨架（与 icon 同位同尺寸），见 SetPagerSkeletonMode。
     CreateAppCellSkeleton(cell);
+
+    lv_obj_t* name = lv_label_create(cell);
+    lv_label_set_text(name, entry.name != nullptr ? I18n::T(entry.name) : "");
+    lv_obj_set_width(name, kCellWidth);
+    lv_label_set_long_mode(name, LV_LABEL_LONG_CLIP);
+    lv_obj_set_style_text_font(name, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_set_style_text_color(name, lv_color_hex(0xE5E7EB), LV_PART_MAIN);
+    lv_obj_set_style_text_align(name, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_align(name, LV_ALIGN_TOP_MID, 0, kIconSize + kNameGap);
+    lv_obj_remove_flag(name, LV_OBJ_FLAG_CLICKABLE);
 
     if (entry.launch != nullptr) {
         // 可命中以便 PRESSED 时锁定 app；不用 LV_EVENT_CLICKED，由 screen 分发。
@@ -1062,7 +1011,7 @@ struct HomeStatusState {
     lv_obj_t* network_type_lbl = nullptr;
     lv_obj_t* sim_slot_lbl = nullptr;       // 仅 4G 模式下显示：外置卡 / 内置卡
     lv_obj_t* battery_icon_lbl = nullptr;   // 电池图标（Font Awesome 字形）
-    lv_obj_t* battery_pct_lbl  = nullptr;   // 电池电量文字，例如 "电量 85%"
+    lv_obj_t* battery_pct_lbl  = nullptr;   // 电池电量文字，例如 I18n::T("电量 85%")
     lv_obj_t* time_lbl = nullptr;
     lv_obj_t* activation_code_lbl = nullptr;
     lv_timer_t* update_timer = nullptr;
@@ -1111,23 +1060,26 @@ void SetPagerSkeletonMode(PagerState* state, bool active) {
             if (cell == nullptr || !lv_obj_has_flag(cell, kAppCellFlag)) {
                 continue;
             }
+            // child[0]=icon, [1]=skeleton, [2]=name
             lv_obj_t* icon = lv_obj_get_child(cell, 0);
             lv_obj_t* skeleton = lv_obj_get_child(cell, 1);
+            lv_obj_t* name = lv_obj_get_child(cell, 2);
             if (icon == nullptr || skeleton == nullptr) {
                 continue;
             }
             if (active) {
                 lv_obj_remove_state(cell, LV_STATE_PRESSED);
-                // 去掉 clip_corner / 圆角，避免中间 layer + PPA msync。
-                lv_obj_set_style_clip_corner(cell, false, LV_PART_MAIN);
-                lv_obj_set_style_radius(cell, 0, LV_PART_MAIN);
                 lv_obj_add_flag(icon, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_remove_flag(skeleton, LV_OBJ_FLAG_HIDDEN);
+                if (name != nullptr) {
+                    lv_obj_add_flag(name, LV_OBJ_FLAG_HIDDEN);
+                }
             } else {
-                lv_obj_set_style_radius(cell, kCellRadius, LV_PART_MAIN);
-                lv_obj_set_style_clip_corner(cell, true, LV_PART_MAIN);
                 lv_obj_add_flag(skeleton, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_remove_flag(icon, LV_OBJ_FLAG_HIDDEN);
+                if (name != nullptr) {
+                    lv_obj_remove_flag(name, LV_OBJ_FLAG_HIDDEN);
+                }
             }
         }
     }
@@ -1271,7 +1223,7 @@ void UpdateHomeStatusBar(HomeStatusState* st) {
             const int slot = GetSavedSimSlot();
             if (st->last_net_type != net_type || st->last_sim_slot != slot) {
                 lv_label_set_text(st->sim_slot_lbl,
-                                  slot == 1 ? "内置卡" : "外置卡");
+                                  slot == 1 ? I18n::T("内置卡") : I18n::T("外置卡"));
                 st->last_sim_slot = slot;
             }
             lv_obj_remove_flag(st->sim_slot_lbl, LV_OBJ_FLAG_HIDDEN);
@@ -1361,10 +1313,10 @@ void UpdateHomeStatusBar(HomeStatusState* st) {
                 std::snprintf(volt_str, sizeof(volt_str), "--V");
             }
             if (charging) {
-                std::snprintf(buf, sizeof(buf), "电量 %d%% 充电中 %s",
+                std::snprintf(buf, sizeof(buf), I18n::T("电量 %d%% 充电中 %s"),
                               battery_level, volt_str);
             } else {
-                std::snprintf(buf, sizeof(buf), "电量 %d%% %s",
+                std::snprintf(buf, sizeof(buf), I18n::T("电量 %d%% %s"),
                               battery_level, volt_str);
             }
             lv_label_set_text(st->battery_pct_lbl, buf);
@@ -1379,7 +1331,7 @@ void UpdateHomeStatusBar(HomeStatusState* st) {
         } else {
             if (st->last_battery_pct != -1) {
                 st->last_battery_pct = -1;
-                lv_label_set_text(st->battery_pct_lbl, "电量 --%");
+                lv_label_set_text(st->battery_pct_lbl, I18n::T("电量 --%"));
             }
             if (st->last_battery_low) {
                 st->last_battery_low = false;
@@ -1407,7 +1359,7 @@ void UpdateHomeStatusBar(HomeStatusState* st) {
         auto& app = Application::GetInstance();
         if (app.HasPendingActivation()) {
             char buf[48];
-            std::snprintf(buf, sizeof(buf), "验证码: %s",
+            std::snprintf(buf, sizeof(buf), I18n::T("验证码: %s"),
                           app.GetPendingActivationCode().c_str());
             if (st->last_activation_text != buf) {
                 st->last_activation_text = buf;
@@ -1529,7 +1481,7 @@ lv_obj_t* CreateStatusBar(lv_obj_t* screen, HomeStatusState* st) {
     st->battery_pct_lbl = lv_label_create(right);
     lv_label_set_long_mode(st->battery_pct_lbl, LV_LABEL_LONG_CLIP);
     lv_obj_set_width(st->battery_pct_lbl, 380);
-    lv_label_set_text(st->battery_pct_lbl, "电量 --%");
+    lv_label_set_text(st->battery_pct_lbl, I18n::T("电量 --%"));
     lv_obj_set_style_text_align(st->battery_pct_lbl, LV_TEXT_ALIGN_RIGHT,
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(st->battery_pct_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -1985,7 +1937,14 @@ void OnHomeScreenLoaded(lv_event_t* e) {
         HighlightDot(state, page);
     }
 
+    PwrKey_OnScreenLifecycle("home", SCREEN_LIFECYCLE_LOAD);
     StartHomeIdleTimer();
+}
+
+void OnHomeScreenUnloaded(lv_event_t* /*e*/) {
+    // 离开首页必须出栈，否则 Test→二级页时父页 UNLOAD 后栈底仍残留 home，
+    // 若二级页未登记会误把前台当成首页从而进待机。
+    PwrKey_OnScreenLifecycle("home", SCREEN_LIFECYCLE_UNLOAD);
 }
 
 void OnScreenDeleted(lv_event_t* e) {
@@ -1995,17 +1954,16 @@ void OnScreenDeleted(lv_event_t* e) {
 }
 
 // ---------------------------------------------------------------------------
-// 电源对话框 (PWR_KEY 长按 2s 触发)
+// 电源对话框 (由 PwrKey_Init 长按回调经 lv_async_call 调起)
 //
-// 长按 PWR_KEY 满 2 秒弹出居中模态框，里面两个大按钮：重启 / 关机。
+// 长按 PWR_KEY 弹出居中模态框，里面两个大按钮：重启 / 关机。
 // 点击空白处（mask 自身，不在 card 区域内）关闭对话框。
 //
 // 线程模型：
-//   - IOExpander 在它自己的 monitor task 里检测到长按后通过 lv_async_call
-//     把 ShowPowerDialog 调度到 LVGL 线程执行。
-//   - 关机操作要发 PWR_KEY_PULSE 序列（10ms 高 / 10ms 低 × 10 次），需要
-//     vTaskDelay 级别的延迟精度，所以单开一个 FreeRTOS task 在那里完成
-//     脉冲后自删除；不阻塞 LVGL 线程，也不污染 IOExpander 的 monitor。
+//   - pwr_key_handler 在 IOExpander monitor task 里检测到长按后通过
+//     lv_async_call 把 ShowPowerOptionsDialog 调度到 LVGL 线程执行。
+//   - 关机操作要发 PWR_KEY_PULSE 持续脉冲，单开 FreeRTOS task 完成；
+//     不阻塞 LVGL 线程，也不污染 IOExpander 的 monitor。
 //
 // EVENT_BUBBLE 默认关闭，所以 card / 按钮上的点击不会冒泡到 mask 触发
 // 误关闭；为了给后续修改做兜底，OnPwrMaskClicked 里再做一次 target 校验。
@@ -2051,7 +2009,7 @@ void AppendShutdownProgressContent(lv_obj_t* parent) {
     lv_obj_remove_flag(spin, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t* lbl = lv_label_create(box);
-    lv_label_set_text(lbl, "正在关机...");
+    lv_label_set_text(lbl, I18n::T("正在关机..."));
     lv_obj_set_style_text_color(lbl, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -2080,19 +2038,16 @@ void ShowShutdownScreen() {
     lv_screen_load(s_shutdown_screen);
 }
 
-// 关机脉冲 task：高 10ms / 低 10ms × 10 次。跑完自删除，不返回。
-// 如果硬件确实在脉冲过程中切电，task 会被电源切断带走，无需特别处理。
+// 关机脉冲 task：高/低各 100ms 一直发，直到硬件断电把 task 带走。
 void PwrShutdownPulseTask(void* /*arg*/) {
     auto& io = IOExpander::getInstance();
     constexpr int kPulseHalfMs = 100;
-    constexpr int kPulseCount  = 10;
-    for (int i = 0; i < kPulseCount; ++i) {
+    for (;;) {
         io.setLevel(IOExpander::Pin::PWR_KEY_PULSE, true);
         vTaskDelay(pdMS_TO_TICKS(kPulseHalfMs));
         io.setLevel(IOExpander::Pin::PWR_KEY_PULSE, false);
         vTaskDelay(pdMS_TO_TICKS(kPulseHalfMs));
     }
-    vTaskDelete(NULL);
 }
 
 void BeginSystemShutdown(const char* reason) {
@@ -2103,13 +2058,13 @@ void BeginSystemShutdown(const char* reason) {
     shutting_down = true;
 
     ESP_LOGW(TAG_HOME, "%s：开始 PWR_KEY_PULSE 脉冲序列", reason);
-    StopHomeIdleTimer();
+    IdlePower_Stop();
     ShowShutdownScreen();
     xTaskCreate(PwrShutdownPulseTask, "pwr_off_pulse", 2048, nullptr, 5, nullptr);
 }
 
 void OnPwrShutdownClicked(lv_event_t* /*e*/) {
-    BeginSystemShutdown("用户选择 [关机]");
+    BeginSystemShutdown(I18n::T("用户选择 [关机]"));
 }
 
 void OnPwrRebootClicked(lv_event_t* /*e*/) {
@@ -2218,7 +2173,7 @@ void ShowPowerDialog() {
     s_pwr_dlg.card = card;
 
     lv_obj_t* title = lv_label_create(card);
-    lv_label_set_text(title, "电源选项");
+    lv_label_set_text(title, I18n::T("电源选项"));
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
@@ -2235,39 +2190,18 @@ void ShowPowerDialog() {
     lv_obj_set_style_pad_column(row, 32, LV_PART_MAIN);
     lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
 
-    CreatePowerActionBtn(row, "A:ic_s_home_reboot.spng", "重启",
+    CreatePowerActionBtn(row, "A:ic_s_home_reboot.spng", I18n::T("重启"),
                          OnPwrRebootClicked);
-    CreatePowerActionBtn(row, "A:ic_s_home_power.spng", "关机",
+    CreatePowerActionBtn(row, "A:ic_s_home_power.spng", I18n::T("关机"),
                          OnPwrShutdownClicked);
 
     // ---- 底部提示：硬件强制关机说明 ----
     lv_obj_t* hint = lv_label_create(card);
-    lv_label_set_text(hint, "长按关机键 5 秒可强制关机");
+    lv_label_set_text(hint, I18n::T("长按关机键 5 秒可强制关机"));
     lv_obj_set_style_text_color(hint, lv_color_hex(0x9CA3AF), LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_remove_flag(hint, LV_OBJ_FLAG_CLICKABLE);
-}
-
-// IOExpander 的 monitor task 里调用此函数 —— 必须 lv_async_call 切到
-// LVGL 线程才能安全 ShowPowerDialog。
-void OnPwrLongPressAsync(void* /*arg*/) { ShowPowerDialog(); }
-
-void RegisterPowerLongPress() {
-    static bool registered = false;
-    if (registered) {
-        return;
-    }
-    const esp_err_t err = IOExpander::getInstance().onLongPress(
-        IOExpander::Pin::PWR_KEY, 1500,
-        []() { lv_async_call(OnPwrLongPressAsync, nullptr); });
-    if (err == ESP_OK) {
-        registered = true;
-        ESP_LOGI(TAG_HOME,
-                 "PWR_KEY 长按 1.5s 已注册：弹出 [重启 / 关机] 对话框");
-    } else {
-        ESP_LOGE(TAG_HOME, "PWR_KEY 长按注册失败: 0x%x", err);
-    }
 }
 
 lv_obj_t* CreatePage(lv_obj_t* pager, int page_index, int total_apps) {
@@ -2342,12 +2276,9 @@ void CreateIndicator(lv_obj_t* screen, PagerState* state) {
 
 }  // namespace
 
-lv_obj_t* HomeScreen::Create() {
-    // PWR_KEY 长按 2s 触发 [重启 / 关机] 模态框。RegisterPowerLongPress 内部
-    // 用 static bool 守护：第一次构建主屏时挂上回调，后续从子页面返回再
-    // 重建主屏不会重复注册。
-    RegisterPowerLongPress();
+void HomeScreen::ShowPowerOptionsDialog() { ShowPowerDialog(); }
 
+lv_obj_t* HomeScreen::Create() {
     // 主题相关：根据 NVS 里的当前主题 id 把 kApps 的 icon_suffix 拼成完整
     // 路径，写入 s_icon_paths 缓存。后续 CreateAppCell 直接索引这份缓存。
     EnsureIconPathsBuilt();
@@ -2419,6 +2350,8 @@ lv_obj_t* HomeScreen::Create() {
     lv_obj_add_event_cb(screen, OnHomePressing, LV_EVENT_PRESSING, state);
     lv_obj_add_event_cb(screen, OnHomeReleased, LV_EVENT_RELEASED, state);
     lv_obj_add_event_cb(screen, OnHomeScreenLoaded, LV_EVENT_SCREEN_LOADED, state);
+    lv_obj_add_event_cb(screen, OnHomeScreenUnloaded, LV_EVENT_SCREEN_UNLOADED,
+                        nullptr);
     lv_obj_add_event_cb(screen, OnScreenDeleted, LV_EVENT_DELETE, state);
 
     return screen;
@@ -2442,26 +2375,23 @@ void HomeScreen::RefreshStatusBar() {
 }
 
 int HomeScreen::GetIdleShutdownMinutes() {
-    Settings settings("display", false);
-    int value = settings.GetInt(kIdleShutdownNvsKey, kDefaultIdleShutdownMin);
-    if (value < 0) {
-        value = 0;
-    } else if (value > kMaxIdleShutdownMin) {
-        value = kMaxIdleShutdownMin;
-    }
-    return value;
+    return IdlePower_GetShutdownMinutes();
 }
 
 void HomeScreen::SetIdleShutdownMinutes(int minutes) {
-    if (minutes < 0) {
-        minutes = 0;
-    } else if (minutes > kMaxIdleShutdownMin) {
-        minutes = kMaxIdleShutdownMin;
-    }
+    IdlePower_SetShutdownMinutes(minutes);
+    IdlePower_NotifyActivity();
+}
 
-    Settings settings("display", true);
-    settings.SetInt(kIdleShutdownNvsKey, minutes);
-    ReloadHomeIdleTimeoutMs();
-    ResetHomeIdleTimer();
-    ESP_LOGI(TAG_HOME, "idle shutdown timeout updated to %d min", minutes);
+int HomeScreen::GetIdleStandbyMinutes() {
+    return IdlePower_GetStandbyMinutes();
+}
+
+void HomeScreen::SetIdleStandbyMinutes(int minutes) {
+    IdlePower_SetStandbyMinutes(minutes);
+    IdlePower_NotifyActivity();
+}
+
+void HomeScreen::RequestSystemShutdown(const char* reason) {
+    BeginSystemShutdown(reason != nullptr ? reason : I18n::T("系统关机"));
 }

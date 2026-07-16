@@ -1,4 +1,5 @@
 #include "test_ui_common.h"
+#include "i18n.h"
 
 #include "screen_util.h"
 
@@ -132,8 +133,8 @@ void TestUiShowConfirmDialog(const char* message, TestUiConfirmResultCb cb,
     lv_obj_set_flex_align(btn_row, LV_FLEX_ALIGN_SPACE_EVENLY,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    CreateConfirmButton(btn_row, "否", kTestColorError, false);
-    CreateConfirmButton(btn_row, "是", kTestColorHigh, true);
+    CreateConfirmButton(btn_row, I18n::T("否"), kTestColorError, false);
+    CreateConfirmButton(btn_row, I18n::T("是"), kTestColorHigh, true);
 }
 
 void TestUiDismissConfirmDialog() {

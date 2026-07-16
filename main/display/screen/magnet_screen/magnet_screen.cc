@@ -1,4 +1,5 @@
 #include "magnet_screen.h"
+#include "i18n.h"
 
 #include <algorithm>
 #include <cmath>
@@ -164,7 +165,7 @@ uint32_t   s_frame_cnt = 0;
 // 三轴对应一组 UI 控件，每组包括标题、读数、条形指示
 struct AxisRow {
     lv_obj_t* card        = nullptr;
-    lv_obj_t* title_lbl   = nullptr;   // "X 轴"
+    lv_obj_t* title_lbl   = nullptr;   // I18n::T("X 轴")
     lv_obj_t* raw_lbl     = nullptr;   // "+1234 LSB"
     lv_obj_t* phys_lbl    = nullptr;   // "+1.234 G   +123.4 µT"
     lv_obj_t* bar         = nullptr;   // 条形指示（lv_bar）
@@ -207,7 +208,7 @@ void EnsureSensorInited() {
 // 把一帧 (mx, my, mz) 反映到 UI
 // ---------------------------------------------------------------------------
 const char* AxisTitle(int idx) {
-    static const char* kNames[] = {"X 轴", "Y 轴", "Z 轴"};
+    static const char* kNames[] = {I18n::T("X 轴"), I18n::T("Y 轴"), I18n::T("Z 轴")};
     return kNames[idx];
 }
 
@@ -276,7 +277,7 @@ void UpdateUi(int16_t mx, int16_t my, int16_t mz, bool sensor_ok) {
                           static_cast<unsigned long>(s_frame_cnt));
             lv_label_set_text(s_ui.status_lbl, buf);
         } else {
-            lv_label_set_text(s_ui.status_lbl, "STATUS=--  未检测到 QMC6309");
+            lv_label_set_text(s_ui.status_lbl, I18n::T("STATUS=--  未检测到 QMC6309"));
         }
     }
 }
@@ -363,7 +364,7 @@ void BuildHeader(lv_obj_t* parent) {
     lv_obj_center(back_icon);
 
     lv_obj_t* title = lv_label_create(header);
-    lv_label_set_text(title, "磁场");
+    lv_label_set_text(title, I18n::T("磁场"));
     lv_obj_set_style_text_color(title, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 16 + kBackBtnSize + 16, 0);

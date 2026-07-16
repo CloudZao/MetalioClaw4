@@ -1,4 +1,5 @@
 #include "openclaw_screen.h"
+#include "i18n.h"
 
 #include <atomic>
 #include <cstdint>
@@ -327,7 +328,7 @@ void open_activation_blocked_dialog(lv_obj_t* parent_screen) {
     lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t* title = lv_label_create(card);
-    lv_label_set_text(title, "设备未激活");
+    lv_label_set_text(title, I18n::T("设备未激活"));
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
@@ -336,7 +337,7 @@ void open_activation_blocked_dialog(lv_obj_t* parent_screen) {
     lv_obj_t* desc = lv_label_create(card);
     lv_label_set_long_mode(desc, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(desc, kCardW - 56);
-    lv_label_set_text(desc, "请先完成设备激活后再使用 OpenClaw。");
+    lv_label_set_text(desc, I18n::T("请先完成设备激活后再使用 OpenClaw。"));
     lv_obj_set_style_text_color(desc, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(desc, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_set_style_text_align(desc, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -345,7 +346,7 @@ void open_activation_blocked_dialog(lv_obj_t* parent_screen) {
 
     if (has_code) {
         char code_buf[64];
-        std::snprintf(code_buf, sizeof(code_buf), "验证码: %s",
+        std::snprintf(code_buf, sizeof(code_buf), I18n::T("验证码: %s"),
                       app.GetPendingActivationCode().c_str());
         lv_obj_t* code_lbl = lv_label_create(card);
         lv_label_set_text(code_lbl, code_buf);
@@ -369,7 +370,7 @@ void open_activation_blocked_dialog(lv_obj_t* parent_screen) {
     screen_swipe_back_ignore(back, true);
 
     lv_obj_t* back_lbl = lv_label_create(back);
-    lv_label_set_text(back_lbl, "返回");
+    lv_label_set_text(back_lbl, I18n::T("返回"));
     lv_obj_set_style_text_color(back_lbl, lv_color_hex(0xE5E7EB), LV_PART_MAIN);
     lv_obj_set_style_text_font(back_lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_center(back_lbl);
@@ -920,13 +921,13 @@ void apply_history_locked(const std::vector<HistoryMessage>& messages) {
 std::string build_service_unavailable_message(bool bridge_online,
                                               bool gateway_online) {
     if (!bridge_online && !gateway_online) {
-        return "龙虾插件不在线，龙虾不在线";
+        return I18n::T("龙虾插件不在线，龙虾不在线");
     }
     if (!bridge_online) {
-        return "龙虾插件不在线";
+        return I18n::T("龙虾插件不在线");
     }
     if (!gateway_online) {
-        return "龙虾不在线";
+        return I18n::T("龙虾不在线");
     }
     return "";
 }
@@ -961,7 +962,7 @@ void execute_fetch_history(uint32_t session, bool /*update_status*/) {
     } else if (status_res.ok) {
         status_msg = device_status_unavailable_message(status_res);
     } else {
-        status_msg = "检查在线状态失败: " + status_res.err;
+        status_msg = I18n::T("检查在线状态失败: ") + status_res.err;
     }
 
     s_history_loading.store(false);
@@ -998,10 +999,10 @@ void execute_fetch_history(uint32_t session, bool /*update_status*/) {
                                       messages_json);
                 if (s_status_lbl != nullptr) {
                     if (messages.empty()) {
-                        lv_label_set_text(s_status_lbl, "按住说话");
+                        lv_label_set_text(s_status_lbl, I18n::T("按住说话"));
                     } else {
                         char buf[64];
-                        std::snprintf(buf, sizeof(buf), "已加载 %u 条消息",
+                        std::snprintf(buf, sizeof(buf), I18n::T("已加载 %u 条消息"),
                                       static_cast<unsigned>(messages.size()));
                         lv_label_set_text(s_status_lbl, buf);
                     }
@@ -1014,7 +1015,7 @@ void execute_fetch_history(uint32_t session, bool /*update_status*/) {
             } else {
                 if (s_status_lbl != nullptr) {
                     char buf[80];
-                    std::snprintf(buf, sizeof(buf), "加载消息失败: %s",
+                    std::snprintf(buf, sizeof(buf), I18n::T("加载消息失败: %s"),
                                   messages_err.c_str());
                     lv_label_set_text(s_status_lbl, buf);
                     lv_obj_set_style_text_color(
@@ -1137,7 +1138,7 @@ void trigger_fetch_history(bool update_status) {
     s_fetch_update_status.store(update_status, std::memory_order_relaxed);
 
     if (update_status && s_status_lbl != nullptr) {
-        lv_label_set_text(s_status_lbl, "正在检查龙虾状态…");
+        lv_label_set_text(s_status_lbl, I18n::T("正在检查龙虾状态…"));
         lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorHintText),
                                     LV_PART_MAIN);
     }
@@ -1145,7 +1146,7 @@ void trigger_fetch_history(bool update_status) {
     if (!submit_worker_job(WorkerJob::FetchHistory)) {
         s_history_loading.store(false);
         if (s_status_lbl != nullptr) {
-            lv_label_set_text(s_status_lbl, "无法启动加载任务");
+            lv_label_set_text(s_status_lbl, I18n::T("无法启动加载任务"));
             lv_obj_set_style_text_color(s_status_lbl,
                                         lv_color_hex(kColorErrorText),
                                         LV_PART_MAIN);
@@ -1258,7 +1259,7 @@ void execute_clear_all() {
             ESP_LOGI(TAG, "remove all conversations ok");
         } else if (s_list_hint != nullptr) {
             char buf[96];
-            std::snprintf(buf, sizeof(buf), "清空失败: %s",
+            std::snprintf(buf, sizeof(buf), I18n::T("清空失败: %s"),
                           http_res.err.c_str());
             lv_label_set_text(s_list_hint, buf);
             lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
@@ -1356,7 +1357,7 @@ void execute_delete_one() {
     }
     if (is_detail_screen_alive() && s_status_lbl != nullptr) {
         char buf[80];
-        std::snprintf(buf, sizeof(buf), "删除失败: %s", http_res.err.c_str());
+        std::snprintf(buf, sizeof(buf), I18n::T("删除失败: %s"), http_res.err.c_str());
         lv_label_set_text(s_status_lbl, buf);
         lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorErrorText),
                                     LV_PART_MAIN);
@@ -1375,12 +1376,12 @@ void trigger_clear_all() {
     s_list_session.fetch_add(1, std::memory_order_relaxed);
 
     if (s_list_hint != nullptr) {
-        lv_label_set_text(s_list_hint, "正在清空…");
+        lv_label_set_text(s_list_hint, I18n::T("正在清空…"));
         lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
     }
 
     if (!submit_worker_job(WorkerJob::ClearAll) && s_list_hint != nullptr) {
-        lv_label_set_text(s_list_hint, "无法启动清空任务");
+        lv_label_set_text(s_list_hint, I18n::T("无法启动清空任务"));
         lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
     }
 }
@@ -1393,13 +1394,13 @@ void trigger_delete_one() {
     s_history_session.fetch_add(1, std::memory_order_relaxed);
 
     if (s_status_lbl != nullptr) {
-        lv_label_set_text(s_status_lbl, "正在删除…");
+        lv_label_set_text(s_status_lbl, I18n::T("正在删除…"));
         lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorHintText),
                                     LV_PART_MAIN);
     }
 
     if (!submit_worker_job(WorkerJob::DeleteOne) && s_status_lbl != nullptr) {
-        lv_label_set_text(s_status_lbl, "无法启动删除任务");
+        lv_label_set_text(s_status_lbl, I18n::T("无法启动删除任务"));
         lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorErrorText),
                                     LV_PART_MAIN);
     }
@@ -1418,14 +1419,14 @@ void trigger_fetch_conv_list() {
     s_worker_list_session.store(session, std::memory_order_relaxed);
 
     if (s_list_hint != nullptr) {
-        lv_label_set_text(s_list_hint, "正在检查龙虾状态…");
+        lv_label_set_text(s_list_hint, I18n::T("正在检查龙虾状态…"));
         lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
     }
 
     if (!submit_worker_job(WorkerJob::FetchConvList)) {
         s_list_loading.store(false);
         if (s_list_hint != nullptr) {
-            lv_label_set_text(s_list_hint, "无法启动加载任务");
+            lv_label_set_text(s_list_hint, I18n::T("无法启动加载任务"));
             lv_obj_remove_flag(s_list_hint, LV_OBJ_FLAG_HIDDEN);
         }
     }
@@ -1439,7 +1440,7 @@ void execute_fetch_conv_list(uint32_t session) {
     bool service_ok = false;
 
     if (!status_res.ok) {
-        status_msg = "检查在线状态失败: " + status_res.err;
+        status_msg = I18n::T("检查在线状态失败: ") + status_res.err;
     } else if (!status_res.bridge_online || !status_res.gateway_online) {
         status_msg = device_status_unavailable_message(status_res);
     } else {
@@ -1467,7 +1468,7 @@ void execute_fetch_conv_list(uint32_t session) {
             if (s_list_container != nullptr) {
                 lv_obj_clean(s_list_container);
                 if (service_ok) {
-                    add_conv_list_row(s_list_container, "创建会话", nullptr,
+                    add_conv_list_row(s_list_container, I18n::T("创建会话"), nullptr,
                                       nullptr, true);
                 }
             }
@@ -1479,7 +1480,7 @@ void execute_fetch_conv_list(uint32_t session) {
                                                 LV_PART_MAIN);
                 } else {
                     char buf[96];
-                    std::snprintf(buf, sizeof(buf), "加载失败: %s",
+                    std::snprintf(buf, sizeof(buf), I18n::T("加载失败: %s"),
                                   list_res.err.c_str());
                     lv_label_set_text(s_list_hint, buf);
                     lv_obj_set_style_text_color(s_list_hint,
@@ -1514,7 +1515,7 @@ void on_conv_item_clicked(lv_event_t* e) {
 }
 
 void on_create_conv_clicked(lv_event_t* /*e*/) {
-    open_conversation_detail("", "新会话");
+    open_conversation_detail("", I18n::T("新会话"));
 }
 
 void add_conv_list_row(lv_obj_t* parent, const char* title_text,
@@ -1628,7 +1629,7 @@ void add_conv_list_row(lv_obj_t* parent, const char* title_text,
 
 void add_conv_total_hint(lv_obj_t* parent, int total) {
     char buf[40];
-    std::snprintf(buf, sizeof(buf), "总共%d条会话", total);
+    std::snprintf(buf, sizeof(buf), I18n::T("总共%d条会话"), total);
 
     lv_obj_t* hint = lv_label_create(parent);
     lv_label_set_text(hint, buf);
@@ -1661,10 +1662,10 @@ void rebuild_conv_list_locked(const std::vector<ConversationRecord>& records,
     update_list_actions_visible_locked(true);
     lv_obj_clean(s_list_container);
 
-    add_conv_list_row(s_list_container, "创建会话", nullptr, nullptr, true);
+    add_conv_list_row(s_list_container, I18n::T("创建会话"), nullptr, nullptr, true);
     add_conv_total_hint(s_list_container, total);
     for (const auto& rec : records) {
-        const char* title = rec.title.empty() ? "未命名会话" : rec.title.c_str();
+        const char* title = rec.title.empty() ? I18n::T("未命名会话") : rec.title.c_str();
         add_conv_list_row(s_list_container, title, rec.conversation_id.c_str(),
                           rec.title.c_str(), false);
     }
@@ -1692,7 +1693,7 @@ void update_button_ui_locked(State st) {
                                               ? kColorRecordBtnIdle
                                               : kColorRecordBtnBusy),
                                       LV_PART_MAIN);
-            lv_label_set_text(s_record_lbl, "按住说话");
+            lv_label_set_text(s_record_lbl, I18n::T("按住说话"));
             if (s_service_available.load()) {
                 lv_obj_add_flag(s_record_btn, LV_OBJ_FLAG_CLICKABLE);
             } else {
@@ -1703,14 +1704,14 @@ void update_button_ui_locked(State st) {
             lv_obj_set_style_bg_color(s_record_btn,
                                       lv_color_hex(kColorRecordBtnActive),
                                       LV_PART_MAIN);
-            lv_label_set_text(s_record_lbl, "已录 0.0 秒");
+            lv_label_set_text(s_record_lbl, I18n::T("已录 0.0 秒"));
             lv_obj_add_flag(s_record_btn, LV_OBJ_FLAG_CLICKABLE);
             break;
         case State::Uploading:
             lv_obj_set_style_bg_color(s_record_btn,
                                       lv_color_hex(kColorRecordBtnBusy),
                                       LV_PART_MAIN);
-            lv_label_set_text(s_record_lbl, "上传中...");
+            lv_label_set_text(s_record_lbl, I18n::T("上传中..."));
             lv_obj_remove_flag(s_record_btn, LV_OBJ_FLAG_CLICKABLE);
             break;
         case State::Closing:
@@ -1728,7 +1729,7 @@ void tick_timer_cb(lv_timer_t* /*t*/) {
     const int64_t now = esp_timer_get_time();
     const int ms = static_cast<int>((now - start) / 1000);
     char buf[32];
-    std::snprintf(buf, sizeof(buf), "已录 %d.%d 秒", ms / 1000,
+    std::snprintf(buf, sizeof(buf), I18n::T("已录 %d.%d 秒"), ms / 1000,
                   (ms / 100) % 10);
     lv_label_set_text(s_record_lbl, buf);
 }
@@ -1828,7 +1829,7 @@ void record_and_upload_task(void* /*arg*/) {
     }
     if (buffer == nullptr) {
         ESP_LOGE(TAG, "no memory for record buffer");
-        post_status_from_worker("内存不足", kColorHintText);
+        post_status_from_worker(I18n::T("内存不足"), kColorHintText);
         if (wake_disabled_by_us) as.EnableWakeWordDetection(true);
         s_state.store(State::Idle);
         if (esp_lv_adapter_lock(-1) == ESP_OK) {
@@ -1879,7 +1880,7 @@ void record_and_upload_task(void* /*arg*/) {
     if (duration_ms < kMinRecordMs || written < 1024) {
         ESP_LOGI(TAG, "discard short recording: %d ms / %u bytes",
                  duration_ms, static_cast<unsigned>(written));
-        post_status_from_worker("录音太短，再试一次", kColorHintText);
+        post_status_from_worker(I18n::T("录音太短，再试一次"), kColorHintText);
         heap_caps_free(buffer);
         s_state.store(State::Idle);
         if (esp_lv_adapter_lock(-1) == ESP_OK) {
@@ -1898,7 +1899,7 @@ void record_and_upload_task(void* /*arg*/) {
         esp_lv_adapter_unlock();
     }
     char hint[64];
-    std::snprintf(hint, sizeof(hint), "上传中… (%.1fs)", duration_ms / 1000.0f);
+    std::snprintf(hint, sizeof(hint), I18n::T("上传中… (%.1fs)"), duration_ms / 1000.0f);
     post_status_from_worker(hint, kColorHintText);
 
     uint8_t wav_header[44];
@@ -1944,14 +1945,14 @@ void record_and_upload_task(void* /*arg*/) {
                 save_refresh_snapshot(s_service_available.load(), true, true,
                                       s_conversation_id, messages_json);
             }
-            post_status_from_worker("按住说话", kColorHintText);
+            post_status_from_worker(I18n::T("按住说话"), kColorHintText);
         } else {
             ESP_LOGW(TAG, "refresh messages failed: %s", fetch_err.c_str());
-            post_status_from_worker("刷新消息失败", kColorErrorText);
+            post_status_from_worker(I18n::T("刷新消息失败"), kColorErrorText);
         }
     } else {
         ESP_LOGW(TAG, "upload failed: %s", res.err.c_str());
-        std::string msg = "上传失败: " + res.err;
+        std::string msg = I18n::T("上传失败: ") + res.err;
         post_status_from_worker(msg.c_str(), kColorErrorText);
     }
 
@@ -1975,7 +1976,7 @@ void on_record_pressed(lv_event_t* /*e*/) {
     }
     if (!s_service_available.load()) {
         if (s_status_lbl != nullptr) {
-            lv_label_set_text(s_status_lbl, "龙虾服务不可用");
+            lv_label_set_text(s_status_lbl, I18n::T("龙虾服务不可用"));
             lv_obj_set_style_text_color(s_status_lbl,
                                         lv_color_hex(kColorErrorText),
                                         LV_PART_MAIN);
@@ -1994,7 +1995,7 @@ void on_record_pressed(lv_event_t* /*e*/) {
     if (ds == kDeviceStateConnecting || ds == kDeviceStateListening ||
         ds == kDeviceStateSpeaking || ds == kDeviceStateUpgrading) {
         if (s_status_lbl != nullptr) {
-            lv_label_set_text(s_status_lbl, "请先结束当前对话");
+            lv_label_set_text(s_status_lbl, I18n::T("请先结束当前对话"));
             lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorErrorText),
                                         LV_PART_MAIN);
         }
@@ -2005,7 +2006,7 @@ void on_record_pressed(lv_event_t* /*e*/) {
     s_state.store(State::Recording);
     update_button_ui_locked(State::Recording);
     if (s_status_lbl != nullptr) {
-        lv_label_set_text(s_status_lbl, "正在录音…松开结束");
+        lv_label_set_text(s_status_lbl, I18n::T("正在录音…松开结束"));
         lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorHintText),
                                     LV_PART_MAIN);
     }
@@ -2130,8 +2131,8 @@ void open_clear_confirm_dialog(ClearDialogMode mode) {
 
     lv_obj_t* title = lv_label_create(card);
     lv_label_set_text(title,
-                      mode == ClearDialogMode::RemoveAll ? "清空会话"
-                                                         : "删除会话");
+                      mode == ClearDialogMode::RemoveAll ? I18n::T("清空会话")
+                                                         : I18n::T("删除会话"));
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
@@ -2140,8 +2141,8 @@ void open_clear_confirm_dialog(ClearDialogMode mode) {
     lv_obj_t* desc = lv_label_create(card);
     lv_label_set_text(desc,
                       mode == ClearDialogMode::RemoveAll
-                          ? "此操作会清空设备全部会话，是否确定？"
-                          : "是否删除此会话？");
+                          ? I18n::T("此操作会清空设备全部会话，是否确定？")
+                          : I18n::T("是否删除此会话？"));
     lv_obj_set_style_text_color(desc, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(desc, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(desc, LV_ALIGN_CENTER, 0, -10);
@@ -2158,7 +2159,7 @@ void open_clear_confirm_dialog(ClearDialogMode mode) {
                         nullptr);
     {
         lv_obj_t* lbl = lv_label_create(cancel);
-        lv_label_set_text(lbl, "取消");
+        lv_label_set_text(lbl, I18n::T("取消"));
         lv_obj_set_style_text_color(lbl, lv_color_hex(0xE5E7EB), LV_PART_MAIN);
         lv_obj_set_style_text_font(lbl, &font_puhui_30_4, LV_PART_MAIN);
         lv_obj_center(lbl);
@@ -2176,7 +2177,7 @@ void open_clear_confirm_dialog(ClearDialogMode mode) {
                         nullptr);
     {
         lv_obj_t* lbl = lv_label_create(ok);
-        lv_label_set_text(lbl, "确定");
+        lv_label_set_text(lbl, I18n::T("确定"));
         lv_obj_set_style_text_color(lbl, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
         lv_obj_set_style_text_font(lbl, &font_puhui_30_4, LV_PART_MAIN);
         lv_obj_center(lbl);
@@ -2359,7 +2360,7 @@ void build_list_header(lv_obj_t* parent) {
     style_header_btn(clear);
     lv_obj_add_event_cb(clear, on_list_clear_clicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* clear_lbl = lv_label_create(clear);
-    lv_label_set_text(clear_lbl, "清空");
+    lv_label_set_text(clear_lbl, I18n::T("清空"));
     lv_obj_set_style_text_color(clear_lbl, lv_color_hex(kColorHeaderBtnText),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(clear_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -2383,7 +2384,7 @@ void build_list_body(lv_obj_t* parent) {
                           LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
 
     s_list_hint = lv_label_create(parent);
-    lv_label_set_text(s_list_hint, "正在检查龙虾状态…");
+    lv_label_set_text(s_list_hint, I18n::T("正在检查龙虾状态…"));
     lv_obj_set_width(s_list_hint, kPanelW * 80 / 100);
     lv_label_set_long_mode(s_list_hint, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(s_list_hint, LV_TEXT_ALIGN_CENTER,
@@ -2440,7 +2441,7 @@ void build_detail_header(lv_obj_t* parent) {
 
     s_detail_title_lbl = lv_label_create(header);
     lv_label_set_text(s_detail_title_lbl,
-                      s_conversation_title.empty() ? "未命名会话"
+                      s_conversation_title.empty() ? I18n::T("未命名会话")
                                                    : s_conversation_title.c_str());
     lv_label_set_long_mode(s_detail_title_lbl, LV_LABEL_LONG_DOT);
     lv_obj_set_width(s_detail_title_lbl, title_w);
@@ -2452,7 +2453,7 @@ void build_detail_header(lv_obj_t* parent) {
 
     s_detail_id_lbl = lv_label_create(header);
     if (s_conversation_id.empty()) {
-        lv_label_set_text(s_detail_id_lbl, "新会话");
+        lv_label_set_text(s_detail_id_lbl, I18n::T("新会话"));
     } else {
         lv_label_set_text(s_detail_id_lbl, s_conversation_id.c_str());
     }
@@ -2474,7 +2475,7 @@ void build_detail_header(lv_obj_t* parent) {
     lv_obj_add_event_cb(clear, on_detail_clear_clicked, LV_EVENT_CLICKED,
                         nullptr);
     lv_obj_t* clear_lbl = lv_label_create(clear);
-    lv_label_set_text(clear_lbl, "删除");
+    lv_label_set_text(clear_lbl, I18n::T("删除"));
     lv_obj_set_style_text_color(clear_lbl, lv_color_hex(kColorHeaderBtnText),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(clear_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -2498,7 +2499,7 @@ void build_message_list(lv_obj_t* parent) {
                           LV_FLEX_ALIGN_START);
 
     s_empty_hint = lv_label_create(parent);
-    lv_label_set_text(s_empty_hint, kEmptyHint);
+    lv_label_set_text(s_empty_hint, I18n::T(kEmptyHint));
     lv_obj_set_width(s_empty_hint, kPanelW * 80 / 100);
     lv_label_set_long_mode(s_empty_hint, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(s_empty_hint, LV_TEXT_ALIGN_CENTER,
@@ -2522,7 +2523,7 @@ void build_footer(lv_obj_t* parent) {
     lv_obj_remove_flag(footer, LV_OBJ_FLAG_SCROLLABLE);
 
     s_status_lbl = lv_label_create(footer);
-    lv_label_set_text(s_status_lbl, "按住下面的按钮说话");
+    lv_label_set_text(s_status_lbl, I18n::T("按住下面的按钮说话"));
     lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorHintText),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(s_status_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -2546,7 +2547,7 @@ void build_footer(lv_obj_t* parent) {
                               LV_PART_MAIN | LV_STATE_PRESSED);
 
     s_record_lbl = lv_label_create(s_record_btn);
-    lv_label_set_text(s_record_lbl, "按住说话");
+    lv_label_set_text(s_record_lbl, I18n::T("按住说话"));
     lv_obj_set_style_text_color(s_record_lbl, lv_color_hex(0xFFFFFF),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(s_record_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -2617,7 +2618,7 @@ lv_obj_t* create_detail_screen(const std::string& conversation_id,
     build_footer(scr);
 
     if (s_status_lbl != nullptr) {
-        lv_label_set_text(s_status_lbl, "正在检查龙虾状态…");
+        lv_label_set_text(s_status_lbl, I18n::T("正在检查龙虾状态…"));
     }
 
     s_tick_timer = lv_timer_create(tick_timer_cb, 100, nullptr);

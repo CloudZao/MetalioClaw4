@@ -1,4 +1,5 @@
 #include "backlight_screen.h"
+#include "i18n.h"
 
 #include <cstdio>
 
@@ -172,7 +173,7 @@ lv_obj_t* BacklightScreen::Create() {
     lv_obj_center(back_icon);
 
     lv_obj_t* title = lv_label_create(header);
-    lv_label_set_text(title, "屏幕亮度");
+    lv_label_set_text(title, I18n::T("屏幕亮度"));
     lv_obj_set_style_text_color(title, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 16 + kBackBtnSize + 16, 0);
@@ -198,7 +199,7 @@ lv_obj_t* BacklightScreen::Create() {
     UpdatePctLabel(initial_brightness);
 
     lv_obj_t* hint = lv_label_create(card);
-    lv_label_set_text(hint, "当前亮度");
+    lv_label_set_text(hint, I18n::T("当前亮度"));
     lv_obj_set_style_text_color(hint, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -24);
@@ -223,7 +224,7 @@ lv_obj_t* BacklightScreen::Create() {
     lv_obj_remove_flag(slider_hdr, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t* slider_lbl = lv_label_create(slider_hdr);
-    lv_label_set_text(slider_lbl, "拖动调节");
+    lv_label_set_text(slider_lbl, I18n::T("拖动调节"));
     lv_obj_set_style_text_color(slider_lbl, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(slider_lbl, &font_puhui_20_4, LV_PART_MAIN);
 
@@ -238,7 +239,7 @@ lv_obj_t* BacklightScreen::Create() {
     CreateSlider(slider_row, initial_brightness);
 
     lv_obj_t* foot = lv_label_create(scr);
-    lv_label_set_text(foot, "亮度设置会自动保存");
+    lv_label_set_text(foot, I18n::T("亮度设置会自动保存"));
     lv_obj_set_style_text_color(foot, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(foot, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(foot, LV_ALIGN_BOTTOM_MID, 0, -40);

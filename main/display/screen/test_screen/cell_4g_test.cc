@@ -1,4 +1,5 @@
 #include "cell_4g_test.h"
+#include "i18n.h"
 
 #include <cctype>
 #include <cstdio>
@@ -216,13 +217,13 @@ bool WaitSimRegisteredForPing(Nt26Board* nt26, char* detail, size_t detail_len,
 
     while ((xTaskGetTickCount() * portTICK_PERIOD_MS - start) < max_wait_ms) {
         if (!s_loaded) {
-            std::snprintf(detail, detail_len, "测试已取消");
+            std::snprintf(detail, detail_len, I18n::T("测试已取消"));
             return false;
         }
 
         RunAt(nt26, "AT+CPIN?", resp, kAtShortMs);
         if (IsSimAbsent(resp)) {
-            std::snprintf(detail, detail_len, "未检测到SIM卡");
+            std::snprintf(detail, detail_len, I18n::T("未检测到SIM卡"));
             return false;
         }
         if (!IsSimReady(resp)) {
@@ -233,7 +234,7 @@ bool WaitSimRegisteredForPing(Nt26Board* nt26, char* detail, size_t detail_len,
         if (RunAtOk(nt26, "AT+CEREG?", resp, kAtShortMs)) {
             const int stat = ParseCeregStat(resp);
             if (stat == 3) {
-                std::snprintf(detail, detail_len, "网络注册被拒绝");
+                std::snprintf(detail, detail_len, I18n::T("网络注册被拒绝"));
                 return false;
             }
             if (stat == 1 || stat == 5) {
@@ -249,7 +250,7 @@ bool WaitSimRegisteredForPing(Nt26Board* nt26, char* detail, size_t detail_len,
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 
-    std::snprintf(detail, detail_len, "搜网超时");
+    std::snprintf(detail, detail_len, I18n::T("搜网超时"));
     return false;
 }
 
@@ -257,7 +258,7 @@ bool ApplySimSlot(Nt26Board* nt26, int target_slot, char* detail,
                   size_t detail_len) {
     std::string resp;
     if (!RunAtOk(nt26, "AT+CFUN=0", resp, kAtMediumMs)) {
-        std::snprintf(detail, detail_len, "CFUN=0失败");
+        std::snprintf(detail, detail_len, I18n::T("CFUN=0失败"));
         return false;
     }
     vTaskDelay(pdMS_TO_TICKS(500));
@@ -266,7 +267,7 @@ bool ApplySimSlot(Nt26Board* nt26, int target_slot, char* detail,
     std::snprintf(buf, sizeof(buf), "AT+ECSIMCFG=SimSlot,%d", target_slot);
     if (!RunAtOk(nt26, buf, resp, kAtShortMs)) {
         RunAtOk(nt26, "AT+CFUN=1", resp, kAtLongMs);
-        std::snprintf(detail, detail_len, "切换SIM失败");
+        std::snprintf(detail, detail_len, I18n::T("切换SIM失败"));
         return false;
     }
     vTaskDelay(pdMS_TO_TICKS(500));
@@ -276,7 +277,7 @@ bool ApplySimSlot(Nt26Board* nt26, int target_slot, char* detail,
 
     const int slot = QueryCurrentSimSlot(nt26);
     if (slot != target_slot) {
-        std::snprintf(detail, detail_len, "SIM槽位未生效");
+        std::snprintf(detail, detail_len, I18n::T("SIM槽位未生效"));
         return false;
     }
     MarkModemRadioReset();
@@ -358,16 +359,16 @@ bool RunEcpingTest(Nt26Board* nt26, char* detail, size_t detail_len) {
     }
 
     if (HasAtError(resp)) {
-        std::snprintf(detail, detail_len, "PING命令失败");
+        std::snprintf(detail, detail_len, I18n::T("PING命令失败"));
     } else if (err == ESP_ERR_TIMEOUT) {
-        std::snprintf(detail, detail_len, "PING等待超时");
+        std::snprintf(detail, detail_len, I18n::T("PING等待超时"));
     } else {
         int tx = 0;
         int rx = 0;
         if (ParseEcpingSummary(resp, &tx, &rx)) {
-            std::snprintf(detail, detail_len, "PING丢包 %d/%d", rx, tx);
+            std::snprintf(detail, detail_len, I18n::T("PING丢包 %d/%d"), rx, tx);
         } else {
-            std::snprintf(detail, detail_len, "PING失败");
+            std::snprintf(detail, detail_len, I18n::T("PING失败"));
         }
     }
     return false;
@@ -409,7 +410,7 @@ void OnTestDoneAsync(void* user_data) {
 
     if (row != nullptr) {
         if (msg->pass) {
-            SetHint(row, "PING成功", false);
+            SetHint(row, I18n::T("PING成功"), false);
             TestUiUpdateStatus(row->status_icon, true);
         } else {
             SetHint(row, msg->detail, true);
@@ -433,11 +434,11 @@ void Cell4gTestTask(void* arg) {
     auto* msg = new TestDoneMsg{};
     msg->slot = target_slot;
     msg->pass = false;
-    std::snprintf(msg->detail, sizeof(msg->detail), "测试失败");
+    std::snprintf(msg->detail, sizeof(msg->detail), I18n::T("测试失败"));
 
     Nt26Board* nt26 = GetNt26Board();
     if (nt26 == nullptr) {
-        std::snprintf(msg->detail, sizeof(msg->detail), "4G模块不可用");
+        std::snprintf(msg->detail, sizeof(msg->detail), I18n::T("4G模块不可用"));
         lv_async_call(OnTestDoneAsync, msg);
         s_modem_busy = false;
         vTaskDelete(nullptr);
@@ -446,7 +447,7 @@ void Cell4gTestTask(void* arg) {
 
     std::string resp;
     if (!RunAtOk(nt26, "AT", resp, kAtShortMs)) {
-        std::snprintf(msg->detail, sizeof(msg->detail), "模组无响应");
+        std::snprintf(msg->detail, sizeof(msg->detail), I18n::T("模组无响应"));
         lv_async_call(OnTestDoneAsync, msg);
         s_modem_busy = false;
         vTaskDelete(nullptr);
@@ -476,7 +477,7 @@ void Cell4gTestTask(void* arg) {
         char wait_detail[64];
         if (!WaitSimRegisteredForPing(nt26, wait_detail, sizeof(wait_detail),
                                       kSwitchRegWaitMs)) {
-            if (std::strstr(wait_detail, "未检测到SIM") != nullptr) {
+            if (std::strstr(wait_detail, I18n::T("未检测到SIM")) != nullptr) {
                 std::snprintf(msg->detail, sizeof(msg->detail), "%s",
                               wait_detail);
                 if (switched && current_slot >= 0) {
@@ -493,7 +494,7 @@ void Cell4gTestTask(void* arg) {
 
     if (RunEcpingTest(nt26, msg->detail, sizeof(msg->detail))) {
         msg->pass = true;
-        std::snprintf(msg->detail, sizeof(msg->detail), "PING成功");
+        std::snprintf(msg->detail, sizeof(msg->detail), I18n::T("PING成功"));
         ClearModemRadioReset();
     }
 
@@ -515,7 +516,7 @@ void StartTest(int slot) {
                                      : TestState::TestingExternal;
     SimRowUi* row = RowForSlot(slot);
     if (row != nullptr) {
-        SetHint(row, "测试中…", false);
+        SetHint(row, I18n::T("测试中…"), false);
     }
 
     if (xTaskCreate(Cell4gTestTask, "cell4g_test", 8192,
@@ -524,7 +525,7 @@ void StartTest(int slot) {
         ESP_LOGE(TAG, "create test task failed");
         s_state = TestState::Idle;
         if (row != nullptr) {
-            SetHint(row, "任务创建失败", true);
+            SetHint(row, I18n::T("任务创建失败"), true);
             TestUiUpdateStatus(row->status_icon, false);
         }
         if (s_auto_sequence && slot == kSimSlotInternal) {
@@ -568,7 +569,7 @@ lv_obj_t* CreateSubRow(lv_obj_t* parent, const char* title, int slot,
     lv_obj_set_width(label, 200);
 
     lv_obj_t* hint = lv_label_create(row);
-    lv_label_set_text(hint, "等待测试…");
+    lv_label_set_text(hint, I18n::T("等待测试…"));
     lv_obj_set_style_text_color(hint, lv_color_hex(kTestColorTextDim),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
@@ -600,16 +601,16 @@ void BuildRow(lv_obj_t* list) {
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
 
-    CreateSubRow(card, "4G·内置卡", kSimSlotInternal, &s_internal);
-    CreateSubRow(card, "4G·外置卡", kSimSlotExternal, &s_external);
+    CreateSubRow(card, I18n::T("4G·内置卡"), kSimSlotInternal, &s_internal);
+    CreateSubRow(card, I18n::T("4G·外置卡"), kSimSlotExternal, &s_external);
 }
 
 void OnLoad() {
     s_loaded = true;
     s_state = TestState::Idle;
     s_auto_sequence = true;
-    SetHint(&s_internal, "等待测试…", false);
-    SetHint(&s_external, "等待测试…", false);
+    SetHint(&s_internal, I18n::T("等待测试…"), false);
+    SetHint(&s_external, I18n::T("等待测试…"), false);
 
     StopAutoStartTimer();
     s_auto_start_timer =

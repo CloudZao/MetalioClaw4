@@ -1,4 +1,5 @@
 #include "gps_test.h"
+#include "i18n.h"
 
 #include <cstdio>
 
@@ -74,7 +75,7 @@ void Poll() {
     const GpsService::Snapshot snap = GpsService::Instance().GetSnapshot();
 
     if (snap.sentence_count == 0) {
-        SetFailText("未收到NMEA");
+        SetFailText(I18n::T("未收到NMEA"));
         return;
     }
 

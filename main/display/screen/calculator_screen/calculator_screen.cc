@@ -1,4 +1,5 @@
 #include "calculator_screen.h"
+#include "i18n.h"
 
 #include "home_screen/home_screen.h"
 #include "screen_util.h"
@@ -142,7 +143,7 @@ double ParseInput() {
 
 void FormatNumber(double v, char* out, size_t sz) {
     if (std::isnan(v) || std::isinf(v)) {
-        snprintf(out, sz, "%s", "错误");
+        snprintf(out, sz, "%s", I18n::T("错误"));
         return;
     }
     // Compact double formatting: avoid trailing zeros, max 12 sig figs.
@@ -286,7 +287,7 @@ void OnEquals() {
 void RefreshDisplay() {
     if (s_error) {
         lv_label_set_text(s_history_lbl, "");
-        lv_label_set_text(s_display_lbl, "错误");
+        lv_label_set_text(s_display_lbl, I18n::T("错误"));
         return;
     }
 
@@ -356,7 +357,7 @@ void OnSwipeBack() {
 void BuildHeader(lv_obj_t* parent) {
     // Title -- left-aligned.
     lv_obj_t* title = lv_label_create(parent);
-    lv_label_set_text(title, "计算器");
+    lv_label_set_text(title, I18n::T("计算器"));
     lv_obj_set_style_text_color(title, lv_color_hex(kColorTextPrimary),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
@@ -369,7 +370,7 @@ void BuildHeader(lv_obj_t* parent) {
     // Right-aligned hint -- replaces the old "返回" pill button now that
     // navigation is gesture-based.
     lv_obj_t* hint = lv_label_create(parent);
-    lv_label_set_text(hint, "右滑返回");
+    lv_label_set_text(hint, I18n::T("右滑返回"));
     lv_obj_set_style_text_color(hint, lv_color_hex(kColorHintText),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);

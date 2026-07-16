@@ -1,4 +1,5 @@
 #include "pin_gpio_test.h"
+#include "i18n.h"
 
 #include <cstdio>
 #include <cstring>
@@ -145,7 +146,7 @@ void RefreshCtrl(int i) {
         if (r.out_state_lbl != nullptr) {
             lv_obj_remove_flag(r.out_state_lbl, LV_OBJ_FLAG_HIDDEN);
             lv_label_set_text(r.out_state_lbl,
-                              s_state[i].current_lvl ? "高" : "低");
+                              s_state[i].current_lvl ? I18n::T("高") : I18n::T("低"));
             lv_obj_set_style_text_color(
                 r.out_state_lbl,
                 lv_color_hex(s_state[i].current_lvl ? kColorHigh : kColorLow),
@@ -181,7 +182,7 @@ void RefreshInputDisplay(int i, bool lvl) {
             lv_color_hex(lvl ? kColorHigh : kColorLow), LV_PART_MAIN);
     }
     if (r.in_level_lbl != nullptr) {
-        lv_label_set_text(r.in_level_lbl, lvl ? "高" : "低");
+        lv_label_set_text(r.in_level_lbl, lvl ? I18n::T("高") : I18n::T("低"));
         lv_obj_set_style_text_color(r.in_level_lbl,
             lv_color_hex(lvl ? kColorHigh : kColorLow), LV_PART_MAIN);
     }
@@ -212,7 +213,7 @@ void OnCycleTimer(lv_timer_t* /*t*/) {
             }
         }
         if (r.out_state_lbl != nullptr) {
-            lv_label_set_text(r.out_state_lbl, s_cycle_level ? "高" : "低");
+            lv_label_set_text(r.out_state_lbl, s_cycle_level ? I18n::T("高") : I18n::T("低"));
             lv_obj_set_style_text_color(r.out_state_lbl,
                 lv_color_hex(s_cycle_level ? kColorHigh : kColorLow),
                 LV_PART_MAIN);
@@ -232,7 +233,7 @@ void StopCycle() {
         lv_obj_set_style_border_width(s_cycle_btn, 0, LV_PART_MAIN);
     }
     if (s_cycle_lbl != nullptr) {
-        lv_label_set_text(s_cycle_lbl, "全部输出 · 周期方波");
+        lv_label_set_text(s_cycle_lbl, I18n::T("全部输出 · 周期方波"));
     }
 }
 
@@ -255,7 +256,7 @@ void StartCycle() {
         lv_obj_set_style_border_width(s_cycle_btn, 2, LV_PART_MAIN);
     }
     if (s_cycle_lbl != nullptr) {
-        lv_label_set_text(s_cycle_lbl, "周期方波运行中 · 点击停止");
+        lv_label_set_text(s_cycle_lbl, I18n::T("周期方波运行中 · 点击停止"));
     }
     if (s_cycle_timer == nullptr) {
         s_cycle_timer = lv_timer_create(OnCycleTimer, 1000, nullptr);
@@ -301,7 +302,7 @@ void OnOutSwitchChanged(lv_event_t* e) {
     WritePinLevel(pin_idx, checked);
     const PinRowUi& r = s_rows[pin_idx];
     if (r.out_state_lbl != nullptr) {
-        lv_label_set_text(r.out_state_lbl, checked ? "高" : "低");
+        lv_label_set_text(r.out_state_lbl, checked ? I18n::T("高") : I18n::T("低"));
         lv_obj_set_style_text_color(r.out_state_lbl,
             lv_color_hex(checked ? kColorHigh : kColorLow), LV_PART_MAIN);
     }
@@ -381,8 +382,8 @@ void CreatePinRow(lv_obj_t* parent, int idx, int row_w) {
         return b;
     };
 
-    lv_obj_t* in_btn  = make_dir_btn("输入", false);
-    lv_obj_t* out_btn = make_dir_btn("输出", true);
+    lv_obj_t* in_btn  = make_dir_btn(I18n::T("输入"), false);
+    lv_obj_t* out_btn = make_dir_btn(I18n::T("输出"), true);
 
     lv_obj_t* ctrl = lv_obj_create(row);
     screen_strip_obj_chrome(ctrl);
@@ -396,7 +397,7 @@ void CreatePinRow(lv_obj_t* parent, int idx, int row_w) {
     lv_obj_set_flex_grow(ctrl, 1);
 
     lv_obj_t* out_state = lv_label_create(ctrl);
-    lv_label_set_text(out_state, "低");
+    lv_label_set_text(out_state, I18n::T("低"));
     lv_obj_set_style_text_color(out_state, lv_color_hex(kColorLow),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(out_state, &font_puhui_20_4, LV_PART_MAIN);
@@ -419,7 +420,7 @@ void CreatePinRow(lv_obj_t* parent, int idx, int row_w) {
     lv_obj_remove_flag(in_dot, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t* in_lvl_lbl = lv_label_create(ctrl);
-    lv_label_set_text(in_lvl_lbl, "低");
+    lv_label_set_text(in_lvl_lbl, I18n::T("低"));
     lv_obj_set_style_text_color(in_lvl_lbl, lv_color_hex(kColorLow),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(in_lvl_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -466,13 +467,13 @@ void BuildRow(lv_obj_t* list) {
     lv_obj_remove_flag(title_row, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t* title = lv_label_create(title_row);
-    lv_label_set_text(title, "引脚测试");
+    lv_label_set_text(title, I18n::T("引脚测试"));
     lv_obj_set_style_text_color(title, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 0, 0);
 
     lv_obj_t* hint = lv_label_create(title_row);
-    lv_label_set_text(hint, "切换方向 · 控制电平");
+    lv_label_set_text(hint, I18n::T("切换方向 · 控制电平"));
     lv_obj_set_style_text_color(hint, lv_color_hex(kTestColorTextDim),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
@@ -512,7 +513,7 @@ void BuildRow(lv_obj_t* list) {
 
     lv_obj_t* cycle_lbl = lv_label_create(cycle_btn);
     s_cycle_lbl = cycle_lbl;
-    lv_label_set_text(cycle_lbl, "全部输出 · 周期方波");
+    lv_label_set_text(cycle_lbl, I18n::T("全部输出 · 周期方波"));
     lv_obj_set_style_text_color(cycle_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(cycle_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(cycle_lbl);

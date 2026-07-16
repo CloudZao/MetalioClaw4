@@ -1,4 +1,5 @@
 #include "level_screen.h"
+#include "i18n.h"
 
 #include <algorithm>
 #include <atomic>
@@ -335,14 +336,14 @@ void UpdateUiFromAccel(int ax, int ay, int az) {
 
     if (s_ui.status_lbl != nullptr) {
         if (!s_sensor_init) {
-            lv_label_set_text(s_ui.status_lbl, "未检测到传感器");
+            lv_label_set_text(s_ui.status_lbl, I18n::T("未检测到传感器"));
             lv_obj_set_style_text_color(s_ui.status_lbl, lv_color_hex(0xF87171), LV_PART_MAIN);
         } else if (std::fabs(pitch_deg) < kLevelTolDeg && std::fabs(roll_deg) < kLevelTolDeg) {
-            lv_label_set_text(s_ui.status_lbl, "水平");
+            lv_label_set_text(s_ui.status_lbl, I18n::T("水平"));
             lv_obj_set_style_text_color(s_ui.status_lbl, lv_color_hex(0x22C55E), LV_PART_MAIN);
         } else {
             char buf[32];
-            std::snprintf(buf, sizeof(buf), "未水平  %.1f°",
+            std::snprintf(buf, sizeof(buf), I18n::T("未水平  %.1f°"),
                           std::sqrt(pitch_deg * pitch_deg + roll_deg * roll_deg));
             lv_label_set_text(s_ui.status_lbl, buf);
             lv_obj_set_style_text_color(s_ui.status_lbl, lv_color_hex(0xFBBF24), LV_PART_MAIN);
@@ -383,7 +384,7 @@ void OnSampleTick(lv_timer_t* /*t*/) {
         s_cal_count++;
         if (s_ui.dialog_text != nullptr) {
             char buf[64];
-            std::snprintf(buf, sizeof(buf), "校准中... %d / %d", s_cal_count, kCalSamples);
+            std::snprintf(buf, sizeof(buf), I18n::T("校准中... %d / %d"), s_cal_count, kCalSamples);
             lv_label_set_text(s_ui.dialog_text, buf);
         }
         if (s_cal_count >= kCalSamples) {
@@ -396,11 +397,11 @@ void OnSampleTick(lv_timer_t* /*t*/) {
             s_cal_state = CalState::kDone;
             if (s_ui.dialog_text != nullptr) {
                 char buf[80];
-                std::snprintf(buf, sizeof(buf), "校准完成\nox=%d  oy=%d  oz=%d", c.ox, c.oy, c.oz);
+                std::snprintf(buf, sizeof(buf), I18n::T("校准完成\nox=%d  oy=%d  oz=%d"), c.ox, c.oy, c.oz);
                 lv_label_set_text(s_ui.dialog_text, buf);
             }
             if (s_ui.dialog_title != nullptr) {
-                lv_label_set_text(s_ui.dialog_title, "完成");
+                lv_label_set_text(s_ui.dialog_title, I18n::T("完成"));
             }
             // 1.2s 后自动关闭对话框
             if (s_ui.dialog_timer == nullptr) {
@@ -455,7 +456,7 @@ void OnDialogOkClicked(lv_event_t* /*e*/) {
         if (!s_sensor_init) {
             // 没有传感器时直接关闭对话框、提示一下
             if (s_ui.dialog_text != nullptr) {
-                lv_label_set_text(s_ui.dialog_text, "未检测到传感器，无法校准");
+                lv_label_set_text(s_ui.dialog_text, I18n::T("未检测到传感器，无法校准"));
             }
             s_ui.dialog_timer = lv_timer_create(OnDialogAutoDismiss, 1200, nullptr);
             lv_timer_set_repeat_count(s_ui.dialog_timer, 1);
@@ -464,8 +465,8 @@ void OnDialogOkClicked(lv_event_t* /*e*/) {
         s_cal_state = CalState::kSampling;
         s_cal_count = 0;
         s_cal_sum_x = s_cal_sum_y = s_cal_sum_z = 0;
-        if (s_ui.dialog_title != nullptr) lv_label_set_text(s_ui.dialog_title, "校准中");
-        if (s_ui.dialog_text  != nullptr) lv_label_set_text(s_ui.dialog_text,  "校准中... 0 / 32");
+        if (s_ui.dialog_title != nullptr) lv_label_set_text(s_ui.dialog_title, I18n::T("校准中"));
+        if (s_ui.dialog_text  != nullptr) lv_label_set_text(s_ui.dialog_text,  I18n::T("校准中... 0 / 32"));
         if (s_ui.dialog_ok_btn != nullptr) {
             // 取样阶段不允许再点 OK，把按钮置灰
             lv_obj_add_flag(s_ui.dialog_ok_btn, LV_OBJ_FLAG_HIDDEN);
@@ -519,7 +520,7 @@ void ShowCalibrationDialog() {
 
     lv_obj_t* title = lv_label_create(card);
     s_ui.dialog_title = title;
-    lv_label_set_text(title, "校准水平仪");
+    lv_label_set_text(title, I18n::T("校准水平仪"));
     lv_obj_set_style_text_color(title, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 24);
@@ -528,7 +529,7 @@ void ShowCalibrationDialog() {
     s_ui.dialog_text = text;
     lv_label_set_long_mode(text, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(text, kCardW - 80);
-    lv_label_set_text(text, "请将设备水平放置在桌面上保持静止，\n点击 “开始校准” 后等待 1~2 秒");
+    lv_label_set_text(text, I18n::T("请将设备水平放置在桌面上保持静止，\n点击 “开始校准” 后等待 1~2 秒"));
     lv_obj_set_style_text_color(text, lv_color_hex(0xC7CDD9), LV_PART_MAIN);
     lv_obj_set_style_text_font(text, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_set_style_text_align(text, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -544,7 +545,7 @@ void ShowCalibrationDialog() {
     lv_obj_set_style_border_width(cancel, 0, LV_PART_MAIN);
     lv_obj_add_event_cb(cancel, OnDialogCancelClicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* cancel_lbl = lv_label_create(cancel);
-    lv_label_set_text(cancel_lbl, "取消");
+    lv_label_set_text(cancel_lbl, I18n::T("取消"));
     lv_obj_set_style_text_color(cancel_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(cancel_lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_center(cancel_lbl);
@@ -559,7 +560,7 @@ void ShowCalibrationDialog() {
     lv_obj_set_style_border_width(ok, 0, LV_PART_MAIN);
     lv_obj_add_event_cb(ok, OnDialogOkClicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* ok_lbl = lv_label_create(ok);
-    lv_label_set_text(ok_lbl, "开始校准");
+    lv_label_set_text(ok_lbl, I18n::T("开始校准"));
     lv_obj_set_style_text_color(ok_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(ok_lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_center(ok_lbl);
@@ -575,7 +576,7 @@ void OnCalibrateClicked(lv_event_t* /*e*/) {
 void OnResetCalClicked(lv_event_t* /*e*/) {
     ResetCalOffsets();
     if (s_ui.status_lbl != nullptr) {
-        lv_label_set_text(s_ui.status_lbl, "已重置校准");
+        lv_label_set_text(s_ui.status_lbl, I18n::T("已重置校准"));
         lv_obj_set_style_text_color(s_ui.status_lbl, lv_color_hex(0xFBBF24), LV_PART_MAIN);
     }
 }
@@ -644,7 +645,7 @@ void BuildHeader(lv_obj_t* parent) {
     lv_obj_center(back_icon);
 
     lv_obj_t* title = lv_label_create(header);
-    lv_label_set_text(title, "水平仪");
+    lv_label_set_text(title, I18n::T("水平仪"));
     lv_obj_set_style_text_color(title, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 16 + kBackBtnSize + 16, 0);
@@ -751,7 +752,7 @@ void BuildFooter(lv_obj_t* parent) {
     // 状态大字（“水平” / “未水平 X°”）
     lv_obj_t* status = lv_label_create(parent);
     s_ui.status_lbl = status;
-    lv_label_set_text(status, "等待数据...");
+    lv_label_set_text(status, I18n::T("等待数据..."));
     lv_obj_set_style_text_color(status, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(status, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_set_pos(status, 0, kFooterTopY - 2);
@@ -795,7 +796,7 @@ void BuildFooter(lv_obj_t* parent) {
     lv_obj_set_style_border_width(cal, 0, LV_PART_MAIN);
     lv_obj_add_event_cb(cal, OnCalibrateClicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* cal_lbl = lv_label_create(cal);
-    lv_label_set_text(cal_lbl, "校准");
+    lv_label_set_text(cal_lbl, I18n::T("校准"));
     lv_obj_set_style_text_color(cal_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(cal_lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_center(cal_lbl);
@@ -810,7 +811,7 @@ void BuildFooter(lv_obj_t* parent) {
     lv_obj_set_style_border_color(reset, lv_color_hex(0x3A4050), LV_PART_MAIN);
     lv_obj_add_event_cb(reset, OnResetCalClicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* reset_lbl = lv_label_create(reset);
-    lv_label_set_text(reset_lbl, "重置校准");
+    lv_label_set_text(reset_lbl, I18n::T("重置校准"));
     lv_obj_set_style_text_color(reset_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(reset_lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_center(reset_lbl);

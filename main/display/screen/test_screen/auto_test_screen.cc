@@ -1,4 +1,5 @@
 #include "auto_test_screen.h"
+#include "i18n.h"
 
 #include "esp_log.h"
 #include "test_screen.h"
@@ -14,6 +15,7 @@
 #include "bq27220_test.h"
 #include "nu1680_test.h"
 #include "pin_gpio_test.h"
+#include "pwr_key_handler.h"
 #include "screen_util.h"
 #include "test_ui_common.h"
 
@@ -82,6 +84,10 @@ void OnScreenLoadItems() {
     PinGpioTest::OnLoad();
 }
 
+void auto_test_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("auto_test", event);
+}
+
 }  // namespace
 
 lv_obj_t* AutoTestScreen::Create() {
@@ -96,7 +102,7 @@ lv_obj_t* AutoTestScreen::Create() {
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
-    TestUiCreateHeader(scr, "自动测试", OnBackBtnClicked);
+    TestUiCreateHeader(scr, I18n::T("自动测试"), OnBackBtnClicked);
 
     lv_obj_t* body = TestUiCreateScrollBody(scr);
 
@@ -117,6 +123,7 @@ lv_obj_t* AutoTestScreen::Create() {
 
     s_poll_timer = lv_timer_create(OnPollTimer, kPollPeriodMs, nullptr);
 
+    screen_attach_lifecycle(scr, auto_test_lifecycle_cb);
     screen_attach_swipe_back(scr, OnSwipeBackToMenu);
     lv_obj_add_event_cb(scr, OnScreenUnloaded, LV_EVENT_SCREEN_UNLOADED,
                         nullptr);

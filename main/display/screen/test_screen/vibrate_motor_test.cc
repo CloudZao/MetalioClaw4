@@ -1,4 +1,5 @@
 #include "vibrate_motor_test.h"
+#include "i18n.h"
 
 #include "esp_log.h"
 #include "driver/gpio.h"
@@ -39,7 +40,7 @@ void OnConfirmResult(bool pass, void* user_data) {
 
 void OnConfirmTimer(lv_timer_t* /*t*/) {
     s_confirm_timer = nullptr;
-    TestUiShowConfirmDialog("是否正常震动？", OnConfirmResult, s_status_icon);
+    TestUiShowConfirmDialog(I18n::T("是否正常震动？"), OnConfirmResult, s_status_icon);
 }
 
 void ScheduleConfirmDialog() {
@@ -117,7 +118,7 @@ namespace VibrateMotorTest {
 
 void BuildRow(lv_obj_t* list) {
     lv_obj_t* ctrl = nullptr;
-    TestUiCreateRowShell(list, "震动马达", &s_status_icon, &ctrl);
+    TestUiCreateRowShell(list, I18n::T("震动马达"), &s_status_icon, &ctrl);
     TestUiCreateSwitch(ctrl, OnSwitchChanged, nullptr);
 }
 

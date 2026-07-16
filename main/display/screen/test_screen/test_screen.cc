@@ -1,4 +1,5 @@
 #include "test_screen.h"
+#include "i18n.h"
 
 #include "esp_log.h"
 #include "home_screen/home_screen.h"
@@ -56,11 +57,11 @@ lv_obj_t* TestScreen::Create() {
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
-    TestUiCreateHeader(scr, "硬件测试", OnBackBtnClicked);
+    TestUiCreateHeader(scr, I18n::T("硬件测试"), OnBackBtnClicked);
 
     lv_obj_t* body = TestUiCreateScrollBody(scr);
-    TestUiCreateMenuRow(body, "自动测试", OnAutoTestClicked);
-    TestUiCreateMenuRow(body, "压力测试", OnStressTestClicked);
+    TestUiCreateMenuRow(body, I18n::T("自动测试"), OnAutoTestClicked);
+    TestUiCreateMenuRow(body, I18n::T("压力测试"), OnStressTestClicked);
 
     if (s_lifecycle_cb != nullptr) {
         screen_attach_lifecycle(scr, s_lifecycle_cb);

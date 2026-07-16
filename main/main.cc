@@ -8,6 +8,7 @@
 #include <freertos/task.h>
 
 #include "application.h"
+#include "i18n.h"
 #include "system_info.h"
 
 #define TAG "main"
@@ -25,6 +26,9 @@ extern "C" void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    // UI locale from NVS (must run before first screen create).
+    I18n::Init();
 
     // Launch the application
     auto& app = Application::GetInstance();

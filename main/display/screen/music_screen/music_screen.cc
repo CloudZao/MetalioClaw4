@@ -1,4 +1,5 @@
 #include "music_screen.h"
+#include "i18n.h"
 
 #include <cstdio>
 #include <cstring>
@@ -478,7 +479,7 @@ void BuildUsageHint(lv_obj_t* scr) {
     lv_obj_t* hint = lv_label_create(scr);
     lv_label_set_text(
         hint,
-        "蓝牙音箱模式 · 手机蓝牙连接本设备后，用手机音乐 App 播放歌曲");
+        I18n::T("蓝牙音箱模式 · 手机蓝牙连接本设备后，用手机音乐 App 播放歌曲"));
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_set_style_text_color(hint, lv_color_hex(0x8B92A3), LV_PART_MAIN);
     lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -491,7 +492,7 @@ void BuildUsageHint(lv_obj_t* scr) {
 void BuildSongTitle(lv_obj_t* scr) {
     s_ui.lbl_song = lv_label_create(scr);
     // 默认占位文本，等手机回传 song 字段时被覆盖。
-    lv_label_set_text(s_ui.lbl_song, "蓝牙音乐");
+    lv_label_set_text(s_ui.lbl_song, I18n::T("蓝牙音乐"));
     lv_obj_set_style_text_font(s_ui.lbl_song, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_set_style_text_color(s_ui.lbl_song, lv_color_hex(kColorTextPrimary),
                                 LV_PART_MAIN);

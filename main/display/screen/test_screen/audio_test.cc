@@ -1,4 +1,5 @@
 #include "audio_test.h"
+#include "i18n.h"
 
 #include "application.h"
 #include "audio_service.h"
@@ -53,7 +54,7 @@ void OnAudioConfirmResult(bool pass, void* user_data) {
 
 void OnConfirmTimer(lv_timer_t* /*t*/) {
     s_confirm_timer = nullptr;
-    TestUiShowConfirmDialog("录音、喇叭是否正常？", OnAudioConfirmResult,
+    TestUiShowConfirmDialog(I18n::T("录音、喇叭是否正常？"), OnAudioConfirmResult,
                             s_status_icon);
 }
 
@@ -126,19 +127,19 @@ void UpdateButtonUi() {
     case State::Idle:
         lv_obj_set_style_bg_color(s_record_btn, lv_color_hex(kColorBtnIdle),
                                   LV_PART_MAIN);
-        lv_label_set_text(s_record_lbl, "按住录音");
+        lv_label_set_text(s_record_lbl, I18n::T("按住录音"));
         lv_obj_add_flag(s_record_btn, LV_OBJ_FLAG_CLICKABLE);
         break;
     case State::Recording:
         lv_obj_set_style_bg_color(s_record_btn, lv_color_hex(kColorBtnRecording),
                                   LV_PART_MAIN);
-        lv_label_set_text(s_record_lbl, "录音中…");
+        lv_label_set_text(s_record_lbl, I18n::T("录音中…"));
         lv_obj_add_flag(s_record_btn, LV_OBJ_FLAG_CLICKABLE);
         break;
     case State::Playing:
         lv_obj_set_style_bg_color(s_record_btn, lv_color_hex(kColorBtnPlaying),
                                   LV_PART_MAIN);
-        lv_label_set_text(s_record_lbl, "播放中…");
+        lv_label_set_text(s_record_lbl, I18n::T("播放中…"));
         lv_obj_remove_flag(s_record_btn, LV_OBJ_FLAG_CLICKABLE);
         break;
     }
@@ -234,7 +235,7 @@ namespace AudioTest {
 
 void BuildRow(lv_obj_t* list) {
     lv_obj_t* ctrl = nullptr;
-    TestUiCreateRowShell(list, "音频", &s_status_icon, &ctrl);
+    TestUiCreateRowShell(list, I18n::T("音频"), &s_status_icon, &ctrl);
 
     s_record_btn = lv_button_create(ctrl);
     lv_obj_remove_style_all(s_record_btn);
@@ -247,7 +248,7 @@ void BuildRow(lv_obj_t* list) {
                               LV_PART_MAIN | LV_STATE_PRESSED);
 
     s_record_lbl = lv_label_create(s_record_btn);
-    lv_label_set_text(s_record_lbl, "按住录音");
+    lv_label_set_text(s_record_lbl, I18n::T("按住录音"));
     lv_obj_set_style_text_color(s_record_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(s_record_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(s_record_lbl);

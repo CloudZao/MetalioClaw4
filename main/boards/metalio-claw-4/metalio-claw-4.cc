@@ -40,6 +40,7 @@
 #include <cstring>
 #include <iostream>
 #include "IOExpander.hpp"
+#include "pwr_key_handler.h"
 #include "SimpleUart.hpp"
 // #include "power_manager.h"
 // #include "power_save_timer.h"
@@ -179,13 +180,23 @@ private:
         auto& iOExpander = IOExpander::getInstance();
         iOExpander.begin(i2c_bus_);
         iOExpander.setLevel(IOExpander::Pin::BT_POWER, true);
-        iOExpander.setLevel(IOExpander::Pin::PA, true);
+        // PA 默认关着，开机 5s 后再开，避免上电瞬间推动放。
+        iOExpander.setLevel(IOExpander::Pin::PA, false);
         iOExpander.setLevel(IOExpander::Pin::PA_SWITCH, true);
         iOExpander.setLevel(IOExpander::Pin::RST_4G, true);
         // CAM_PWDN: 低电平通电；这里默认拉高 = 摄像头断电。
         // 只有进入相机 App 时（CameraScreen::LifecycleCallback LOAD）才拉低供电。
         iOExpander.setLevel(IOExpander::Pin::CAM_PWDN, true);
         iOExpander.setLevel(IOExpander::Pin::SD, false);
+
+        xTaskCreate(
+            [](void*) {
+                vTaskDelay(pdMS_TO_TICKS(5000));
+                IOExpander::getInstance().setLevel(IOExpander::Pin::PA, true);
+                ESP_LOGI(TAG, "PA enabled after 8s boot delay");
+                vTaskDelete(nullptr);
+            },
+            "pa_enable_delay", 2048, nullptr, 5, nullptr);
     }
 
     void InitializeBTAudio() {
@@ -248,7 +259,7 @@ private:
         esp_lcd_dpi_panel_config_t dpi_config;
         // 1. 时钟源配置
         dpi_config.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
-        dpi_config.dpi_clock_freq_mhz = 36;  // NV3051F_DCLK_MHZ
+        dpi_config.dpi_clock_freq_mhz = 48;  // NV3051F_DCLK_MHZ
 
         // 2. 虚拟通道
         dpi_config.virtual_channel = 0;
@@ -533,6 +544,8 @@ public:
         InitializeI2C();
 
         InitializeIOExpander();
+        // 侧面电源键：短按 + 长按开机注册一次，后续靠前台页面标记分发。
+        PwrKey_Init();
         // 把 BQ27220 电量计绑定到 i2c_bus_ 上；返回值表示「这次是否挂上」，
         // 开机失败 Bq27220Gauge::GetBatteryLevel 内部会节流自愈，这里不需要
         // ESP_ERROR_CHECK。
@@ -550,8 +563,6 @@ public:
         InitializeTouch();
         InitializeDisplay();
         InitializeI2cWxcho();
-        // PWR_KEY 单击在 chat / digital_people 屏 LOAD 时注册；长按 1.5s 在
-        // HomeScreen::Create() 注册（弹 [重启/关机] 对话框）。
         GetBacklight()->RestoreBrightness();
 
         xTaskCreate(

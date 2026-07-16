@@ -1,4 +1,5 @@
 #include "camera_test.h"
+#include "i18n.h"
 
 #include <cstdio>
 
@@ -186,7 +187,7 @@ void OpenPreviewOverlay() {
     CameraScreen::PreviewBuffer preview_buf = {};
     if (!CameraScreen::PreparePreviewBuffer(&preview_buf)) {
         ESP_LOGE(TAG, "prepare preview buffer failed");
-        SetErrorText("预览缓冲失败");
+        SetErrorText(I18n::T("预览缓冲失败"));
         return;
     }
 
@@ -228,7 +229,7 @@ void OpenPreviewOverlay() {
     screen_swipe_back_ignore(strip, true);
 
     lv_obj_t* title = lv_label_create(strip);
-    lv_label_set_text(title, "摄像头预览");
+    lv_label_set_text(title, I18n::T("摄像头预览"));
     lv_obj_set_style_text_color(title, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 28, 0);
@@ -247,7 +248,7 @@ void OpenPreviewOverlay() {
     screen_swipe_back_ignore(close_btn, true);
 
     lv_obj_t* close_lbl = lv_label_create(close_btn);
-    lv_label_set_text(close_lbl, "关闭");
+    lv_label_set_text(close_lbl, I18n::T("关闭"));
     lv_obj_set_style_text_color(close_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(close_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(close_lbl);
@@ -259,7 +260,7 @@ void OpenPreviewOverlay() {
     if (CameraScreen::StartExternalPreview(s_preview_canvas) != ESP_OK) {
         ESP_LOGE(TAG, "start preview failed");
         ClosePreviewOverlay();
-        SetErrorText("预览启动失败");
+        SetErrorText(I18n::T("预览启动失败"));
         return;
     }
 
@@ -274,13 +275,13 @@ void OnPreviewBtnClicked(lv_event_t* /*e*/) {
 
 bool TryDetectSensorId() {
     if (!EnsureSccbDevice()) {
-        SetErrorText("I2C未就绪");
+        SetErrorText(I18n::T("I2C未就绪"));
         return true;
     }
 
     if (i2c_master_probe(metalio_claw_4_get_i2c_bus(), kOv2710Addr, 200) !=
         ESP_OK) {
-        SetErrorText("SCCB无应答");
+        SetErrorText(I18n::T("SCCB无应答"));
         ESP_LOGW(TAG, "SCCB probe @0x36 failed");
         return true;
     }
@@ -289,7 +290,7 @@ bool TryDetectSensorId() {
     uint8_t pid_l = 0;
     if (!ReadSccbReg16(kOv2710RegPidH, &pid_h) ||
         !ReadSccbReg16(kOv2710RegPidL, &pid_l)) {
-        SetErrorText("读取ID失败");
+        SetErrorText(I18n::T("读取ID失败"));
         ESP_LOGW(TAG, "read OV2710 PID failed");
         return true;
     }
@@ -317,10 +318,10 @@ namespace CameraTest {
 
 void BuildRow(lv_obj_t* list) {
     lv_obj_t* ctrl = nullptr;
-    TestUiCreateRowShell(list, "摄像头", &s_status_icon, &ctrl);
+    TestUiCreateRowShell(list, I18n::T("摄像头"), &s_status_icon, &ctrl);
 
     s_value_lbl = lv_label_create(ctrl);
-    lv_label_set_text(s_value_lbl, "检测中...");
+    lv_label_set_text(s_value_lbl, I18n::T("检测中..."));
     lv_obj_set_style_text_color(s_value_lbl, lv_color_hex(kTestColorTextDim),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(s_value_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -342,7 +343,7 @@ void BuildRow(lv_obj_t* list) {
     screen_swipe_back_ignore(s_preview_btn, true);
 
     lv_obj_t* preview_lbl = lv_label_create(s_preview_btn);
-    lv_label_set_text(preview_lbl, "预览");
+    lv_label_set_text(preview_lbl, I18n::T("预览"));
     lv_obj_set_style_text_color(preview_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(preview_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(preview_lbl);
@@ -354,12 +355,12 @@ void OnLoad() {
     s_preview_started = false;
     s_power_on_us = 0;
     if (!StartCameraPower()) {
-        SetErrorText("上电失败");
+        SetErrorText(I18n::T("上电失败"));
         s_detect_done = true;
         return;
     }
     if (s_value_lbl != nullptr) {
-        lv_label_set_text(s_value_lbl, "初始化中...");
+        lv_label_set_text(s_value_lbl, I18n::T("初始化中..."));
         lv_obj_set_style_text_color(s_value_lbl, lv_color_hex(kTestColorTextDim),
                                     LV_PART_MAIN);
     }

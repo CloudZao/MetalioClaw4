@@ -1,4 +1,5 @@
 #include "nu1680_test.h"
+#include "i18n.h"
 
 #include "driver/i2c_master.h"
 #include "esp_log.h"
@@ -55,7 +56,7 @@ void BuildRow(lv_obj_t* list) {
     lv_obj_t* ctrl = nullptr;
     TestUiCreateRowShell(list, "NU1680", &s_status_icon, &ctrl);
     s_value_lbl = TestUiCreateValueLabel(ctrl);
-    lv_label_set_text(s_value_lbl, "检测中...");
+    lv_label_set_text(s_value_lbl, I18n::T("检测中..."));
 }
 
 void OnLoad() {
@@ -76,12 +77,12 @@ void Poll() {
 
     if (!ProbeDevice()) {
         // 未无线充电时地址不可见，持续轮询，放到充上后即锁定通过。
-        SetErrorText("未检测到(需无线充)");
+        SetErrorText(I18n::T("未检测到(需无线充)"));
         return;
     }
 
     s_pass_latched = true;
-    SetPassText("无线充电成功");
+    SetPassText(I18n::T("无线充电成功"));
     ESP_LOGI(TAG, "NU1680 probed once @0x%02X, stop further detection",
              kNu1680Addr);
 }

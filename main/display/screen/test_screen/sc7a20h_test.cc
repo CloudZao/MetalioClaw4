@@ -1,4 +1,5 @@
 #include "sc7a20h_test.h"
+#include "i18n.h"
 
 #include <cstdio>
 
@@ -115,7 +116,7 @@ void BuildRow(lv_obj_t* list) {
     lv_obj_t* ctrl = nullptr;
     TestUiCreateRowShell(list, "SC7A20HTR", &s_status_icon, &ctrl);
     s_value_lbl = TestUiCreateValueLabel(ctrl);
-    lv_label_set_text(s_value_lbl, "初始化中...");
+    lv_label_set_text(s_value_lbl, I18n::T("初始化中..."));
 }
 
 void OnLoad() {
@@ -134,7 +135,7 @@ void Poll() {
     }
 
     if (!s_sensor_ok || s_sensor == nullptr) {
-        SetErrorText("I2C未检测到");
+        SetErrorText(I18n::T("I2C未检测到"));
         return;
     }
 
@@ -142,7 +143,7 @@ void Poll() {
     int ay = 0;
     int az = 0;
     if (!s_sensor->ReadAccelMg(&ax, &ay, &az)) {
-        SetErrorText("I2C读取失败");
+        SetErrorText(I18n::T("I2C读取失败"));
         return;
     }
 

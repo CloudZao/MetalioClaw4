@@ -1,4 +1,5 @@
 #include "sd_card_test.h"
+#include "i18n.h"
 
 #include <cstdio>
 
@@ -64,9 +65,9 @@ namespace SdCardTest {
 
 void BuildRow(lv_obj_t* list) {
     lv_obj_t* ctrl = nullptr;
-    TestUiCreateRowShell(list, "SD卡", &s_status_icon, &ctrl);
+    TestUiCreateRowShell(list, I18n::T("SD卡"), &s_status_icon, &ctrl);
     s_value_lbl = TestUiCreateValueLabel(ctrl);
-    lv_label_set_text(s_value_lbl, "检测中...");
+    lv_label_set_text(s_value_lbl, I18n::T("检测中..."));
 }
 
 void OnLoad() {
@@ -86,14 +87,14 @@ void Poll() {
     auto& sd = SdCardManager::GetInstance();
     if (!sd.IsMounted()) {
         if (!sd.Mount()) {
-            SetErrorText("未插卡或挂载失败");
+            SetErrorText(I18n::T("未插卡或挂载失败"));
             return;
         }
     }
 
     sdmmc_card_t* card = sd.GetCard();
     if (card == nullptr) {
-        SetErrorText("未插卡或读取失败");
+        SetErrorText(I18n::T("未插卡或读取失败"));
         return;
     }
 
@@ -122,7 +123,7 @@ void Poll() {
     FormatSize(free_bytes, free_str, sizeof(free_str));
 
     char buf[96];
-    std::snprintf(buf, sizeof(buf), "剩余 %s / 总 %s", free_str, total_str);
+    std::snprintf(buf, sizeof(buf), I18n::T("剩余 %s / 总 %s"), free_str, total_str);
     SetValueText(buf);
 }
 

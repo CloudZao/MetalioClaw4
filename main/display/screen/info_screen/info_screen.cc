@@ -1,4 +1,5 @@
 #include "info_screen.h"
+#include "i18n.h"
 
 #include <cstdio>
 #include <cstring>
@@ -68,75 +69,75 @@ void CollectInfoItems(InfoItem* items, int* count) {
 
     int idx = 0;
 
-    items[idx].label = "设备型号";
+    items[idx].label = I18n::T("设备型号");
     std::snprintf(items[idx].value, sizeof(items[idx].value), "%s", "MetalioClaw4");
     ++idx;
 
-    items[idx].label = "芯片型号";
+    items[idx].label = I18n::T("芯片型号");
     {
         const std::string chip = SystemInfo::GetChipModelName();
         std::snprintf(items[idx].value, sizeof(items[idx].value), "%s", chip.c_str());
     }
     ++idx;
 
-    items[idx].label = "CPU 核心";
-    std::snprintf(items[idx].value, sizeof(items[idx].value), "%u 核", chip_info.cores);
+    items[idx].label = I18n::T("CPU 核心");
+    std::snprintf(items[idx].value, sizeof(items[idx].value), I18n::T("%u 核"), chip_info.cores);
     ++idx;
 
-    items[idx].label = "固件版本";
+    items[idx].label = I18n::T("固件版本");
     std::snprintf(items[idx].value, sizeof(items[idx].value), "%s", app_desc->version);
     ++idx;
 
-    items[idx].label = "编译时间";
+    items[idx].label = I18n::T("编译时间");
     std::snprintf(items[idx].value, sizeof(items[idx].value), "%s %s",
                   app_desc->date, app_desc->time);
     ++idx;
 
-    items[idx].label = "IDF 版本";
+    items[idx].label = I18n::T("IDF 版本");
     std::snprintf(items[idx].value, sizeof(items[idx].value), "%s", app_desc->idf_ver);
     ++idx;
 
-    items[idx].label = "MAC 地址";
+    items[idx].label = I18n::T("MAC 地址");
     {
         const std::string mac = SystemInfo::GetMacAddress();
         std::snprintf(items[idx].value, sizeof(items[idx].value), "%s", mac.c_str());
     }
     ++idx;
 
-    items[idx].label = "设备 UUID";
+    items[idx].label = I18n::T("设备 UUID");
     {
         const std::string uuid = board.GetUuid();
         std::snprintf(items[idx].value, sizeof(items[idx].value), "%s", uuid.c_str());
     }
     ++idx;
 
-    items[idx].label = "Flash 容量";
+    items[idx].label = I18n::T("Flash 容量");
     FormatFlashSize(items[idx].value, sizeof(items[idx].value), SystemInfo::GetFlashSize());
     ++idx;
 
-    items[idx].label = "SRAM 总大小";
+    items[idx].label = I18n::T("SRAM 总大小");
     // 芯片物理 HP SRAM（P4 = 768KB），非 heap 剩余可分配量。
     FormatFlashSize(items[idx].value, sizeof(items[idx].value),
                     static_cast<size_t>(SOC_MEM_INTERNAL_HIGH - SOC_MEM_INTERNAL_LOW));
     ++idx;
 
-    items[idx].label = "PSRAM 总大小";
+    items[idx].label = I18n::T("PSRAM 总大小");
     {
         const size_t psram_total = esp_psram_get_size();
         if (psram_total == 0) {
-            std::snprintf(items[idx].value, sizeof(items[idx].value), "无");
+            std::snprintf(items[idx].value, sizeof(items[idx].value), I18n::T("无"));
         } else {
             FormatFlashSize(items[idx].value, sizeof(items[idx].value), psram_total);
         }
     }
     ++idx;
 
-    items[idx].label = "OTA 分区";
+    items[idx].label = I18n::T("OTA 分区");
     if (ota_partition != nullptr) {
         std::snprintf(items[idx].value, sizeof(items[idx].value), "%s",
                       ota_partition->label);
     } else {
-        std::snprintf(items[idx].value, sizeof(items[idx].value), "未知");
+        std::snprintf(items[idx].value, sizeof(items[idx].value), I18n::T("未知"));
     }
     ++idx;
 
@@ -187,7 +188,7 @@ void BuildHeader(lv_obj_t* parent) {
     lv_obj_center(back_icon);
 
     lv_obj_t* title = lv_label_create(header);
-    lv_label_set_text(title, "系统信息");
+    lv_label_set_text(title, I18n::T("系统信息"));
     lv_obj_set_style_text_color(title, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 16 + kBackBtnSize + 16, 0);

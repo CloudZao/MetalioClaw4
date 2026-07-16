@@ -1,4 +1,5 @@
 #include "camera_screen.h"
+#include "i18n.h"
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -583,7 +584,7 @@ void save_photo_task(void* /*arg*/) {
     uint8_t* bgr = static_cast<uint8_t*>(
         heap_caps_malloc(bgr_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
     if (bgr == nullptr) {
-        post_status_text("内存不足，保存失败", 0xFF5555);
+        post_status_text(I18n::T("内存不足，保存失败"), 0xFF5555);
         s_save_in_progress = false;
         vTaskDelete(nullptr);
         return;
@@ -600,7 +601,7 @@ void save_photo_task(void* /*arg*/) {
         if (jpeg_data != nullptr) {
             free(jpeg_data);
         }
-        post_status_text("编码失败，未保存", 0xFF5555);
+        post_status_text(I18n::T("编码失败，未保存"), 0xFF5555);
         s_save_in_progress = false;
         vTaskDelete(nullptr);
         return;
@@ -614,7 +615,7 @@ void save_photo_task(void* /*arg*/) {
     FILE* file = fopen(path, "wb");
     if (file == nullptr) {
         free(jpeg_data);
-        post_status_text("写入失败，未保存", 0xFF5555);
+        post_status_text(I18n::T("写入失败，未保存"), 0xFF5555);
         s_save_in_progress = false;
         vTaskDelete(nullptr);
         return;
@@ -625,10 +626,10 @@ void save_photo_task(void* /*arg*/) {
     free(jpeg_data);
 
     if (written != jpeg_len) {
-        post_status_text("写入失败，未保存", 0xFF5555);
+        post_status_text(I18n::T("写入失败，未保存"), 0xFF5555);
     } else {
         ESP_LOGI(TAG, "saved photo %s (%u bytes)", path, static_cast<unsigned>(jpeg_len));
-        post_status_text("已保存到 SD 卡", 0x66FF66);
+        post_status_text(I18n::T("已保存到 SD 卡"), 0x66FF66);
         schedule_status_clear(2500);
     }
     s_save_in_progress = false;
@@ -640,11 +641,11 @@ void start_save_photo_task() {
         return;
     }
     s_save_in_progress = true;
-    post_status_text("正在保存…", 0xFFFFFF);
+    post_status_text(I18n::T("正在保存…"), 0xFFFFFF);
     if (xTaskCreatePinnedToCore(save_photo_task, "cam_save", 12 * 1024, nullptr,
                                 tskIDLE_PRIORITY + 2, nullptr, 0) != pdPASS) {
         s_save_in_progress = false;
-        post_status_text("保存任务启动失败", 0xFF5555);
+        post_status_text(I18n::T("保存任务启动失败"), 0xFF5555);
     }
 }
 
@@ -692,7 +693,7 @@ void BuildGalleryHeader(lv_obj_t* parent) {
     lv_obj_add_event_cb(back_btn, on_tab_back_clicked, LV_EVENT_CLICKED, nullptr);
 
     lv_obj_t* title = lv_label_create(header);
-    lv_label_set_text(title, "相册");
+    lv_label_set_text(title, I18n::T("相册"));
     lv_obj_set_style_text_color(title, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_CENTER, 0, 0);
@@ -810,7 +811,7 @@ void on_viewer_delete_clicked(lv_event_t* e) {
     }
     if (unlink(s_viewer_posix_path) != 0) {
         ESP_LOGE(TAG, "delete failed: %s", s_viewer_posix_path);
-        post_status_text("删除失败", 0xFF5555);
+        post_status_text(I18n::T("删除失败"), 0xFF5555);
         schedule_status_clear(2500);
         return;
     }
@@ -821,7 +822,7 @@ void on_viewer_delete_clicked(lv_event_t* e) {
 
 void SetViewMode(ViewMode mode) {
     if (mode == ViewMode::kGallery && !SdCardManager::GetInstance().IsMounted()) {
-        post_status_text("请插入 SD 卡", 0xFFAA00);
+        post_status_text(I18n::T("请插入 SD 卡"), 0xFFAA00);
         schedule_status_clear(2500);
         return;
     }
@@ -881,7 +882,7 @@ void RebuildGallery() {
 
     if (!SdCardManager::GetInstance().IsMounted()) {
         if (s_ui.gallery_empty != nullptr) {
-            lv_label_set_text(s_ui.gallery_empty, "请插入 SD 卡");
+            lv_label_set_text(s_ui.gallery_empty, I18n::T("请插入 SD 卡"));
             lv_obj_remove_flag(s_ui.gallery_empty, LV_OBJ_FLAG_HIDDEN);
         }
         return;
@@ -891,7 +892,7 @@ void RebuildGallery() {
     CollectRootJpgFiles(files);
     if (files.empty()) {
         if (s_ui.gallery_empty != nullptr) {
-            lv_label_set_text(s_ui.gallery_empty, "暂无照片");
+            lv_label_set_text(s_ui.gallery_empty, I18n::T("暂无照片"));
             lv_obj_remove_flag(s_ui.gallery_empty, LV_OBJ_FLAG_HIDDEN);
         }
         return;
@@ -985,7 +986,7 @@ void camera_worker_task(void* /*arg*/) {
     // ----- 3) esp_video / XCLK -----
     esp_err_t err = init_video_pipeline();
     if (err != ESP_OK) {
-        post_status_text("摄像头初始化失败", 0xFF5555);
+        post_status_text(I18n::T("摄像头初始化失败"), 0xFF5555);
         goto cleanup_power;
     }
 
@@ -1008,7 +1009,7 @@ void camera_worker_task(void* /*arg*/) {
 
     // ----- 4) 打开 V4L2 设备 -----
     if (open_camera_device(&s_cam) != ESP_OK) {
-        post_status_text("打开摄像头设备失败", 0xFF5555);
+        post_status_text(I18n::T("打开摄像头设备失败"), 0xFF5555);
         goto cleanup_video;
     }
 
@@ -1150,7 +1151,7 @@ void on_capture_btn_clicked(lv_event_t* /*e*/) {
     s_photo_frozen = !s_photo_frozen;
 
     if (s_ui.btn_label != nullptr) {
-        lv_label_set_text(s_ui.btn_label, s_photo_frozen ? "实时预览" : "拍照");
+        lv_label_set_text(s_ui.btn_label, s_photo_frozen ? I18n::T("实时预览") : I18n::T("拍照"));
     }
     if (s_ui.btn_capture != nullptr) {
         lv_obj_set_style_bg_color(
@@ -1163,7 +1164,7 @@ void on_capture_btn_clicked(lv_event_t* /*e*/) {
         if (SdCardManager::GetInstance().IsMounted()) {
             start_save_photo_task();
         } else {
-            post_status_text("无 SD 卡，未保存", 0xFFAA00);
+            post_status_text(I18n::T("无 SD 卡，未保存"), 0xFFAA00);
             schedule_status_clear(3000);
         }
     } else if (!s_photo_frozen && was_frozen) {
@@ -1273,7 +1274,7 @@ lv_obj_t* CameraScreen::Create() {
 
     lv_obj_t* status = lv_label_create(camera_panel);
     s_ui.status_lbl  = status;
-    lv_label_set_text(status, "正在启动摄像头…");
+    lv_label_set_text(status, I18n::T("正在启动摄像头…"));
     lv_obj_set_style_text_color(status, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(status, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(status, LV_ALIGN_CENTER, 0, 0);
@@ -1308,7 +1309,7 @@ lv_obj_t* CameraScreen::Create() {
 
     lv_obj_t* gallery_empty = lv_label_create(gallery_panel);
     s_ui.gallery_empty = gallery_empty;
-    lv_label_set_text(gallery_empty, "暂无照片");
+    lv_label_set_text(gallery_empty, I18n::T("暂无照片"));
     lv_obj_set_style_text_color(gallery_empty, lv_color_hex(0x9A9A9A), LV_PART_MAIN);
     lv_obj_set_style_text_font(gallery_empty, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(gallery_empty, LV_ALIGN_CENTER, 0, kGalleryHeaderH / 2);
@@ -1344,7 +1345,7 @@ lv_obj_t* CameraScreen::Create() {
     lv_obj_set_style_bg_opa(viewer_del, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_add_event_cb(viewer_del, on_viewer_delete_clicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* viewer_del_lbl = lv_label_create(viewer_del);
-    lv_label_set_text(viewer_del_lbl, "删除");
+    lv_label_set_text(viewer_del_lbl, I18n::T("删除"));
     lv_obj_set_style_text_color(viewer_del_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(viewer_del_lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_center(viewer_del_lbl);
@@ -1390,7 +1391,7 @@ lv_obj_t* CameraScreen::Create() {
 
     lv_obj_t* lbl = lv_label_create(btn);
     s_ui.btn_label = lbl;
-    lv_label_set_text(lbl, "拍照");
+    lv_label_set_text(lbl, I18n::T("拍照"));
     lv_obj_set_style_text_color(lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_center(lbl);

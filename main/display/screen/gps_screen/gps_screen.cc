@@ -1,4 +1,5 @@
 #include "gps_screen.h"
+#include "i18n.h"
 
 #include "api_endpoints.h"
 #include "IOExpander.hpp"
@@ -560,16 +561,16 @@ void RefreshGpsTabFromService() {
     }
     const GpsService::Snapshot snap = GetEffectiveSnapshot();
 
-    const char* status_text = "未启动";
+    const char* status_text = I18n::T("未启动");
     uint32_t    badge_color = kColorBadgeSearch;
     if (MockIsEnabled()) {
-        status_text = "模拟定位";
+        status_text = I18n::T("模拟定位");
         badge_color = kColorBadgeMock;
     } else if (snap.fix_valid) {
-        status_text = "已定位";
+        status_text = I18n::T("已定位");
         badge_color = kColorBadgeFix;
     } else if (snap.started) {
-        status_text = "搜星中";
+        status_text = I18n::T("搜星中");
         badge_color = kColorBadgeSearch;
     }
     if (tab.status_label != nullptr) {
@@ -781,7 +782,7 @@ struct BinaryDownloadOutcome {
 BinaryDownloadOutcome DownloadBinary(Http* http, const std::string& url) {
     BinaryDownloadOutcome out;
     if (http == nullptr) {
-        out.err = "HTTP 不可用";
+        out.err = I18n::T("HTTP 不可用");
         return out;
     }
 
@@ -791,7 +792,7 @@ BinaryDownloadOutcome DownloadBinary(Http* http, const std::string& url) {
     http->SetHeader("User-Agent", "metalio-claw-4/1.0");
 
     if (!http->Open("GET", url)) {
-        out.err = "Open 失败";
+        out.err = I18n::T("Open 失败");
         return out;
     }
 
@@ -820,7 +821,7 @@ BinaryDownloadOutcome DownloadBinary(Http* http, const std::string& url) {
     uint8_t* buf   = alloc_psram(cap);
     if (buf == nullptr) {
         http->Close();
-        out.err = "内存不足";
+        out.err = I18n::T("内存不足");
         return out;
     }
 
@@ -832,7 +833,7 @@ BinaryDownloadOutcome DownloadBinary(Http* http, const std::string& url) {
     if (chunk == nullptr) {
         heap_caps_free(buf);
         http->Close();
-        out.err = "内存不足";
+        out.err = I18n::T("内存不足");
         return out;
     }
 
@@ -871,7 +872,7 @@ BinaryDownloadOutcome DownloadBinary(Http* http, const std::string& url) {
 
     if (read_error || total == 0) {
         heap_caps_free(buf);
-        out.err = read_error ? "读取失败" : "响应体为空";
+        out.err = read_error ? I18n::T("读取失败") : I18n::T("响应体为空");
         return out;
     }
 
@@ -882,7 +883,7 @@ BinaryDownloadOutcome DownloadBinary(Http* http, const std::string& url) {
                  static_cast<unsigned>(preview), static_cast<int>(preview),
                  reinterpret_cast<const char*>(buf));
         heap_caps_free(buf);
-        out.err = "服务器未返回 PNG";
+        out.err = I18n::T("服务器未返回 PNG");
         return out;
     }
 
@@ -916,12 +917,12 @@ void UpdateMapEntryState(LocMode mode) {
     if (tab.has_map) {
         lv_obj_remove_state(tab.map_entry, LV_STATE_DISABLED);
         if (tab.map_entry_sub != nullptr) {
-            lv_label_set_text(tab.map_entry_sub, "查看 >");
+            lv_label_set_text(tab.map_entry_sub, I18n::T("查看 >"));
         }
     } else {
         lv_obj_add_state(tab.map_entry, LV_STATE_DISABLED);
         if (tab.map_entry_sub != nullptr) {
-            lv_label_set_text(tab.map_entry_sub, "请先获取定位");
+            lv_label_set_text(tab.map_entry_sub, I18n::T("请先获取定位"));
         }
     }
 }
@@ -953,7 +954,7 @@ lv_obj_t* AddressLabelForMode(LocMode mode) {
 
 void ApplyMapImage(LocMode mode, void* data, size_t size, std::string& err_out) {
     if (data == nullptr || size == 0) {
-        err_out = "地图数据为空";
+        err_out = I18n::T("地图数据为空");
         return;
     }
     auto& tab = TabState(mode);
@@ -962,7 +963,7 @@ void ApplyMapImage(LocMode mode, void* data, size_t size, std::string& err_out) 
         new_image = std::make_unique<LvglAllocatedImage>(data, size);
     } catch (const std::exception& ex) {
         heap_caps_free(data);
-        err_out = std::string("解码失败：") + ex.what();
+        err_out = std::string(I18n::T("解码失败：")) + ex.what();
         return;
     }
     tab.map_image_holder = std::move(new_image);
@@ -1130,7 +1131,7 @@ bool ParseLocationResponse(const std::string& resp, LocationReportResult* res,
 
     cJSON* root = cJSON_Parse(resp.c_str());
     if (root == nullptr) {
-        res->err = "响应解析失败";
+        res->err = I18n::T("响应解析失败");
         return false;
     }
 
@@ -1144,9 +1145,9 @@ bool ParseLocationResponse(const std::string& resp, LocationReportResult* res,
             !JsonApiCodeOk(code)) {
             res->err = msg->valuestring;
         } else if (!cJSON_IsObject(data)) {
-            res->err = "未返回 data";
+            res->err = I18n::T("未返回 data");
         } else {
-            res->err = "接口返回错误";
+            res->err = I18n::T("接口返回错误");
         }
         cJSON_Delete(root);
         return false;
@@ -1182,7 +1183,7 @@ bool ParseLocationResponse(const std::string& resp, LocationReportResult* res,
             msg->valuestring[0] != '\0') {
             res->err = msg->valuestring;
         } else {
-            res->err = "未返回定位数据";
+            res->err = I18n::T("未返回定位数据");
         }
         cJSON_Delete(root);
         return false;
@@ -1221,19 +1222,19 @@ bool DownloadMapForResult(NetworkInterface* network,
                           const std::string& static_map_url,
                           LocationReportResult* res) {
     if (static_map_url.empty()) {
-        res->map_err = "未返回 staticMapUrl";
+        res->map_err = I18n::T("未返回 staticMapUrl");
         return false;
     }
     auto map_http = network->CreateHttp(0);
     if (map_http == nullptr) {
-        res->map_err = "地图 HTTP 创建失败";
+        res->map_err = I18n::T("地图 HTTP 创建失败");
         return false;
     }
     ESP_LOGI(TAG, "GET static map");
     BinaryDownloadOutcome map_dl =
         DownloadBinary(map_http.get(), static_map_url);
     if (!map_dl.ok) {
-        res->map_err = map_dl.err.empty() ? "地图下载失败" : map_dl.err;
+        res->map_err = map_dl.err.empty() ? I18n::T("地图下载失败") : map_dl.err;
         return false;
     }
     res->map_data = map_dl.data;
@@ -1269,7 +1270,7 @@ void OnLocationReportDone(void* user_data) {
             SetFetchEnabled(res->mode, true);
             if (tab.status_label != nullptr) {
                 lv_label_set_text(tab.status_label,
-                                  res->ok ? "已定位" : "定位失败");
+                                  res->ok ? I18n::T("已定位") : I18n::T("定位失败"));
             }
             if (tab.status_badge != nullptr) {
                 lv_obj_set_style_bg_color(
@@ -1285,8 +1286,8 @@ void OnLocationReportDone(void* user_data) {
                 SetAddressLabelText(res->mode, tab, res->address);
             } else {
                 const std::string err_text =
-                    res->err.empty() ? "未知错误" : res->err;
-                const std::string msg = std::string("查询失败：") + err_text;
+                    res->err.empty() ? I18n::T("未知错误") : res->err;
+                const std::string msg = std::string(I18n::T("查询失败：")) + err_text;
                 lv_label_set_text(addr_lbl, msg.c_str());
             }
         }
@@ -1411,7 +1412,7 @@ bool BuildWifiLocateBody(const std::string& at_resp, const MapViewParams& view,
         }
     }
     if (aps.empty()) {
-        err_out = "WiFi 扫描无结果";
+        err_out = I18n::T("WiFi 扫描无结果");
         ESP_LOGW(TAG, "wifi scan parse failed, AT resp:\n%s", at_resp.c_str());
         return false;
     }
@@ -1460,14 +1461,14 @@ bool BuildCellLocateBody(const std::string& at_resp, const MapViewParams& view,
         line = FindCaseInsensitive(at_resp.c_str(), "+ECBCINFO:");
     }
     if (line == nullptr) {
-        err_out = "未收到基站信息";
+        err_out = I18n::T("未收到基站信息");
         ESP_LOGW(TAG, "cell info missing, AT resp:\n%s", at_resp.c_str());
         return false;
     }
 
     const char* p = std::strchr(line, ':');
     if (p == nullptr) {
-        err_out = "基站信息格式错误";
+        err_out = I18n::T("基站信息格式错误");
         return false;
     }
     ++p;
@@ -1477,7 +1478,7 @@ bool BuildCellLocateBody(const std::string& at_resp, const MapViewParams& view,
     for (int i = 0; i < 8; ++i) {
         std::string tok;
         if (!ReadParenCsvToken(p, tok)) {
-            err_out = "基站信息解析失败";
+            err_out = I18n::T("基站信息解析失败");
             ESP_LOGW(TAG, "cell parse token %d failed, line: %s", i, line);
             return false;
         }
@@ -1551,7 +1552,7 @@ bool BuildGpsLocateBody(double lon_deg, double lat_deg, int radius_m,
                         const MapViewParams& view, std::string& body_out,
                         std::string& err_out) {
     if (std::isnan(lon_deg) || std::isnan(lat_deg)) {
-        err_out = "经纬度无效";
+        err_out = I18n::T("经纬度无效");
         return false;
     }
     char gps_field[64];
@@ -1576,7 +1577,7 @@ void SubmitLocationReport(LocationReportResult* res,
                           const std::string& req_json) {
     auto network = Board::GetInstance().GetNetwork();
     if (network == nullptr) {
-        res->err = "网络不可用";
+        res->err = I18n::T("网络不可用");
         lv_async_call(OnLocationReportDone, res);
         vTaskDelete(nullptr);
         return;
@@ -1584,7 +1585,7 @@ void SubmitLocationReport(LocationReportResult* res,
 
     auto http = network->CreateHttp(0);
     if (http == nullptr) {
-        res->err = "HTTP 创建失败";
+        res->err = I18n::T("HTTP 创建失败");
         lv_async_call(OnLocationReportDone, res);
         vTaskDelete(nullptr);
         return;
@@ -1599,7 +1600,7 @@ void SubmitLocationReport(LocationReportResult* res,
     const std::string report_url = api::Url(api::kGpsLocationReport);
 
     if (!http->Open("POST", report_url.c_str())) {
-        res->err = "Open 失败";
+        res->err = I18n::T("Open 失败");
         LogLocateHttpJson(res->mode, req_json, 0, "(open failed)");
         lv_async_call(OnLocationReportDone, res);
         vTaskDelete(nullptr);
@@ -1644,7 +1645,7 @@ void MapZoomRefreshTask(void* arg) {
     auto* res = static_cast<LocationReportResult*>(arg);
     auto& tab = TabState(res->mode);
     if (!TabHasCachedCoords(tab)) {
-        res->err = "无缓存坐标";
+        res->err = I18n::T("无缓存坐标");
         lv_async_call(OnLocationReportDone, res);
         vTaskDelete(nullptr);
         return;
@@ -1657,7 +1658,7 @@ void MapZoomRefreshTask(void* arg) {
 
     auto network = Board::GetInstance().GetNetwork();
     if (network == nullptr) {
-        res->err = "网络不可用";
+        res->err = I18n::T("网络不可用");
         lv_async_call(OnLocationReportDone, res);
         vTaskDelete(nullptr);
         return;
@@ -1665,7 +1666,7 @@ void MapZoomRefreshTask(void* arg) {
 
     if (!DownloadMapForResult(network, map_url, res)) {
         if (res->err.empty()) {
-            res->err = res->map_err.empty() ? "地图下载失败" : res->map_err;
+            res->err = res->map_err.empty() ? I18n::T("地图下载失败") : res->map_err;
         }
         lv_async_call(OnLocationReportDone, res);
         vTaskDelete(nullptr);
@@ -1686,7 +1687,7 @@ void GpsLocationReportTask(void* arg) {
 
     const GpsService::Snapshot snap = GetEffectiveSnapshot();
     if (!snap.fix_valid) {
-        res->err = "尚未定位";
+        res->err = I18n::T("尚未定位");
         lv_async_call(OnLocationReportDone, res);
         vTaskDelete(nullptr);
         return;
@@ -1697,7 +1698,7 @@ void GpsLocationReportTask(void* arg) {
     const MapViewParams view = GetMapViewParams();
     if (!BuildGpsLocateBody(snap.longitude_deg, snap.latitude_deg,
                             EstimateGpsRadiusM(snap), view, body, build_err)) {
-        res->err = build_err.empty() ? "组装请求失败" : build_err;
+        res->err = build_err.empty() ? I18n::T("组装请求失败") : build_err;
         ESP_LOGI(TAG, "locate[gps] request json=(build failed: %s)",
                  res->err.c_str());
         lv_async_call(OnLocationReportDone, res);
@@ -1713,7 +1714,7 @@ void NetLocationReportTask(void* arg) {
 
     Nt26Board* nt26 = GetNt26Board();
     if (nt26 == nullptr) {
-        res->err = "未检测到 4G 模块";
+        res->err = I18n::T("未检测到 4G 模块");
         lv_async_call(OnLocationReportDone, res);
         vTaskDelete(nullptr);
         return;
@@ -1729,7 +1730,7 @@ void NetLocationReportTask(void* arg) {
              at_resp.c_str());
 
     if (at_err != ESP_OK) {
-        res->err = "AT 指令失败";
+        res->err = I18n::T("AT 指令失败");
         lv_async_call(OnLocationReportDone, res);
         vTaskDelete(nullptr);
         return;
@@ -1743,7 +1744,7 @@ void NetLocationReportTask(void* arg) {
                  static_cast<int>(at_err),
                  static_cast<unsigned>(at_resp.size()), at_resp.c_str());
         if (at_err != ESP_OK) {
-            res->err = "WiFi 扫描超时";
+            res->err = I18n::T("WiFi 扫描超时");
             lv_async_call(OnLocationReportDone, res);
             vTaskDelete(nullptr);
             return;
@@ -1758,7 +1759,7 @@ void NetLocationReportTask(void* arg) {
                      ? BuildWifiLocateBody(at_resp, view, body, build_err)
                      : BuildCellLocateBody(at_resp, view, body, build_err);
     if (!built || body.empty()) {
-        res->err = build_err.empty() ? "组装请求失败" : build_err;
+        res->err = build_err.empty() ? I18n::T("组装请求失败") : build_err;
         ESP_LOGI(TAG, "locate[%s] request json=(build failed: %s)",
                  LocModeName(res->mode), res->err.c_str());
         lv_async_call(OnLocationReportDone, res);
@@ -1790,14 +1791,14 @@ void StartLocationReport(LocMode mode, bool zoom_refresh_only = false) {
     if (!zoom_refresh_only) {
         SetFetchEnabled(mode, false);
         if (addr_lbl != nullptr) {
-            lv_label_set_text(addr_lbl, "查询中...");
+            lv_label_set_text(addr_lbl, I18n::T("查询中..."));
         }
         if (mode != LocMode::kGps && tab.status_label != nullptr) {
-            lv_label_set_text(tab.status_label, "定位中");
+            lv_label_set_text(tab.status_label, I18n::T("定位中"));
         }
     }
     if (s_map_win.visible && s_active_tab == mode) {
-        SetMapStatus("正在加载地图...", kMapStatusLoading);
+        SetMapStatus(I18n::T("正在加载地图..."), kMapStatusLoading);
     }
 
     auto* res = new LocationReportResult{};
@@ -1825,7 +1826,7 @@ void StartLocationReport(LocMode mode, bool zoom_refresh_only = false) {
         tab.location_loading = false;
         SetFetchEnabled(mode, true);
         if (addr_lbl != nullptr) {
-            lv_label_set_text(addr_lbl, "任务创建失败");
+            lv_label_set_text(addr_lbl, I18n::T("任务创建失败"));
         }
     }
 }
@@ -1869,7 +1870,7 @@ void StartMapZoomRefresh(LocMode mode) {
     }
     if (!TabHasCachedCoords(tab)) {
         if (s_map_win.visible && s_active_tab == mode) {
-            SetMapStatus("暂无缓存坐标", kMapStatusError);
+            SetMapStatus(I18n::T("暂无缓存坐标"), kMapStatusError);
         }
         return;
     }
@@ -2006,25 +2007,25 @@ void CloseMockDialog() {
 bool ParseMockInputs(double& lat, double& lon, std::string& err) {
     if (s_state.mock_dlg.lat_ta == nullptr ||
         s_state.mock_dlg.lon_ta == nullptr) {
-        err = "弹框已销毁";
+        err = I18n::T("弹框已销毁");
         return false;
     }
     const char* lat_text = lv_textarea_get_text(s_state.mock_dlg.lat_ta);
     const char* lon_text = lv_textarea_get_text(s_state.mock_dlg.lon_ta);
     if (!ParseDoubleSafe(lat_text, lat)) {
-        err = "纬度格式有误";
+        err = I18n::T("纬度格式有误");
         return false;
     }
     if (!ParseDoubleSafe(lon_text, lon)) {
-        err = "经度格式有误";
+        err = I18n::T("经度格式有误");
         return false;
     }
     if (lat < -90.0 || lat > 90.0) {
-        err = "纬度需在 -90 ~ 90 之间";
+        err = I18n::T("纬度需在 -90 ~ 90 之间");
         return false;
     }
     if (lon < -180.0 || lon > 180.0) {
-        err = "经度需在 -180 ~ 180 之间";
+        err = I18n::T("经度需在 -180 ~ 180 之间");
         return false;
     }
     return true;
@@ -2047,7 +2048,7 @@ void OnMockSaveClicked(lv_event_t* /*e*/) {
     SaveMockSettings(true, lat, lon);
     ESP_LOGI(TAG, "mock location enabled: lat=%.6f, lon=%.6f", lat, lon);
     CloseMockDialog();
-    SetMapStatus("模拟定位已开启，可点击获取定位", kMapStatusInfo);
+    SetMapStatus(I18n::T("模拟定位已开启，可点击获取定位"), kMapStatusInfo);
     RefreshFromService();
 }
 
@@ -2070,7 +2071,7 @@ void OnMockDisableClicked(lv_event_t* /*e*/) {
     SaveMockSettings(false, lat, lon);
     ESP_LOGI(TAG, "mock location disabled");
     CloseMockDialog();
-    SetMapStatus("模拟定位已关闭", kMapStatusInfo);
+    SetMapStatus(I18n::T("模拟定位已关闭"), kMapStatusInfo);
     RefreshFromService();
 }
 
@@ -2123,7 +2124,7 @@ void OpenMockDialog() {
     s_state.mock_dlg.card = card;
 
     lv_obj_t* title = lv_label_create(card);
-    lv_label_set_text(title, "模拟定位");
+    lv_label_set_text(title, I18n::T("模拟定位"));
     lv_obj_set_style_text_color(title, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_LEFT, 0, 0);
@@ -2135,8 +2136,8 @@ void OpenMockDialog() {
         const bool en = MockIsEnabled();
         char       buf[96];
         std::snprintf(buf, sizeof(buf),
-                      "当前：%s（修改后点「保存并启用」生效）",
-                      en ? "已开启" : "已关闭");
+                      I18n::T("当前：%s（修改后点「保存并启用」生效）"),
+                      en ? I18n::T("已开启") : I18n::T("已关闭"));
         lv_label_set_text(status, buf);
     }
     lv_obj_set_style_text_color(status, lv_color_hex(kColorSubtle),
@@ -2155,7 +2156,7 @@ void OpenMockDialog() {
 
     // 纬度行
     lv_obj_t* lat_lbl = lv_label_create(card);
-    lv_label_set_text(lat_lbl, "纬度");
+    lv_label_set_text(lat_lbl, I18n::T("纬度"));
     lv_obj_set_style_text_color(lat_lbl, lv_color_hex(kColorSubtle),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(lat_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -2167,7 +2168,7 @@ void OpenMockDialog() {
     lv_obj_align(lat_ta, LV_ALIGN_TOP_LEFT, 88, 80);
     lv_textarea_set_one_line(lat_ta, true);
     lv_textarea_set_max_length(lat_ta, 16);
-    lv_textarea_set_placeholder_text(lat_ta, "如 39.908823");
+    lv_textarea_set_placeholder_text(lat_ta, I18n::T("如 39.908823"));
     std::snprintf(init_buf, sizeof(init_buf), "%.6f", init_lat);
     lv_textarea_set_text(lat_ta, init_buf);
     lv_obj_set_style_text_font(lat_ta, &font_puhui_20_4, LV_PART_MAIN);
@@ -2184,7 +2185,7 @@ void OpenMockDialog() {
 
     // 经度行
     lv_obj_t* lon_lbl = lv_label_create(card);
-    lv_label_set_text(lon_lbl, "经度");
+    lv_label_set_text(lon_lbl, I18n::T("经度"));
     lv_obj_set_style_text_color(lon_lbl, lv_color_hex(kColorSubtle),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(lon_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -2196,7 +2197,7 @@ void OpenMockDialog() {
     lv_obj_align(lon_ta, LV_ALIGN_TOP_LEFT, 88, 152);
     lv_textarea_set_one_line(lon_ta, true);
     lv_textarea_set_max_length(lon_ta, 16);
-    lv_textarea_set_placeholder_text(lon_ta, "如 116.397470");
+    lv_textarea_set_placeholder_text(lon_ta, I18n::T("如 116.397470"));
     std::snprintf(init_buf, sizeof(init_buf), "%.6f", init_lon);
     lv_textarea_set_text(lon_ta, init_buf);
     lv_obj_set_style_text_font(lon_ta, &font_puhui_20_4, LV_PART_MAIN);
@@ -2232,9 +2233,9 @@ void OpenMockDialog() {
         lv_obj_set_style_text_font(lbl, &font_puhui_20_4, LV_PART_MAIN);
         lv_obj_center(lbl);
     };
-    make_btn("关闭模拟",   0x4B5563, OnMockDisableClicked, 0);
-    make_btn("取消",       0x2A2F3A, OnMockCancelClicked,  kBtnW + kBtnGap);
-    make_btn("保存并启用", 0x7C3AED, OnMockSaveClicked,
+    make_btn(I18n::T("关闭模拟"),   0x4B5563, OnMockDisableClicked, 0);
+    make_btn(I18n::T("取消"),       0x2A2F3A, OnMockCancelClicked,  kBtnW + kBtnGap);
+    make_btn(I18n::T("保存并启用"), 0x7C3AED, OnMockSaveClicked,
              (kBtnW + kBtnGap) * 2);
 
     // 数字键盘：默认绑定到纬度框。LV_KEYBOARD_MODE_NUMBER 自带 0-9、
@@ -2325,7 +2326,9 @@ void BuildCardHeader(lv_obj_t* card, LocMode mode, const char* title_text) {
 
     lv_obj_t* badge = lv_obj_create(header);
     StripChrome(badge);
-    lv_obj_set_size(badge, 140, 40);
+    lv_obj_set_height(badge, 40);
+    lv_obj_set_width(badge, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_hor(badge, 16, LV_PART_MAIN);
     lv_obj_set_style_bg_color(badge, lv_color_hex(kColorBadgeSearch),
                               LV_PART_MAIN);
     lv_obj_set_style_bg_opa(badge, LV_OPA_COVER, LV_PART_MAIN);
@@ -2337,10 +2340,12 @@ void BuildCardHeader(lv_obj_t* card, LocMode mode, const char* title_text) {
     screen_make_input_passive(badge);
 
     const char* init_status =
-        (mode == LocMode::kGps) ? "搜星中" : "未定位";
+        (mode == LocMode::kGps) ? I18n::T("搜星中") : I18n::T("未定位");
     lv_obj_t* badge_text = MakeLabel(badge, init_status, &font_puhui_20_4,
                                      lv_color_hex(kColorText),
                                      LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_width(badge_text, LV_SIZE_CONTENT);
+    lv_label_set_long_mode(badge_text, LV_LABEL_LONG_CLIP);
     tab.status_badge = badge;
     tab.status_label = badge_text;
     MakeDivider(card);
@@ -2348,19 +2353,25 @@ void BuildCardHeader(lv_obj_t* card, LocMode mode, const char* title_text) {
 
 constexpr int32_t kFetchBtnW = 200;
 constexpr int32_t kZoomDdW   = 112;
-constexpr int32_t kZoomStepBtnW = 52;
 
 lv_obj_t* MakeActionBtn(lv_obj_t* parent, const char* text, uint32_t bg_hex,
                         lv_event_cb_t on_click, void* user_data,
                         int32_t width) {
     lv_obj_t* btn = lv_button_create(parent);
-    lv_obj_set_size(btn, width, kMapToolbarH - 8);
+    lv_obj_set_height(btn, kMapToolbarH - 8);
+    if (width == LV_SIZE_CONTENT) {
+        lv_obj_set_width(btn, LV_SIZE_CONTENT);
+        lv_obj_set_style_pad_hor(btn, 14, LV_PART_MAIN);
+    } else {
+        lv_obj_set_width(btn, width);
+    }
     lv_obj_set_style_radius(btn, 16, LV_PART_MAIN);
     lv_obj_set_style_bg_color(btn, lv_color_hex(bg_hex), LV_PART_MAIN);
     lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
     lv_obj_add_event_cb(btn, on_click, LV_EVENT_CLICKED, user_data);
     lv_obj_t* lbl = lv_label_create(btn);
     lv_label_set_text(lbl, text);
+    lv_obj_set_width(lbl, LV_SIZE_CONTENT);
     lv_obj_set_style_text_color(lbl, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(lbl);
@@ -2380,14 +2391,14 @@ void BuildMapEntryRow(lv_obj_t* parent, LocMode mode) {
     lv_obj_add_state(row, LV_STATE_DISABLED);
 
     lv_obj_t* left = lv_label_create(row);
-    lv_label_set_text(left, "地图");
+    lv_label_set_text(left, I18n::T("地图"));
     lv_obj_set_style_text_color(left, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(left, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(left, LV_ALIGN_LEFT_MID, 24, 0);
 
     lv_obj_t* right = lv_label_create(row);
     tab.map_entry_sub = right;
-    lv_label_set_text(right, "请先获取定位");
+    lv_label_set_text(right, I18n::T("请先获取定位"));
     lv_obj_set_style_text_color(right, lv_color_hex(kColorSubtle),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(right, &font_puhui_20_4, LV_PART_MAIN);
@@ -2421,14 +2432,14 @@ void BuildGpsTabContent(lv_obj_t* parent) {
     lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
 
-    BuildCardHeader(card, LocMode::kGps, "卫星定位");
-    tab.value_labels[kRowLat]   = MakeInfoRow(card, "纬度", true);
-    tab.value_labels[kRowLon]   = MakeInfoRow(card, "经度", true);
-    tab.value_labels[kRowAlt]   = MakeInfoRow(card, "海拔", true);
-    tab.value_labels[kRowSats]  = MakeInfoRow(card, "卫星 (使用/可见)", true);
+    BuildCardHeader(card, LocMode::kGps, I18n::T("卫星定位"));
+    tab.value_labels[kRowLat]   = MakeInfoRow(card, I18n::T("纬度"), true);
+    tab.value_labels[kRowLon]   = MakeInfoRow(card, I18n::T("经度"), true);
+    tab.value_labels[kRowAlt]   = MakeInfoRow(card, I18n::T("海拔"), true);
+    tab.value_labels[kRowSats]  = MakeInfoRow(card, I18n::T("卫星 (使用/可见)"), true);
     tab.value_labels[kRowHdop]  = MakeInfoRow(card, "HDOP", true);
-    tab.value_labels[kRowSpeed] = MakeInfoRow(card, "速度", true);
-    tab.value_labels[kRowAddress] = MakeInfoRow(card, "地址", false);
+    tab.value_labels[kRowSpeed] = MakeInfoRow(card, I18n::T("速度"), true);
+    tab.value_labels[kRowAddress] = MakeInfoRow(card, I18n::T("地址"), false);
     lv_obj_set_style_text_font(tab.value_labels[kRowAddress],
                                &font_puhui_20_4, LV_PART_MAIN);
     screen_make_input_passive(card);
@@ -2443,11 +2454,11 @@ void BuildGpsTabContent(lv_obj_t* parent) {
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     tab.fetch_btn = MakeActionBtn(
-        action_row, "获取定位", 0x1F8A4C, OnFetchClicked,
+        action_row, I18n::T("获取定位"), 0x1F8A4C, OnFetchClicked,
         reinterpret_cast<void*>(static_cast<uintptr_t>(LocMode::kGps)),
         kFetchBtnW);
     SetFetchEnabled(LocMode::kGps, false);
-    MakeActionBtn(action_row, "模拟", 0x7C3AED, OnMapMockClicked, nullptr,
+    MakeActionBtn(action_row, I18n::T("模拟"), 0x7C3AED, OnMapMockClicked, nullptr,
                   kFetchBtnW);
 
     BuildMapEntryRow(scroll, LocMode::kGps);
@@ -2481,16 +2492,16 @@ void BuildNetTabContent(lv_obj_t* parent, LocMode mode, const char* title) {
     lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
 
     BuildCardHeader(card, mode, title);
-    tab.net_labels[kNetRowLat] = MakeInfoRow(card, "纬度", true);
-    tab.net_labels[kNetRowLon] = MakeInfoRow(card, "经度", true);
-    tab.net_labels[kNetRowAcc] = MakeInfoRow(card, "精度", true);
-    tab.net_labels[kNetRowAddress] = MakeInfoRow(card, "地址", false);
+    tab.net_labels[kNetRowLat] = MakeInfoRow(card, I18n::T("纬度"), true);
+    tab.net_labels[kNetRowLon] = MakeInfoRow(card, I18n::T("经度"), true);
+    tab.net_labels[kNetRowAcc] = MakeInfoRow(card, I18n::T("精度"), true);
+    tab.net_labels[kNetRowAddress] = MakeInfoRow(card, I18n::T("地址"), false);
     lv_obj_set_style_text_font(tab.net_labels[kNetRowAddress],
                                &font_puhui_20_4, LV_PART_MAIN);
     screen_make_input_passive(card);
 
     tab.fetch_btn = MakeActionBtn(
-        scroll, "获取定位", 0x1F8A4C, OnFetchClicked,
+        scroll, I18n::T("获取定位"), 0x1F8A4C, OnFetchClicked,
         reinterpret_cast<void*>(static_cast<uintptr_t>(mode)), kCardWidth);
     SetFetchEnabled(mode, true);
 
@@ -2528,7 +2539,7 @@ void BuildMapWindow(lv_obj_t* scr) {
     lv_obj_center(back_icon);
 
     lv_obj_t* map_title = lv_label_create(header);
-    lv_label_set_text(map_title, "地图");
+    lv_label_set_text(map_title, I18n::T("地图"));
     lv_obj_set_style_text_color(map_title, lv_color_hex(kColorText),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(map_title, &font_puhui_30_4, LV_PART_MAIN);
@@ -2551,7 +2562,7 @@ void BuildMapWindow(lv_obj_t* scr) {
     opts.reserve(220);
     for (int i = kMinZoom; i <= kMaxZoom; ++i) {
         char tmp[16];
-        std::snprintf(tmp, sizeof(tmp), "缩放 %d", i);
+        std::snprintf(tmp, sizeof(tmp), I18n::T("缩放 %d"), i);
         if (!opts.empty()) opts += '\n';
         opts += tmp;
     }
@@ -2568,11 +2579,11 @@ void BuildMapWindow(lv_obj_t* scr) {
     lv_obj_add_event_cb(dd, OnMapZoomDdListOpened, LV_EVENT_READY, nullptr);
 
     s_map_win.map_zoom_out_btn =
-        MakeActionBtn(toolbar, "缩小", 0x4B5563, OnMapZoomOutClicked, nullptr,
-                      kZoomStepBtnW);
+        MakeActionBtn(toolbar, I18n::T("缩小"), 0x4B5563, OnMapZoomOutClicked, nullptr,
+                      LV_SIZE_CONTENT);
     s_map_win.map_zoom_in_btn =
-        MakeActionBtn(toolbar, "放大", 0x3B82F6, OnMapZoomInClicked, nullptr,
-                      kZoomStepBtnW);
+        MakeActionBtn(toolbar, I18n::T("放大"), 0x3B82F6, OnMapZoomInClicked, nullptr,
+                      LV_SIZE_CONTENT);
     UpdateZoomStepButtons();
 
     const int32_t stage_y = kHeaderH + kMapToolbarH + 20;
@@ -2637,14 +2648,14 @@ void BuildTabView(lv_obj_t* scr) {
     screen_swipe_back_ignore(content, true);
     lv_obj_add_event_cb(tv, OnTabChanged, LV_EVENT_VALUE_CHANGED, nullptr);
 
-    lv_obj_t* tab_gps = lv_tabview_add_tab(tv, "GPS定位");
+    lv_obj_t* tab_gps = lv_tabview_add_tab(tv, I18n::T("GPS定位"));
     BuildGpsTabContent(tab_gps);
 
-    lv_obj_t* tab_wifi = lv_tabview_add_tab(tv, "WiFi定位");
-    BuildNetTabContent(tab_wifi, LocMode::kWifi, "WiFi 定位");
+    lv_obj_t* tab_wifi = lv_tabview_add_tab(tv, I18n::T("WiFi定位"));
+    BuildNetTabContent(tab_wifi, LocMode::kWifi, I18n::T("WiFi 定位"));
 
-    lv_obj_t* tab_cell = lv_tabview_add_tab(tv, "基站定位");
-    BuildNetTabContent(tab_cell, LocMode::kCell, "基站定位");
+    lv_obj_t* tab_cell = lv_tabview_add_tab(tv, I18n::T("基站定位"));
+    BuildNetTabContent(tab_cell, LocMode::kCell, I18n::T("基站定位"));
 }
 
 }  // namespace
@@ -2705,7 +2716,7 @@ lv_obj_t* GpsScreen::Create() {
     lv_obj_center(back_icon);
 
     lv_obj_t* title = lv_label_create(header);
-    lv_label_set_text(title, "定位");
+    lv_label_set_text(title, I18n::T("定位"));
     lv_obj_set_style_text_color(title, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     // 16(返回按钮左边距) + kBackBtnSize(72) + 16(间距) = 104

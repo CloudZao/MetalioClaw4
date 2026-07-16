@@ -1,4 +1,5 @@
 #include "qmc6309_test.h"
+#include "i18n.h"
 
 #include <cstdio>
 
@@ -146,7 +147,7 @@ void BuildRow(lv_obj_t* list) {
     lv_obj_t* ctrl = nullptr;
     TestUiCreateRowShell(list, "QMC6309", &s_status_icon, &ctrl);
     s_value_lbl = TestUiCreateValueLabel(ctrl);
-    lv_label_set_text(s_value_lbl, "初始化中...");
+    lv_label_set_text(s_value_lbl, I18n::T("初始化中..."));
 }
 
 void OnLoad() {
@@ -165,7 +166,7 @@ void Poll() {
     }
 
     if (!s_mag_ok || s_mag == nullptr) {
-        SetErrorText("I2C未检测到");
+        SetErrorText(I18n::T("I2C未检测到"));
         return;
     }
 

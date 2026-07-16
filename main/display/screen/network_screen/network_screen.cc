@@ -1,4 +1,5 @@
 #include "network_screen.h"
+#include "i18n.h"
 
 #include <algorithm>
 #include <cctype>
@@ -185,7 +186,7 @@ void schedule_sim_slot_query();
 // 工具
 // ---------------------------------------------------------------------------
 const char* auth_label(wifi_auth_mode_t mode) {
-    return (mode == WIFI_AUTH_OPEN) ? "[开放]" : "[加密]";
+    return (mode == WIFI_AUTH_OPEN) ? I18n::T("[开放]") : I18n::T("[加密]");
 }
 
 // 把 STA_DISCONNECTED 的 reason 码翻成人话。常见值对应密码错误 / AP 找不到 /
@@ -205,29 +206,29 @@ const char* disconnect_reason_text(uint8_t reason) {
         case WIFI_REASON_PAIRWISE_CIPHER_INVALID:
         case WIFI_REASON_AKMP_INVALID:
         case WIFI_REASON_802_1X_AUTH_FAILED:
-            return "密码错误，请重新输入";
+            return I18n::T("密码错误，请重新输入");
         case WIFI_REASON_NO_AP_FOUND:
-            return "未找到该 WiFi（信号丢失）";
+            return I18n::T("未找到该 WiFi（信号丢失）");
         case WIFI_REASON_ASSOC_EXPIRE:
         case WIFI_REASON_ASSOC_TOOMANY:
         case WIFI_REASON_ASSOC_FAIL:
         case WIFI_REASON_NOT_ASSOCED:
-            return "关联失败，路由器拒绝连接";
+            return I18n::T("关联失败，路由器拒绝连接");
         case WIFI_REASON_BEACON_TIMEOUT:
-            return "信号太弱，连接超时";
+            return I18n::T("信号太弱，连接超时");
         case 0:
-            return "连接失败";
+            return I18n::T("连接失败");
         default:
             return nullptr;  // 调用方自己拼 reason=xx
     }
 }
 
 const char* rssi_quality_text(int8_t rssi) {
-    if (rssi >= -55) return "信号强";
-    if (rssi >= -65) return "信号较强";
-    if (rssi >= -75) return "信号中";
-    if (rssi >= -85) return "信号弱";
-    return "信号很弱";
+    if (rssi >= -55) return I18n::T("信号强");
+    if (rssi >= -65) return I18n::T("信号较强");
+    if (rssi >= -75) return I18n::T("信号中");
+    if (rssi >= -85) return I18n::T("信号弱");
+    return I18n::T("信号很弱");
 }
 
 bool screen_alive() { return s_screen_active && s_ui.screen != nullptr; }
@@ -275,7 +276,7 @@ void SaveSimSlot(int slot) {
 }
 
 const char* SimSlotName(int slot) {
-    return (slot == kSimSlotInternal) ? "内置卡" : "外置卡";
+    return (slot == kSimSlotInternal) ? I18n::T("内置卡") : I18n::T("外置卡");
 }
 
 // ---------------------------------------------------------------------------
@@ -330,10 +331,10 @@ void async_set_scan_btn_enabled(void* user_data) {
     const bool enabled = (user_data != nullptr);
     if (enabled) {
         lv_obj_remove_state(s_ui.scan_btn, LV_STATE_DISABLED);
-        if (s_ui.scan_btn_lbl != nullptr) lv_label_set_text(s_ui.scan_btn_lbl, "扫描");
+        if (s_ui.scan_btn_lbl != nullptr) lv_label_set_text(s_ui.scan_btn_lbl, I18n::T("扫描"));
     } else {
         lv_obj_add_state(s_ui.scan_btn, LV_STATE_DISABLED);
-        if (s_ui.scan_btn_lbl != nullptr) lv_label_set_text(s_ui.scan_btn_lbl, "扫描中…");
+        if (s_ui.scan_btn_lbl != nullptr) lv_label_set_text(s_ui.scan_btn_lbl, I18n::T("扫描中…"));
     }
 }
 
@@ -552,9 +553,9 @@ void scan_task(void* /*arg*/) {
     // 首次进入页面时 wifi 栈还没初始化，放到 task 内部完成，避免阻塞 LVGL
     // 线程导致 "点开 app 卡几秒才看到页面" 的体验问题。
     if (!s_wifi_initialized) {
-        post_status("正在初始化 WiFi…", kColorScanning);
+        post_status(I18n::T("正在初始化 WiFi…"), kColorScanning);
         if (!wifi_init_for_screen()) {
-            post_status("WiFi 初始化失败", kColorError);
+            post_status(I18n::T("WiFi 初始化失败"), kColorError);
             s_scan_in_progress = false;
             refresh_nearby_list();      // 把「未发现网络…」提示画回来
             post_nearby_spinner(false);
@@ -564,7 +565,7 @@ void scan_task(void* /*arg*/) {
         }
     }
 
-    post_status("正在扫描附近 WiFi…", kColorScanning);
+    post_status(I18n::T("正在扫描附近 WiFi…"), kColorScanning);
 
     xEventGroupClearBits(s_evt_group, kBitScanDone);
 
@@ -574,7 +575,7 @@ void scan_task(void* /*arg*/) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_wifi_scan_start failed: %d", err);
         char buf[64];
-        snprintf(buf, sizeof(buf), "启动扫描失败 (err=%d)", err);
+        snprintf(buf, sizeof(buf), I18n::T("启动扫描失败 (err=%d)"), err);
         post_status(buf, kColorError);
         s_scan_in_progress = false;
         refresh_nearby_list();
@@ -587,7 +588,7 @@ void scan_task(void* /*arg*/) {
     auto bits = xEventGroupWaitBits(s_evt_group, kBitScanDone, pdTRUE, pdTRUE,
                                     pdMS_TO_TICKS(15000));
     if (!(bits & kBitScanDone)) {
-        post_status("扫描超时", kColorError);
+        post_status(I18n::T("扫描超时"), kColorError);
         s_scan_in_progress = false;
         refresh_nearby_list();
         post_nearby_spinner(false);
@@ -632,7 +633,7 @@ void scan_task(void* /*arg*/) {
     }
 
     char status[64];
-    snprintf(status, sizeof(status), "扫描完成，共 %d 个网络",
+    snprintf(status, sizeof(status), I18n::T("扫描完成，共 %d 个网络"),
              static_cast<int>(s_scan_results.size()));
     post_status(status, kColorSuccess);
 
@@ -652,11 +653,11 @@ void schedule_scan() {
         return;
     }
     if (s_connect_in_progress) {
-        post_status("正在连接，请稍后再扫描", kColorScanning);
+        post_status(I18n::T("正在连接，请稍后再扫描"), kColorScanning);
         return;
     }
     if (xTaskCreate(scan_task, "wifi_scan", 4096, nullptr, 5, nullptr) != pdPASS) {
-        post_status("无法启动扫描任务", kColorError);
+        post_status(I18n::T("无法启动扫描任务"), kColorError);
     }
 }
 
@@ -672,7 +673,7 @@ void connect_task(void* arg) {
     auto* ctx = static_cast<ConnectCtx*>(arg);
 
     char buf[128];
-    snprintf(buf, sizeof(buf), "正在连接 %s …", ctx->ssid.c_str());
+    snprintf(buf, sizeof(buf), I18n::T("正在连接 %s …"), ctx->ssid.c_str());
     post_status(buf, kColorScanning);
 
     // 准备：停止扫描 + 断开当前连接，然后写新配置 + connect
@@ -691,9 +692,9 @@ void connect_task(void* arg) {
 
     esp_err_t err = esp_wifi_set_config(WIFI_IF_STA, &wc);
     if (err != ESP_OK) {
-        snprintf(buf, sizeof(buf), "set_config 失败 (err=%d)", err);
+        snprintf(buf, sizeof(buf), I18n::T("set_config 失败 (err=%d)"), err);
         post_status(buf, kColorError);
-        post_show_failure("连接失败", buf);
+        post_show_failure(I18n::T("连接失败"), buf);
         s_connect_in_progress = false;
         delete ctx;
         vTaskDelete(nullptr);
@@ -702,9 +703,9 @@ void connect_task(void* arg) {
 
     err = esp_wifi_connect();
     if (err != ESP_OK) {
-        snprintf(buf, sizeof(buf), "esp_wifi_connect 失败 (err=%d)", err);
+        snprintf(buf, sizeof(buf), I18n::T("esp_wifi_connect 失败 (err=%d)"), err);
         post_status(buf, kColorError);
-        post_show_failure("连接失败", buf);
+        post_show_failure(I18n::T("连接失败"), buf);
         s_connect_in_progress = false;
         delete ctx;
         vTaskDelete(nullptr);
@@ -719,7 +720,7 @@ void connect_task(void* arg) {
     if (bits & kBitConnected) {
         // 拿到 IP，记一笔到 SsidManager（SaveToNvs 内已经持久化，重启后生效）
         SsidManager::GetInstance().AddSsid(ctx->ssid, ctx->password);
-        snprintf(buf, sizeof(buf), "连接 %s 成功，准备重启…", ctx->ssid.c_str());
+        snprintf(buf, sizeof(buf), I18n::T("连接 %s 成功，准备重启…"), ctx->ssid.c_str());
         post_status(buf, kColorSuccess);
         refresh_saved_list();
         // 弹出「连接成功 + 倒计时重启」覆盖层，倒计时归零后自动 esp_restart()
@@ -732,19 +733,19 @@ void connect_task(void* arg) {
             detail = mapped;
         } else {
             char tmp[96];
-            snprintf(tmp, sizeof(tmp), "连接被拒绝 (reason=%u)", reason);
+            snprintf(tmp, sizeof(tmp), I18n::T("连接被拒绝 (reason=%u)"), reason);
             detail = tmp;
         }
-        snprintf(buf, sizeof(buf), "连接 %s 失败：%s",
+        snprintf(buf, sizeof(buf), I18n::T("连接 %s 失败：%s"),
                  ctx->ssid.c_str(), detail.c_str());
         post_status(buf, kColorError);
         // 失败弹窗保留 2.5 秒让用户看清原因，然后自动收起回到密码键盘
-        post_show_failure("连接失败", detail);
+        post_show_failure(I18n::T("连接失败"), detail);
     } else {
-        snprintf(buf, sizeof(buf), "连接 %s 超时", ctx->ssid.c_str());
+        snprintf(buf, sizeof(buf), I18n::T("连接 %s 超时"), ctx->ssid.c_str());
         post_status(buf, kColorError);
         esp_wifi_disconnect();
-        post_show_failure("连接超时", "未能在 15 秒内完成连接，请检查网络后重试");
+        post_show_failure(I18n::T("连接超时"), I18n::T("未能在 15 秒内完成连接，请检查网络后重试"));
     }
 
     s_connect_in_progress = false;
@@ -754,15 +755,15 @@ void connect_task(void* arg) {
 
 void schedule_connect(const std::string& ssid, const std::string& password) {
     if (s_connect_in_progress) {
-        post_status("已有正在进行的连接任务", kColorScanning);
+        post_status(I18n::T("已有正在进行的连接任务"), kColorScanning);
         return;
     }
     if (ssid.empty() || ssid.size() > kMaxSsidLen) {
-        post_status("SSID 不合法", kColorError);
+        post_status(I18n::T("SSID 不合法"), kColorError);
         return;
     }
     if (password.size() > kMaxPasswordLen) {
-        post_status("密码超长", kColorError);
+        post_status(I18n::T("密码超长"), kColorError);
         return;
     }
     auto* ctx = new ConnectCtx{ssid, password};
@@ -772,7 +773,7 @@ void schedule_connect(const std::string& ssid, const std::string& password) {
     if (xTaskCreate(connect_task, "wifi_connect", 4096, ctx, 5, nullptr) != pdPASS) {
         delete ctx;
         s_connect_in_progress = false;
-        post_status("无法启动连接任务", kColorError);
+        post_status(I18n::T("无法启动连接任务"), kColorError);
         close_status_popup();
     }
 }
@@ -816,7 +817,7 @@ void rebuild_nearby_list_now() {
             return;
         }
         lv_obj_t* hint = lv_label_create(s_ui.nearby_list);
-        lv_label_set_text(hint, "未发现网络，点右上「扫描」试试");
+        lv_label_set_text(hint, I18n::T("未发现网络，点右上「扫描」试试"));
         lv_obj_set_style_text_color(hint, lv_color_hex(kColorSubtle), LV_PART_MAIN);
         lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
         lv_obj_set_width(hint, LV_PCT(100));
@@ -874,7 +875,7 @@ void on_saved_set_default(lv_event_t* e) {
     auto* ctx = static_cast<SavedActionCtx*>(lv_event_get_user_data(e));
     if (ctx == nullptr) return;
     SsidManager::GetInstance().SetDefaultSsid(ctx->index);
-    post_status("已设置为默认网络", kColorSuccess);
+    post_status(I18n::T("已设置为默认网络"), kColorSuccess);
     refresh_saved_list();
 }
 
@@ -882,7 +883,7 @@ void on_saved_remove(lv_event_t* e) {
     auto* ctx = static_cast<SavedActionCtx*>(lv_event_get_user_data(e));
     if (ctx == nullptr) return;
     SsidManager::GetInstance().RemoveSsid(ctx->index);
-    post_status("已删除该网络", kColorSuccess);
+    post_status(I18n::T("已删除该网络"), kColorSuccess);
     refresh_saved_list();
 }
 
@@ -892,7 +893,7 @@ void on_saved_btn_delete(lv_event_t* e) {
 
 void on_clear_all_saved(lv_event_t* /*e*/) {
     SsidManager::GetInstance().Clear();
-    post_status("已清空所有已保存网络", kColorSuccess);
+    post_status(I18n::T("已清空所有已保存网络"), kColorSuccess);
     refresh_saved_list();
 }
 
@@ -905,7 +906,7 @@ void rebuild_saved_list_now() {
 
     if (list.empty()) {
         lv_obj_t* hint = lv_label_create(s_ui.saved_list);
-        lv_label_set_text(hint, "暂无已连接过的 WiFi");
+        lv_label_set_text(hint, I18n::T("暂无已连接过的 WiFi"));
         lv_obj_set_style_text_color(hint, lv_color_hex(kColorSubtle), LV_PART_MAIN);
         lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
         lv_obj_set_width(hint, LV_PCT(100));
@@ -937,7 +938,7 @@ void rebuild_saved_list_now() {
         lv_obj_t* lbl = lv_label_create(row);
         char ttext[96];
         if (i == 0) {
-            snprintf(ttext, sizeof(ttext), "%s  (默认)", item.ssid.c_str());
+            snprintf(ttext, sizeof(ttext), I18n::T("%s  (默认)"), item.ssid.c_str());
         } else {
             snprintf(ttext, sizeof(ttext), "%s", item.ssid.c_str());
         }
@@ -960,7 +961,7 @@ void rebuild_saved_list_now() {
         lv_obj_add_event_cb(def_btn, on_saved_btn_delete, LV_EVENT_DELETE, def_ctx);
         if (i == 0) lv_obj_add_state(def_btn, LV_STATE_DISABLED);
         lv_obj_t* def_lbl = lv_label_create(def_btn);
-        lv_label_set_text(def_lbl, "设为默认");
+        lv_label_set_text(def_lbl, I18n::T("设为默认"));
         lv_obj_set_style_text_color(def_lbl, lv_color_hex(kColorText), LV_PART_MAIN);
         lv_obj_set_style_text_font(def_lbl, &font_puhui_20_4, LV_PART_MAIN);
         lv_obj_center(def_lbl);
@@ -976,7 +977,7 @@ void rebuild_saved_list_now() {
         lv_obj_add_event_cb(del_btn, on_saved_remove, LV_EVENT_CLICKED, del_ctx);
         lv_obj_add_event_cb(del_btn, on_saved_btn_delete, LV_EVENT_DELETE, del_ctx);
         lv_obj_t* del_lbl = lv_label_create(del_btn);
-        lv_label_set_text(del_lbl, "删除");
+        lv_label_set_text(del_lbl, I18n::T("删除"));
         lv_obj_set_style_text_color(del_lbl, lv_color_hex(kColorText), LV_PART_MAIN);
         lv_obj_set_style_text_font(del_lbl, &font_puhui_20_4, LV_PART_MAIN);
         lv_obj_center(del_lbl);
@@ -1053,7 +1054,7 @@ void open_password_popup(const std::string& ssid, wifi_auth_mode_t authmode) {
     lv_obj_t* title = lv_label_create(card);
     s_ui.pwd_title = title;
     char ttext[128];
-    snprintf(ttext, sizeof(ttext), "连接到: %s", ssid.c_str());
+    snprintf(ttext, sizeof(ttext), I18n::T("连接到: %s"), ssid.c_str());
     lv_label_set_text(title, ttext);
     lv_obj_set_style_text_color(title, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
@@ -1064,8 +1065,8 @@ void open_password_popup(const std::string& ssid, wifi_auth_mode_t authmode) {
     lv_obj_t* hint = lv_label_create(card);
     lv_label_set_text(hint,
                       authmode == WIFI_AUTH_OPEN
-                          ? "该网络无需密码，可直接连接"
-                          : "请输入 WiFi 密码（8~63 字符）");
+                          ? I18n::T("该网络无需密码，可直接连接")
+                          : I18n::T("请输入 WiFi 密码（8~63 字符）"));
     lv_obj_set_style_text_color(hint, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align_to(hint, title, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 12);
@@ -1078,7 +1079,7 @@ void open_password_popup(const std::string& ssid, wifi_auth_mode_t authmode) {
     lv_textarea_set_one_line(ta, true);
     lv_textarea_set_password_mode(ta, true);
     lv_textarea_set_max_length(ta, kMaxPasswordLen);
-    lv_textarea_set_placeholder_text(ta, "WiFi 密码");
+    lv_textarea_set_placeholder_text(ta, I18n::T("WiFi 密码"));
     lv_obj_set_style_text_font(ta, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_set_style_bg_color(ta, lv_color_hex(0x121726), LV_PART_MAIN);
     lv_obj_set_style_text_color(ta, lv_color_hex(kColorText), LV_PART_MAIN);
@@ -1089,7 +1090,7 @@ void open_password_popup(const std::string& ssid, wifi_auth_mode_t authmode) {
     // 显示密码 checkbox
     lv_obj_t* chk = lv_checkbox_create(card);
     s_ui.pwd_show_chk = chk;
-    lv_checkbox_set_text(chk, "显示密码");
+    lv_checkbox_set_text(chk, I18n::T("显示密码"));
     lv_obj_align(chk, LV_ALIGN_TOP_LEFT, 0, 168);
     lv_obj_set_style_text_color(chk, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(chk, &font_puhui_20_4, LV_PART_MAIN);
@@ -1105,7 +1106,7 @@ void open_password_popup(const std::string& ssid, wifi_auth_mode_t authmode) {
     lv_obj_set_style_shadow_width(cancel, 0, LV_PART_MAIN);
     lv_obj_add_event_cb(cancel, on_pwd_cancel_btn, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* cancel_lbl = lv_label_create(cancel);
-    lv_label_set_text(cancel_lbl, "取消");
+    lv_label_set_text(cancel_lbl, I18n::T("取消"));
     lv_obj_set_style_text_color(cancel_lbl, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(cancel_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(cancel_lbl);
@@ -1119,7 +1120,7 @@ void open_password_popup(const std::string& ssid, wifi_auth_mode_t authmode) {
     lv_obj_set_style_shadow_width(connect, 0, LV_PART_MAIN);
     lv_obj_add_event_cb(connect, on_pwd_connect_btn, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* connect_lbl = lv_label_create(connect);
-    lv_label_set_text(connect_lbl, "连接");
+    lv_label_set_text(connect_lbl, I18n::T("连接"));
     lv_obj_set_style_text_color(connect_lbl, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(connect_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(connect_lbl);
@@ -1211,7 +1212,7 @@ void open_connecting_popup(const std::string& ssid) {
     lv_obj_t* lbl = lv_label_create(card);
     s_ui.status_message_lbl = lbl;
     char buf[160];
-    snprintf(buf, sizeof(buf), "正在连接\n%s …", ssid.c_str());
+    snprintf(buf, sizeof(buf), I18n::T("正在连接\n%s …"), ssid.c_str());
     lv_label_set_text(lbl, buf);
     lv_obj_set_width(lbl, 520 - 48);
     lv_label_set_long_mode(lbl, LV_LABEL_LONG_WRAP);
@@ -1234,7 +1235,7 @@ void restart_timer_cb(lv_timer_t* /*timer*/) {
         if (s_ui.status_message_lbl != nullptr) {
             char buf[160];
             snprintf(buf, sizeof(buf),
-                     "%s\n设备将在 %d 秒后自动重启…",
+                     I18n::T("%s\n设备将在 %d 秒后自动重启…"),
                      s_restart_headline.c_str(), s_restart_remaining);
             lv_label_set_text(s_ui.status_message_lbl, buf);
         }
@@ -1246,7 +1247,7 @@ void restart_timer_cb(lv_timer_t* /*timer*/) {
         s_restart_timer = nullptr;
     }
     if (s_ui.status_message_lbl != nullptr) {
-        lv_label_set_text(s_ui.status_message_lbl, "正在重启…");
+        lv_label_set_text(s_ui.status_message_lbl, I18n::T("正在重启…"));
     }
     xTaskCreate(reboot_task, "wifi_reboot", 2048, nullptr, 5, nullptr);
 }
@@ -1346,7 +1347,7 @@ void open_restart_countdown_popup(const std::string& headline) {
     screen_swipe_back_ignore(card, true);
 
     lv_obj_t* check = lv_label_create(card);
-    lv_label_set_text(check, "成功");
+    lv_label_set_text(check, I18n::T("成功"));
     lv_obj_set_style_text_color(check, lv_color_hex(kColorBtnAccent), LV_PART_MAIN);
     lv_obj_set_style_text_font(check, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(check, LV_ALIGN_TOP_MID, 0, 20);
@@ -1357,7 +1358,7 @@ void open_restart_countdown_popup(const std::string& headline) {
     lv_obj_t* lbl = lv_label_create(card);
     s_ui.status_message_lbl = lbl;
     char buf[160];
-    snprintf(buf, sizeof(buf), "%s\n设备将在 %d 秒后自动重启…",
+    snprintf(buf, sizeof(buf), I18n::T("%s\n设备将在 %d 秒后自动重启…"),
              s_restart_headline.c_str(), s_restart_remaining);
     lv_label_set_text(lbl, buf);
     lv_obj_set_width(lbl, 520 - 48);
@@ -1375,7 +1376,7 @@ void open_restart_countdown_popup(const std::string& headline) {
 
 void open_success_popup(const std::string& ssid) {
     char buf[160];
-    snprintf(buf, sizeof(buf), "%s 连接成功！", ssid.c_str());
+    snprintf(buf, sizeof(buf), I18n::T("%s 连接成功！"), ssid.c_str());
     open_restart_countdown_popup(buf);
 }
 
@@ -1500,7 +1501,7 @@ void open_switch_reboot_popup(const char* target_name) {
     screen_swipe_back_ignore(card, true);
 
     lv_obj_t* head = lv_label_create(card);
-    lv_label_set_text(head, "切换网络");
+    lv_label_set_text(head, I18n::T("切换网络"));
     lv_obj_set_style_text_color(head, lv_color_hex(kColorBtnActive), LV_PART_MAIN);
     lv_obj_set_style_text_font(head, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(head, LV_ALIGN_TOP_MID, 0, 20);
@@ -1508,7 +1509,7 @@ void open_switch_reboot_popup(const char* target_name) {
     lv_obj_t* body = lv_label_create(card);
     s_ui.status_message_lbl = body;
     char buf[160];
-    snprintf(buf, sizeof(buf), "正在切换到 %s\n设备即将重启…", target_name);
+    snprintf(buf, sizeof(buf), I18n::T("正在切换到 %s\n设备即将重启…"), target_name);
     lv_label_set_text(body, buf);
     lv_obj_set_width(body, 520 - 48);
     lv_label_set_long_mode(body, LV_LABEL_LONG_WRAP);
@@ -1520,7 +1521,7 @@ void open_switch_reboot_popup(const char* target_name) {
     if (xTaskCreate(switch_network_task, "net_switch", 4096, nullptr, 5,
                     nullptr) != pdPASS) {
         s_network_switch_pending = false;
-        post_status("无法启动切换任务", kColorError);
+        post_status(I18n::T("无法启动切换任务"), kColorError);
         close_status_popup();
         refresh_network_switch_ui();
     }
@@ -1542,15 +1543,15 @@ void schedule_network_switch(int target_type) {
     }
 
     if (GetDualNetworkBoard() == nullptr) {
-        post_status("当前设备不支持网络切换", kColorError);
+        post_status(I18n::T("当前设备不支持网络切换"), kColorError);
         refresh_network_switch_ui();
         return;
     }
 
     s_network_switch_pending = true;
     const char* target = target_type == kNetTypeCellular ? "4G" : "WiFi";
-    post_status(target_type == kNetTypeCellular ? "准备切换到 4G…"
-                                                 : "准备切换到 WiFi…",
+    post_status(target_type == kNetTypeCellular ? I18n::T("准备切换到 4G…")
+                                                 : I18n::T("准备切换到 WiFi…"),
                 kColorScanning);
     open_switch_reboot_popup(target);
 }
@@ -1584,7 +1585,7 @@ void refresh_network_switch_ui() {
 
     if (s_ui.network_current_lbl != nullptr) {
         char buf[64];
-        snprintf(buf, sizeof(buf), "当前：%s", is_wifi ? "WiFi" : "4G");
+        snprintf(buf, sizeof(buf), I18n::T("当前：%s"), is_wifi ? "WiFi" : "4G");
         lv_label_set_text(s_ui.network_current_lbl, buf);
     }
 }
@@ -1619,7 +1620,7 @@ void refresh_sim_slot_ui() {
 
     if (s_ui.sim_current_lbl != nullptr) {
         char buf[64];
-        snprintf(buf, sizeof(buf), "当前：%s", SimSlotName(slot));
+        snprintf(buf, sizeof(buf), I18n::T("当前：%s"), SimSlotName(slot));
         lv_label_set_text(s_ui.sim_current_lbl, buf);
     }
 }
@@ -1731,14 +1732,14 @@ void async_sim_switch_done(void* user_data) {
         s_sim_switch_pending = false;
         if (msg->success) {
             char buf[96];
-            snprintf(buf, sizeof(buf), "已切换到%s",
+            snprintf(buf, sizeof(buf), I18n::T("已切换到%s"),
                      SimSlotName(msg->target_slot));
             open_restart_countdown_popup(buf);
             refresh_sim_slot_ui();
         } else {
             close_status_popup();
             post_status(msg->detail.c_str(), kColorError);
-            show_failure_in_status_popup("SIM 卡切换失败", msg->detail, 3000);
+            show_failure_in_status_popup(I18n::T("SIM 卡切换失败"), msg->detail, 3000);
             // 失败也查一次，保证 UI 与模组当前实际状态对齐
             schedule_sim_slot_query();
             refresh_sim_slot_ui();
@@ -1761,7 +1762,7 @@ void sim_switch_task(void* arg) {
 
     Nt26Board* nt26 = GetNt26Board();
     if (nt26 == nullptr) {
-        result->detail = "未检测到 4G 模块";
+        result->detail = I18n::T("未检测到 4G 模块");
         lv_async_call(async_sim_switch_done, result);
         delete ctx;
         vTaskDelete(nullptr);
@@ -1782,11 +1783,11 @@ void sim_switch_task(void* arg) {
     };
 
     // —— Step 1：AT+CFUN=0
-    post_sim_progress("正在关闭射频…\nAT+CFUN=0");
+    post_sim_progress(I18n::T("正在关闭射频…\nAT+CFUN=0"));
     std::string resp;
     esp_err_t e1 = run_at("AT+CFUN=0", resp, 8000);
     if (e1 != ESP_OK || resp.find("OK") == std::string::npos) {
-        result->detail = "AT+CFUN=0 执行失败";
+        result->detail = I18n::T("AT+CFUN=0 执行失败");
         lv_async_call(async_sim_switch_done, result);
         delete ctx;
         vTaskDelete(nullptr);
@@ -1798,7 +1799,7 @@ void sim_switch_task(void* arg) {
     char buf[64];
     snprintf(buf, sizeof(buf), "AT+ECSIMCFG=SimSlot,%d", ctx->target_slot);
     char prog[128];
-    snprintf(prog, sizeof(prog), "正在切换到%s…\n%s",
+    snprintf(prog, sizeof(prog), I18n::T("正在切换到%s…\n%s"),
              SimSlotName(ctx->target_slot), buf);
     post_sim_progress(prog);
     esp_err_t e2 = run_at(buf, resp, 5000);
@@ -1806,7 +1807,7 @@ void sim_switch_task(void* arg) {
         // 切换失败：尝试把射频打回去，不然 4G 网络彻底掉线
         std::string tmp;
         run_at("AT+CFUN=1", tmp, 10000);
-        result->detail = "AT+ECSIMCFG 执行失败";
+        result->detail = I18n::T("AT+ECSIMCFG 执行失败");
         lv_async_call(async_sim_switch_done, result);
         delete ctx;
         vTaskDelete(nullptr);
@@ -1815,7 +1816,7 @@ void sim_switch_task(void* arg) {
     vTaskDelay(pdMS_TO_TICKS(500));
 
     // —— Step 3：AT+CFUN=1
-    post_sim_progress("正在重新搜网…\nAT+CFUN=1");
+    post_sim_progress(I18n::T("正在重新搜网…\nAT+CFUN=1"));
     esp_err_t e3 = run_at("AT+CFUN=1", resp, 15000);
     // CFUN=1 个别模组在重启完成前会先回 OK，少数情况会超时但实际生效；
     // 这里只把它当作「尽力而为」，主要以 ECSIMCFG 的 OK 为准。
@@ -1868,7 +1869,7 @@ void open_sim_switching_popup(int target_slot) {
     lv_obj_t* lbl = lv_label_create(card);
     s_ui.status_message_lbl = lbl;
     char buf[160];
-    snprintf(buf, sizeof(buf), "正在切换到%s…\nAT+CFUN=0",
+    snprintf(buf, sizeof(buf), I18n::T("正在切换到%s…\nAT+CFUN=0"),
              SimSlotName(target_slot));
     lv_label_set_text(lbl, buf);
     lv_obj_set_width(lbl, 520 - 48);
@@ -1891,7 +1892,7 @@ void schedule_sim_switch(int target_slot) {
         return;
     }
     if (GetNt26Board() == nullptr) {
-        post_status("当前不在 4G 模式，无法切换 SIM 卡", kColorError);
+        post_status(I18n::T("当前不在 4G 模式，无法切换 SIM 卡"), kColorError);
         return;
     }
 
@@ -1903,7 +1904,7 @@ void schedule_sim_switch(int target_slot) {
         delete ctx;
         s_sim_switch_pending = false;
         close_status_popup();
-        post_status("无法启动 SIM 切换任务", kColorError);
+        post_status(I18n::T("无法启动 SIM 切换任务"), kColorError);
     }
 }
 
@@ -1948,7 +1949,7 @@ void build_header(lv_obj_t* parent) {
     lv_obj_center(back_icon);
 
     lv_obj_t* title = lv_label_create(header);
-    lv_label_set_text(title, "网络配置");
+    lv_label_set_text(title, I18n::T("网络配置"));
     lv_obj_set_style_text_color(title, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     // 标题让到返回按钮右侧
@@ -1995,7 +1996,7 @@ void build_tabview(lv_obj_t* parent) {
 
     if (show_wifi_tabs) {
     // Tab 1：附近 WiFi —— 顶部扫描按钮，下面是列表
-    lv_obj_t* tab1 = lv_tabview_add_tab(tv, "附近 WiFi");
+    lv_obj_t* tab1 = lv_tabview_add_tab(tv, I18n::T("附近 WiFi"));
     s_ui.nearby_tab = tab1;
     lv_obj_set_style_pad_all(tab1, 14, LV_PART_MAIN);
     lv_obj_set_style_pad_row(tab1, 10, LV_PART_MAIN);
@@ -2011,7 +2012,7 @@ void build_tabview(lv_obj_t* parent) {
     lv_obj_remove_flag(nearby_toolbar, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t* nearby_hint = lv_label_create(nearby_toolbar);
-    lv_label_set_text(nearby_hint, "扫描附近可用网络");
+    lv_label_set_text(nearby_hint, I18n::T("扫描附近可用网络"));
     lv_obj_set_style_text_color(nearby_hint, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(nearby_hint, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(nearby_hint, LV_ALIGN_LEFT_MID, 0, 0);
@@ -2029,7 +2030,7 @@ void build_tabview(lv_obj_t* parent) {
     screen_swipe_back_ignore(scan, true);
     lv_obj_t* scan_lbl = lv_label_create(scan);
     s_ui.scan_btn_lbl = scan_lbl;
-    lv_label_set_text(scan_lbl, "扫描");
+    lv_label_set_text(scan_lbl, I18n::T("扫描"));
     lv_obj_set_style_text_color(scan_lbl, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(scan_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(scan_lbl);
@@ -2078,7 +2079,7 @@ void build_tabview(lv_obj_t* parent) {
     s_ui.nearby_spinner = spin;
 
     // Tab 2：已保存 WiFi —— 顶部一行操作按钮，下面是列表
-    lv_obj_t* tab2 = lv_tabview_add_tab(tv, "已保存 WiFi");
+    lv_obj_t* tab2 = lv_tabview_add_tab(tv, I18n::T("已保存 WiFi"));
     s_ui.saved_tab = tab2;
     lv_obj_set_style_pad_all(tab2, 14, LV_PART_MAIN);
     lv_obj_set_style_pad_row(tab2, 10, LV_PART_MAIN);
@@ -2094,7 +2095,7 @@ void build_tabview(lv_obj_t* parent) {
     lv_obj_remove_flag(toolbar, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t* hint = lv_label_create(toolbar);
-    lv_label_set_text(hint, "管理已连接过的网络");
+    lv_label_set_text(hint, I18n::T("管理已连接过的网络"));
     lv_obj_set_style_text_color(hint, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(hint, LV_ALIGN_LEFT_MID, 0, 0);
@@ -2110,7 +2111,7 @@ void build_tabview(lv_obj_t* parent) {
     lv_obj_set_style_shadow_width(clear, 0, LV_PART_MAIN);
     lv_obj_add_event_cb(clear, on_clear_all_saved, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* clear_lbl = lv_label_create(clear);
-    lv_label_set_text(clear_lbl, "清空全部");
+    lv_label_set_text(clear_lbl, I18n::T("清空全部"));
     lv_obj_set_style_text_color(clear_lbl, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(clear_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(clear_lbl);
@@ -2140,7 +2141,7 @@ void build_tabview(lv_obj_t* parent) {
     //   - 4G 模式：先「SIM 卡切换」（最常用的现场操作），再「网络切换」
     // -----------------------------------------------------------------------
     auto build_network_switch_tab = [&]() {
-        lv_obj_t* tab3 = lv_tabview_add_tab(tv, "网络切换");
+        lv_obj_t* tab3 = lv_tabview_add_tab(tv, I18n::T("网络切换"));
         s_ui.network_tab = tab3;
         lv_obj_set_style_pad_all(tab3, 24, LV_PART_MAIN);
         lv_obj_remove_flag(tab3, LV_OBJ_FLAG_SCROLLABLE);
@@ -2159,14 +2160,14 @@ void build_tabview(lv_obj_t* parent) {
         lv_obj_set_style_pad_row(card, 16, LV_PART_MAIN);
 
         lv_obj_t* title3 = lv_label_create(card);
-        lv_label_set_text(title3, "上网方式");
+        lv_label_set_text(title3, I18n::T("上网方式"));
         lv_obj_set_style_text_color(title3, lv_color_hex(kColorText),
                                     LV_PART_MAIN);
         lv_obj_set_style_text_font(title3, &font_puhui_30_4, LV_PART_MAIN);
 
         lv_obj_t* hint3 = lv_label_create(card);
         lv_label_set_text(hint3,
-                          "选择上网方式。切换后设备将自动重启生效。");
+                          I18n::T("选择上网方式。切换后设备将自动重启生效。"));
         lv_obj_set_width(hint3, LV_PCT(100));
         lv_label_set_long_mode(hint3, LV_LABEL_LONG_WRAP);
         lv_obj_set_style_text_color(hint3, lv_color_hex(kColorSubtle),
@@ -2214,7 +2215,7 @@ void build_tabview(lv_obj_t* parent) {
         // 个占位，避免首帧空白。
         lv_obj_t* cur = lv_label_create(card);
         s_ui.network_current_lbl = cur;
-        lv_label_set_text(cur, "当前：--");
+        lv_label_set_text(cur, I18n::T("当前：--"));
         lv_obj_set_style_text_color(cur, lv_color_hex(kColorSubtle),
                                     LV_PART_MAIN);
         lv_obj_set_style_text_font(cur, &font_puhui_20_4, LV_PART_MAIN);
@@ -2224,7 +2225,7 @@ void build_tabview(lv_obj_t* parent) {
 
     // SIM 卡切换页（仅 4G 模式构造，WiFi 模式下不挂这个 Tab）
     auto build_sim_switch_tab = [&]() {
-        lv_obj_t* tab4 = lv_tabview_add_tab(tv, "SIM 卡切换");
+        lv_obj_t* tab4 = lv_tabview_add_tab(tv, I18n::T("SIM 卡切换"));
         s_ui.sim_tab = tab4;
         lv_obj_set_style_pad_all(tab4, 24, LV_PART_MAIN);
         lv_obj_remove_flag(tab4, LV_OBJ_FLAG_SCROLLABLE);
@@ -2244,14 +2245,14 @@ void build_tabview(lv_obj_t* parent) {
         lv_obj_set_style_pad_row(sim_card, 16, LV_PART_MAIN);
 
         lv_obj_t* sim_title = lv_label_create(sim_card);
-        lv_label_set_text(sim_title, "SIM 卡选择");
+        lv_label_set_text(sim_title, I18n::T("SIM 卡选择"));
         lv_obj_set_style_text_color(sim_title, lv_color_hex(kColorText),
                                     LV_PART_MAIN);
         lv_obj_set_style_text_font(sim_title, &font_puhui_30_4, LV_PART_MAIN);
 
         lv_obj_t* sim_hint = lv_label_create(sim_card);
         lv_label_set_text(sim_hint,
-                          "选择 4G 模组使用的 SIM 卡。\n切换后设备将自动重启生效。");
+                          I18n::T("选择 4G 模组使用的 SIM 卡。\n切换后设备将自动重启生效。"));
         lv_obj_set_width(sim_hint, LV_PCT(100));
         lv_label_set_long_mode(sim_hint, LV_LABEL_LONG_WRAP);
         lv_obj_set_style_text_color(sim_hint, lv_color_hex(kColorSubtle),
@@ -2288,15 +2289,15 @@ void build_tabview(lv_obj_t* parent) {
             *out_lbl = lbl;
         };
 
-        make_sim_btn("外置卡", on_sim_external_clicked,
+        make_sim_btn(I18n::T("外置卡"), on_sim_external_clicked,
                      &s_ui.sim_external_btn, &s_ui.sim_external_lbl);
-        make_sim_btn("内置卡", on_sim_internal_clicked,
+        make_sim_btn(I18n::T("内置卡"), on_sim_internal_clicked,
                      &s_ui.sim_internal_btn, &s_ui.sim_internal_lbl);
 
         lv_obj_t* sim_cur = lv_label_create(sim_card);
         s_ui.sim_current_lbl = sim_cur;
         char sim_cur_buf[64];
-        snprintf(sim_cur_buf, sizeof(sim_cur_buf), "当前：%s",
+        snprintf(sim_cur_buf, sizeof(sim_cur_buf), I18n::T("当前：%s"),
                  SimSlotName(GetSavedSimSlot()));
         lv_label_set_text(sim_cur, sim_cur_buf);
         lv_obj_set_style_text_color(sim_cur, lv_color_hex(kColorSubtle),
@@ -2305,7 +2306,7 @@ void build_tabview(lv_obj_t* parent) {
 
         lv_obj_t* sim_tip = lv_label_create(sim_card);
         lv_label_set_text(sim_tip,
-                          "AT 命令序列：\n  AT+CFUN=0\n  AT+ECSIMCFG=SimSlot,X\n  AT+CFUN=1");
+                          I18n::T("AT 命令序列：\n  AT+CFUN=0\n  AT+ECSIMCFG=SimSlot,X\n  AT+CFUN=1"));
         lv_obj_set_width(sim_tip, LV_PCT(100));
         lv_label_set_long_mode(sim_tip, LV_LABEL_LONG_WRAP);
         lv_obj_set_style_text_color(sim_tip, lv_color_hex(kColorSubtle),

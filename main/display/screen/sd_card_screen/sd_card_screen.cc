@@ -1,4 +1,5 @@
 #include "sd_card_screen.h"
+#include "i18n.h"
 
 #include "home_screen/home_screen.h"
 #include "screen_util.h"
@@ -159,7 +160,7 @@ void BuildFileRow(const char* name, const char* path) {
     // File size
     char size_str[64];
     if (is_dir) {
-        snprintf(size_str, sizeof(size_str), "目录");
+        snprintf(size_str, sizeof(size_str), I18n::T("目录"));
     } else {
         FormatSize(size, size_str, sizeof(size_str));
     }
@@ -180,7 +181,7 @@ void BuildFileRow(const char* name, const char* path) {
         lv_obj_set_style_shadow_width(del_btn, 0, LV_PART_MAIN);
 
         lv_obj_t* del_lbl = lv_label_create(del_btn);
-        lv_label_set_text(del_lbl, "删除");
+        lv_label_set_text(del_lbl, I18n::T("删除"));
         lv_obj_set_style_text_font(del_lbl, &font_puhui_20_4, LV_PART_MAIN);
         lv_obj_set_style_text_color(del_lbl, lv_color_hex(kColorTextPrimary), LV_PART_MAIN);
         lv_obj_center(del_lbl);
@@ -210,7 +211,7 @@ void RebuildFileList(lv_obj_t* parent) {
     if (dir == nullptr) {
         ESP_LOGE(TAG_SD, "Failed to open directory: %s", mount_point);
         if (s_no_files_lbl != nullptr) {
-            lv_label_set_text(s_no_files_lbl, "SD 卡内没有文件");
+            lv_label_set_text(s_no_files_lbl, I18n::T("SD 卡内没有文件"));
             lv_obj_remove_flag(s_no_files_lbl, LV_OBJ_FLAG_HIDDEN);
         }
         return;
@@ -235,7 +236,7 @@ void RebuildFileList(lv_obj_t* parent) {
 
     if (!has_files) {
         if (s_no_files_lbl != nullptr) {
-            lv_label_set_text(s_no_files_lbl, "SD 卡内没有文件");
+            lv_label_set_text(s_no_files_lbl, I18n::T("SD 卡内没有文件"));
             lv_obj_remove_flag(s_no_files_lbl, LV_OBJ_FLAG_HIDDEN);
         }
     } else {
@@ -271,7 +272,7 @@ void BuildHeader(lv_obj_t* parent) {
 
     // Title
     lv_obj_t* title = lv_label_create(parent);
-    lv_label_set_text(title, "SD 卡");
+    lv_label_set_text(title, I18n::T("SD 卡"));
     lv_obj_set_style_text_color(title, lv_color_hex(kColorTextPrimary), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, kPad + 20);
@@ -301,7 +302,7 @@ void BuildStatusSection(lv_obj_t* parent) {
 
     // Status text
     s_status_lbl = lv_label_create(status_row);
-    lv_label_set_text(s_status_lbl, "检测中...");
+    lv_label_set_text(s_status_lbl, I18n::T("检测中..."));
     lv_obj_set_style_text_color(s_status_lbl, lv_color_hex(kColorTextPrimary), LV_PART_MAIN);
     lv_obj_set_style_text_font(s_status_lbl, &font_puhui_20_4, LV_PART_MAIN);
 
@@ -351,7 +352,7 @@ void UpdateStatusUI() {
             lv_obj_set_style_bg_color(s_status_dot, lv_color_hex(0x00CC00), LV_PART_MAIN);
         }
         if (s_status_lbl != nullptr) {
-            lv_label_set_text(s_status_lbl, "SD 卡已插入");
+            lv_label_set_text(s_status_lbl, I18n::T("SD 卡已插入"));
         }
 
         // Update capacity using FatFs free-cluster info
@@ -378,7 +379,7 @@ void UpdateStatusUI() {
             FormatSize(free_bytes, free_str, sizeof(free_str));
 
             char cap_buf[96];
-            snprintf(cap_buf, sizeof(cap_buf), "剩余 %s / 总容量 %s", free_str, total_str);
+            snprintf(cap_buf, sizeof(cap_buf), I18n::T("剩余 %s / 总容量 %s"), free_str, total_str);
             lv_label_set_text(s_capacity_lbl, cap_buf);
         }
     } else {
@@ -386,13 +387,13 @@ void UpdateStatusUI() {
             lv_obj_set_style_bg_color(s_status_dot, lv_color_hex(0xFF0000), LV_PART_MAIN);
         }
         if (s_status_lbl != nullptr) {
-            lv_label_set_text(s_status_lbl, "未检测到 SD 卡");
+            lv_label_set_text(s_status_lbl, I18n::T("未检测到 SD 卡"));
         }
         if (s_capacity_lbl != nullptr) {
-            lv_label_set_text(s_capacity_lbl, "请插入 SD 卡");
+            lv_label_set_text(s_capacity_lbl, I18n::T("请插入 SD 卡"));
         }
         if (s_no_files_lbl != nullptr) {
-            lv_label_set_text(s_no_files_lbl, "请插入 SD 卡");
+            lv_label_set_text(s_no_files_lbl, I18n::T("请插入 SD 卡"));
             lv_obj_remove_flag(s_no_files_lbl, LV_OBJ_FLAG_HIDDEN);
         }
     }

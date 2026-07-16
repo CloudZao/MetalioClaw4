@@ -1,4 +1,5 @@
 #include "theme_screen.h"
+#include "i18n.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -134,11 +135,11 @@ lv_obj_t* BuildThemeCard(lv_obj_t* parent, int theme_id, int x, int y_top) {
     lv_obj_t* lbl = lv_label_create(slot);
     char buf[32];
     if (active) {
-        std::snprintf(buf, sizeof(buf), "主题 %d  当前", theme_id);
+        std::snprintf(buf, sizeof(buf), I18n::T("主题 %d  当前"), theme_id);
         lv_obj_set_style_text_color(lbl, lv_color_hex(kColorActive),
                                     LV_PART_MAIN);
     } else {
-        std::snprintf(buf, sizeof(buf), "主题 %d", theme_id);
+        std::snprintf(buf, sizeof(buf), I18n::T("主题 %d"), theme_id);
         lv_obj_set_style_text_color(lbl, lv_color_hex(kColorText),
                                     LV_PART_MAIN);
     }
@@ -173,7 +174,7 @@ void BuildHeader(lv_obj_t* parent) {
         back_btn, [](lv_event_t*) { OnSwipeBack(); }, LV_EVENT_CLICKED, nullptr);
 
     lv_obj_t* title = lv_label_create(parent);
-    lv_label_set_text(title, "主题");
+    lv_label_set_text(title, I18n::T("主题"));
     lv_obj_set_style_text_color(title, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, kPad + 20);
@@ -218,7 +219,7 @@ void BuildContent(lv_obj_t* parent) {
     }
 
     lv_obj_t* hint = lv_label_create(parent);
-    lv_label_set_text(hint, "切换后将立即应用，并返回主页查看新图标");
+    lv_label_set_text(hint, I18n::T("切换后将立即应用，并返回主页查看新图标"));
     lv_obj_set_style_text_color(hint, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -20);
@@ -302,7 +303,7 @@ void OpenConfirmDialog(int theme_id) {
     lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
 
     char title_buf[48];
-    std::snprintf(title_buf, sizeof(title_buf), "切换到主题 %d ?", theme_id);
+    std::snprintf(title_buf, sizeof(title_buf), I18n::T("切换到主题 %d ?"), theme_id);
     lv_obj_t* title = lv_label_create(card);
     lv_label_set_text(title, title_buf);
     lv_obj_set_style_text_color(title, lv_color_hex(kColorText), LV_PART_MAIN);
@@ -311,7 +312,7 @@ void OpenConfirmDialog(int theme_id) {
     lv_obj_remove_flag(title, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t* desc = lv_label_create(card);
-    lv_label_set_text(desc, "确定后将立即应用并返回主页");
+    lv_label_set_text(desc, I18n::T("确定后将立即应用并返回主页"));
     lv_obj_set_style_text_color(desc, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(desc, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(desc, LV_ALIGN_CENTER, 0, -10);
@@ -328,7 +329,7 @@ void OpenConfirmDialog(int theme_id) {
     lv_obj_add_event_cb(cancel, OnCancelClicked, LV_EVENT_CLICKED, nullptr);
     {
         lv_obj_t* lbl = lv_label_create(cancel);
-        lv_label_set_text(lbl, "取消");
+        lv_label_set_text(lbl, I18n::T("取消"));
         lv_obj_set_style_text_color(lbl, lv_color_hex(kColorText), LV_PART_MAIN);
         lv_obj_set_style_text_font(lbl, &font_puhui_30_4, LV_PART_MAIN);
         lv_obj_center(lbl);
@@ -345,7 +346,7 @@ void OpenConfirmDialog(int theme_id) {
     lv_obj_add_event_cb(ok, OnConfirmClicked, LV_EVENT_CLICKED, nullptr);
     {
         lv_obj_t* lbl = lv_label_create(ok);
-        lv_label_set_text(lbl, "切换");
+        lv_label_set_text(lbl, I18n::T("切换"));
         lv_obj_set_style_text_color(lbl, lv_color_hex(kColorText), LV_PART_MAIN);
         lv_obj_set_style_text_font(lbl, &font_puhui_30_4, LV_PART_MAIN);
         lv_obj_center(lbl);

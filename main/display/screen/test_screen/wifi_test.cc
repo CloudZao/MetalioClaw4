@@ -1,4 +1,5 @@
 #include "wifi_test.h"
+#include "i18n.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -63,7 +64,7 @@ esp_event_handler_instance_t s_wifi_evt_inst = nullptr;
 esp_event_handler_instance_t s_ip_evt_inst = nullptr;
 
 const char* AuthLabel(wifi_auth_mode_t mode) {
-    return (mode == WIFI_AUTH_OPEN) ? "开放" : "加密";
+    return (mode == WIFI_AUTH_OPEN) ? I18n::T("开放") : I18n::T("加密");
 }
 
 void SetValueText(const char* text, bool error) {
@@ -228,17 +229,17 @@ void RebuildListPopupNow() {
 
     if (s_scan_in_progress) {
         if (s_list_status != nullptr) {
-            lv_label_set_text(s_list_status, "正在扫描…");
+            lv_label_set_text(s_list_status, I18n::T("正在扫描…"));
         }
         return;
     }
 
     if (s_scan_results.empty()) {
         if (s_list_status != nullptr) {
-            lv_label_set_text(s_list_status, "未发现 WiFi 网络");
+            lv_label_set_text(s_list_status, I18n::T("未发现 WiFi 网络"));
         }
         lv_obj_t* hint = lv_label_create(s_list_container);
-        lv_label_set_text(hint, "请确认路由器已开启，或点击重新扫描");
+        lv_label_set_text(hint, I18n::T("请确认路由器已开启，或点击重新扫描"));
         lv_obj_set_style_text_color(hint, lv_color_hex(kTestColorTextDim),
                                     LV_PART_MAIN);
         lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
@@ -247,7 +248,7 @@ void RebuildListPopupNow() {
     }
 
     char status[48];
-    std::snprintf(status, sizeof(status), "共 %d 个网络",
+    std::snprintf(status, sizeof(status), I18n::T("共 %d 个网络"),
                   static_cast<int>(s_scan_results.size()));
     if (s_list_status != nullptr) {
         lv_label_set_text(s_list_status, status);
@@ -303,14 +304,14 @@ void AsyncScanDone(void* user_data) {
 
     if (msg->success && msg->count > 0) {
         char buf[32];
-        std::snprintf(buf, sizeof(buf), "发现 %d 个", msg->count);
+        std::snprintf(buf, sizeof(buf), I18n::T("发现 %d 个"), msg->count);
         SetValueText(buf, false);
         UpdatePassFail(true);
     } else if (msg->success) {
-        SetValueText("未发现网络", true);
+        SetValueText(I18n::T("未发现网络"), true);
         UpdatePassFail(false);
     } else {
-        SetValueText("扫描失败", true);
+        SetValueText(I18n::T("扫描失败"), true);
         UpdatePassFail(false);
     }
 
@@ -418,7 +419,7 @@ void ScheduleScan() {
         return;
     }
 
-    SetValueText("扫描中…", false);
+    SetValueText(I18n::T("扫描中…"), false);
     SetRescanEnabled(false);
     SetPopupSpinner(true);
     if (s_list_mask != nullptr) {
@@ -428,7 +429,7 @@ void ScheduleScan() {
     if (xTaskCreate(ScanTask, "wifi_test_scan", 4096, nullptr, 5, nullptr) !=
         pdPASS) {
         ESP_LOGE(TAG, "create scan task failed");
-        SetValueText("任务创建失败", true);
+        SetValueText(I18n::T("任务创建失败"), true);
         UpdatePassFail(false);
         SetRescanEnabled(true);
         SetPopupSpinner(false);
@@ -494,13 +495,13 @@ void OpenListPopup() {
     screen_swipe_back_ignore(card, true);
 
     lv_obj_t* title = lv_label_create(card);
-    lv_label_set_text(title, "附近 WiFi");
+    lv_label_set_text(title, I18n::T("附近 WiFi"));
     lv_obj_set_style_text_color(title, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_set_width(title, LV_PCT(100));
 
     s_list_status = lv_label_create(card);
-    lv_label_set_text(s_list_status, s_scan_in_progress ? "正在扫描…" : "--");
+    lv_label_set_text(s_list_status, s_scan_in_progress ? I18n::T("正在扫描…") : "--");
     lv_obj_set_style_text_color(s_list_status, lv_color_hex(kTestColorTextDim),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(s_list_status, &font_puhui_20_4, LV_PART_MAIN);
@@ -565,7 +566,7 @@ void OpenListPopup() {
     screen_swipe_back_ignore(s_rescan_btn, true);
 
     s_rescan_lbl = lv_label_create(s_rescan_btn);
-    lv_label_set_text(s_rescan_lbl, "重新扫描");
+    lv_label_set_text(s_rescan_lbl, I18n::T("重新扫描"));
     lv_obj_set_style_text_color(s_rescan_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(s_rescan_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(s_rescan_lbl);
@@ -584,7 +585,7 @@ void OpenListPopup() {
     screen_swipe_back_ignore(close_btn, true);
 
     lv_obj_t* close_lbl = lv_label_create(close_btn);
-    lv_label_set_text(close_lbl, "关闭");
+    lv_label_set_text(close_lbl, I18n::T("关闭"));
     lv_obj_set_style_text_color(close_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(close_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(close_lbl);
@@ -610,7 +611,7 @@ lv_obj_t* CreateListButton(lv_obj_t* parent) {
     screen_swipe_back_ignore(btn, true);
 
     lv_obj_t* lbl = lv_label_create(btn);
-    lv_label_set_text(lbl, "列表");
+    lv_label_set_text(lbl, I18n::T("列表"));
     lv_obj_set_style_text_color(lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_center(lbl);
@@ -628,7 +629,7 @@ void BuildRow(lv_obj_t* list) {
     s_value_lbl = TestUiCreateValueLabel(ctrl);
     lv_obj_set_width(s_value_lbl, LV_SIZE_CONTENT);
     lv_obj_set_flex_grow(s_value_lbl, 1);
-    lv_label_set_text(s_value_lbl, "扫描中…");
+    lv_label_set_text(s_value_lbl, I18n::T("扫描中…"));
     CreateListButton(ctrl);
 }
 

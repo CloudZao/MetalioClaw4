@@ -1,4 +1,5 @@
 #include "stress_test_screen.h"
+#include "i18n.h"
 
 #include "application.h"
 #include "audio_codec.h"
@@ -10,6 +11,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "stress_demo.h"
+#include "pwr_key_handler.h"
 #include "screen_util.h"
 #include "test_screen.h"
 #include "test_ui_common.h"
@@ -141,7 +143,7 @@ void BuildSetupPanel(lv_obj_t* scr) {
     lv_obj_set_style_bg_opa(s_setup_panel, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_remove_flag(s_setup_panel, LV_OBJ_FLAG_SCROLLABLE);
 
-    TestUiCreateHeader(s_setup_panel, "压力测试", OnBackBtnClicked);
+    TestUiCreateHeader(s_setup_panel, I18n::T("压力测试"), OnBackBtnClicked);
 
     const int initial_volume = ReadStressVolume();
 
@@ -165,7 +167,7 @@ void BuildSetupPanel(lv_obj_t* scr) {
     ApplyStressVolume(initial_volume);
 
     lv_obj_t* hint = lv_label_create(card);
-    lv_label_set_text(hint, "背景音乐音量");
+    lv_label_set_text(hint, I18n::T("背景音乐音量"));
     lv_obj_set_style_text_color(hint, lv_color_hex(kTestColorTextDim),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
@@ -176,6 +178,7 @@ void BuildSetupPanel(lv_obj_t* scr) {
     lv_obj_set_size(slider_row, kTestPanelW - 2 * kTestSideMargin, 52);
     lv_obj_align(slider_row, LV_ALIGN_TOP_MID, 0, kTestHeaderH + 24 + 220 + 20);
     lv_obj_set_style_bg_opa(slider_row, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_add_flag(slider_row, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     lv_obj_remove_flag(slider_row, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t* slider = lv_slider_create(slider_row);
@@ -187,6 +190,9 @@ void BuildSetupPanel(lv_obj_t* scr) {
     lv_obj_set_style_bg_color(slider, lv_color_hex(kTestColorMuted), LV_PART_MAIN);
     lv_obj_set_style_bg_color(slider, lv_color_hex(0x3B82F6), LV_PART_INDICATOR);
     lv_obj_set_style_bg_color(slider, lv_color_white(), LV_PART_KNOB);
+    lv_obj_add_flag(slider, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+    lv_obj_set_style_pad_hor(slider, 24, LV_PART_MAIN);
+    lv_obj_set_style_pad_ver(slider, 10, LV_PART_MAIN);
     lv_obj_set_style_pad_all(slider, 4, LV_PART_KNOB);
     lv_obj_set_style_radius(slider, LV_RADIUS_CIRCLE, LV_PART_KNOB);
     lv_obj_set_style_radius(slider, 10, LV_PART_MAIN);
@@ -211,13 +217,13 @@ void BuildSetupPanel(lv_obj_t* scr) {
     screen_swipe_back_ignore(start, true);
 
     lv_obj_t* start_lbl = lv_label_create(start);
-    lv_label_set_text(start_lbl, "开始压力测试");
+    lv_label_set_text(start_lbl, I18n::T("开始压力测试"));
     lv_obj_set_style_text_color(start_lbl, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(start_lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_center(start_lbl);
 
     lv_obj_t* foot = lv_label_create(s_setup_panel);
-    lv_label_set_text(foot, "6 分钟循环：LVGL 压测 + 背景音乐 → 马达 → 摄像头");
+    lv_label_set_text(foot, I18n::T("6 分钟循环：LVGL 压测 + 背景音乐 → 马达 → 摄像头"));
     lv_obj_set_width(foot, kTestPanelW - 2 * kTestSideMargin);
     lv_label_set_long_mode(foot, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_color(foot, lv_color_hex(kTestColorTextDim),
@@ -614,6 +620,10 @@ void OnScreenUnloaded(lv_event_t* /*e*/) {
     s_volume_pct_lbl = nullptr;
 }
 
+void stress_test_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("stress_test", event);
+}
+
 }  // namespace
 
 lv_obj_t* StressTestScreen::Create() {
@@ -629,6 +639,7 @@ lv_obj_t* StressTestScreen::Create() {
 
     BuildSetupPanel(scr);
 
+    screen_attach_lifecycle(scr, stress_test_lifecycle_cb);
     screen_attach_swipe_back(scr, OnSwipeBackToMenu);
     lv_obj_add_event_cb(scr, OnScreenUnloaded, LV_EVENT_SCREEN_UNLOADED,
                         nullptr);

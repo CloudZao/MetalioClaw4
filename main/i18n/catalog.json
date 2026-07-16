@@ -1,0 +1,2898 @@
+{
+  "version": 1,
+  "default_locale": "zh-CN",
+  "locales": [
+    {
+      "id": "zh-CN",
+      "name": "简体中文",
+      "english_name": "Chinese (Simplified)"
+    },
+    {
+      "id": "en-US",
+      "name": "English",
+      "english_name": "English"
+    }
+  ],
+  "strings": [
+    {
+      "key": "MON",
+      "zh-CN": "一",
+      "en-US": "Mon"
+    },
+    {
+      "key": "WED",
+      "zh-CN": "三",
+      "en-US": "Wed"
+    },
+    {
+      "key": "MED",
+      "zh-CN": "中",
+      "en-US": "Med"
+    },
+    {
+      "key": "TUE",
+      "zh-CN": "二",
+      "en-US": "Tue"
+    },
+    {
+      "key": "FRI",
+      "zh-CN": "五",
+      "en-US": "Fri"
+    },
+    {
+      "key": "LOW",
+      "zh-CN": "低",
+      "en-US": "Low"
+    },
+    {
+      "key": "SAT",
+      "zh-CN": "六",
+      "en-US": "Sat"
+    },
+    {
+      "key": "NO",
+      "zh-CN": "否",
+      "en-US": "No"
+    },
+    {
+      "key": "THU",
+      "zh-CN": "四",
+      "en-US": "Thu"
+    },
+    {
+      "key": "WEAK",
+      "zh-CN": "弱",
+      "en-US": "Weak"
+    },
+    {
+      "key": "STRONG",
+      "zh-CN": "强",
+      "en-US": "Strong"
+    },
+    {
+      "key": "NONE",
+      "zh-CN": "无",
+      "en-US": "None"
+    },
+    {
+      "key": "SUN",
+      "zh-CN": "日",
+      "en-US": "Sun"
+    },
+    {
+      "key": "YES",
+      "zh-CN": "是",
+      "en-US": "Yes"
+    },
+    {
+      "key": "CLEAR",
+      "zh-CN": "晴",
+      "en-US": "Clear"
+    },
+    {
+      "key": "CLOUDY",
+      "zh-CN": "阴",
+      "en-US": "Overcast"
+    },
+    {
+      "key": "RAIN",
+      "zh-CN": "雨",
+      "en-US": "Rain"
+    },
+    {
+      "key": "SNOW",
+      "zh-CN": "雪",
+      "en-US": "Snow"
+    },
+    {
+      "key": "FOG",
+      "zh-CN": "雾",
+      "en-US": "Fog"
+    },
+    {
+      "key": "HAZE",
+      "zh-CN": "霾",
+      "en-US": "Haze"
+    },
+    {
+      "key": "HIGH",
+      "zh-CN": "高",
+      "en-US": "High"
+    },
+    {
+      "key": "MODERATE_RAIN",
+      "zh-CN": "中雨",
+      "en-US": "Moderate rain"
+    },
+    {
+      "key": "MODERATE_SNOW",
+      "zh-CN": "中雪",
+      "en-US": "Moderate snow"
+    },
+    {
+      "key": "THEME",
+      "zh-CN": "主题",
+      "en-US": "Theme"
+    },
+    {
+      "key": "CLOUD",
+      "zh-CN": "云量",
+      "en-US": "Cloud cover"
+    },
+    {
+      "key": "BRIGHTNESS",
+      "zh-CN": "亮度",
+      "en-US": "Brightness"
+    },
+    {
+      "key": "SAVE",
+      "zh-CN": "保存",
+      "en-US": "Save"
+    },
+    {
+      "key": "POWER_OFF",
+      "zh-CN": "关机",
+      "en-US": "Power off"
+    },
+    {
+      "key": "CLOSE",
+      "zh-CN": "关闭",
+      "en-US": "Close"
+    },
+    {
+      "key": "FREEZING_RAIN",
+      "zh-CN": "冻雨",
+      "en-US": "Freezing rain"
+    },
+    {
+      "key": "S_B34422E6",
+      "zh-CN": "分数",
+      "en-US": "Score"
+    },
+    {
+      "key": "S_BEC7E4D6",
+      "zh-CN": "切换",
+      "en-US": "Switch"
+    },
+    {
+      "key": "S_3712972D",
+      "zh-CN": "列表",
+      "en-US": "List"
+    },
+    {
+      "key": "DELETE",
+      "zh-CN": "删除",
+      "en-US": "Delete"
+    },
+    {
+      "key": "REFRESH",
+      "zh-CN": "刷新",
+      "en-US": "Refresh"
+    },
+    {
+      "key": "SECURED",
+      "zh-CN": "加密",
+      "en-US": "Secured"
+    },
+    {
+      "key": "S_569C4968",
+      "zh-CN": "区县",
+      "en-US": "District"
+    },
+    {
+      "key": "CANCEL",
+      "zh-CN": "取消",
+      "en-US": "Cancel"
+    },
+    {
+      "key": "S_EE3F5585",
+      "zh-CN": "国家",
+      "en-US": "Country"
+    },
+    {
+      "key": "S_2560B304",
+      "zh-CN": "地区",
+      "en-US": "Region"
+    },
+    {
+      "key": "S_823EA45C",
+      "zh-CN": "地图",
+      "en-US": "Map"
+    },
+    {
+      "key": "ADDRESS",
+      "zh-CN": "地址",
+      "en-US": "address"
+    },
+    {
+      "key": "S_F7D29DFA",
+      "zh-CN": "城市",
+      "en-US": "City"
+    },
+    {
+      "key": "S_786139AC",
+      "zh-CN": "多云",
+      "en-US": "Partly cloudy"
+    },
+    {
+      "key": "S_811A1FF8",
+      "zh-CN": "大雨",
+      "en-US": "Heavy rain"
+    },
+    {
+      "key": "S_4FAFCC2C",
+      "zh-CN": "大雪",
+      "en-US": "Heavy snow"
+    },
+    {
+      "key": "S_6AB232C9",
+      "zh-CN": "大雾",
+      "en-US": "Dense fog"
+    },
+    {
+      "key": "WEATHER",
+      "zh-CN": "天气",
+      "en-US": "Weather"
+    },
+    {
+      "key": "DONE",
+      "zh-CN": "完成",
+      "en-US": "Done"
+    },
+    {
+      "key": "LOCATION",
+      "zh-CN": "定位",
+      "en-US": "Location"
+    },
+    {
+      "key": "S_55C16DBE",
+      "zh-CN": "小雨",
+      "en-US": "Light rain"
+    },
+    {
+      "key": "S_8B309519",
+      "zh-CN": "小雪",
+      "en-US": "Light snow"
+    },
+    {
+      "key": "OPEN",
+      "zh-CN": "开放",
+      "en-US": "Open"
+    },
+    {
+      "key": "STANDBY",
+      "zh-CN": "待机",
+      "en-US": "Standby"
+    },
+    {
+      "key": "S_F3D7A0CD",
+      "zh-CN": "心跳",
+      "en-US": "Heartbeat"
+    },
+    {
+      "key": "S_C3E6AF14",
+      "zh-CN": "恒定",
+      "en-US": "Constant"
+    },
+    {
+      "key": "S_330363DF",
+      "zh-CN": "成功",
+      "en-US": "Success"
+    },
+    {
+      "key": "S_56525D62",
+      "zh-CN": "扫描",
+      "en-US": "Scan"
+    },
+    {
+      "key": "S_014E238D",
+      "zh-CN": "扬沙",
+      "en-US": "Blowing sand"
+    },
+    {
+      "key": "S_BED9EC1E",
+      "zh-CN": "拍照",
+      "en-US": "Capture"
+    },
+    {
+      "key": "S_4F9B192C",
+      "zh-CN": "放大",
+      "en-US": "Zoom in"
+    },
+    {
+      "key": "CALENDAR",
+      "zh-CN": "日历",
+      "en-US": "Calendar"
+    },
+    {
+      "key": "S_569D866E",
+      "zh-CN": "暴雨",
+      "en-US": "Rainstorm"
+    },
+    {
+      "key": "S_7CD28C6C",
+      "zh-CN": "暴雪",
+      "en-US": "Blizzard"
+    },
+    {
+      "key": "S_32AC152B",
+      "zh-CN": "更新",
+      "en-US": "Update"
+    },
+    {
+      "key": "S_9B53E2A0",
+      "zh-CN": "最高",
+      "en-US": "High"
+    },
+    {
+      "key": "UNKNOWN",
+      "zh-CN": "未知",
+      "en-US": "Unknown"
+    },
+    {
+      "key": "S_3A9AD949",
+      "zh-CN": "校准",
+      "en-US": "Calibrate"
+    },
+    {
+      "key": "S_DC723A61",
+      "zh-CN": "模拟",
+      "en-US": "Mock"
+    },
+    {
+      "key": "PRESSURE",
+      "zh-CN": "气压",
+      "en-US": "Pressure"
+    },
+    {
+      "key": "S_4CDE06E6",
+      "zh-CN": "水平",
+      "en-US": "Level"
+    },
+    {
+      "key": "TEST",
+      "zh-CN": "测试",
+      "en-US": "Test"
+    },
+    {
+      "key": "S_DBB8AAC7",
+      "zh-CN": "浮尘",
+      "en-US": "Dust"
+    },
+    {
+      "key": "S_B2F726BA",
+      "zh-CN": "海拔",
+      "en-US": "Alt"
+    },
+    {
+      "key": "CLEAR_2",
+      "zh-CN": "清空",
+      "en-US": "Clear"
+    },
+    {
+      "key": "PHONE",
+      "zh-CN": "电话",
+      "en-US": "Phone"
+    },
+    {
+      "key": "DIRECTORY",
+      "zh-CN": "目录",
+      "en-US": "directory"
+    },
+    {
+      "key": "S_5145E5BE",
+      "zh-CN": "相册",
+      "en-US": "Gallery"
+    },
+    {
+      "key": "CAMERA",
+      "zh-CN": "相机",
+      "en-US": "Camera"
+    },
+    {
+      "key": "S_D7009D07",
+      "zh-CN": "省份",
+      "en-US": "Province"
+    },
+    {
+      "key": "S_38CF16F2",
+      "zh-CN": "确定",
+      "en-US": "OK"
+    },
+    {
+      "key": "MAGNETOMETER",
+      "zh-CN": "磁场",
+      "en-US": "Magnetometer"
+    },
+    {
+      "key": "IDLE",
+      "zh-CN": "空闲",
+      "en-US": "Idle"
+    },
+    {
+      "key": "S_10C6755B",
+      "zh-CN": "精度",
+      "en-US": "Accuracy"
+    },
+    {
+      "key": "S_6ACAEE71",
+      "zh-CN": "纬度",
+      "en-US": "Lat"
+    },
+    {
+      "key": "S_3D18CA01",
+      "zh-CN": "经度",
+      "en-US": "Lon"
+    },
+    {
+      "key": "S_B21AC253",
+      "zh-CN": "缩小",
+      "en-US": "Zoom out"
+    },
+    {
+      "key": "CHAT",
+      "zh-CN": "聊天",
+      "en-US": "Chat"
+    },
+    {
+      "key": "S_7DDCD228",
+      "zh-CN": "脉冲",
+      "en-US": "Pulse"
+    },
+    {
+      "key": "BLUETOOTH",
+      "zh-CN": "蓝牙",
+      "en-US": "Bluetooth"
+    },
+    {
+      "key": "SETTINGS",
+      "zh-CN": "设置",
+      "en-US": "Settings"
+    },
+    {
+      "key": "LANGUAGE",
+      "zh-CN": "语言",
+      "en-US": "Language"
+    },
+    {
+      "key": "S_807F57BD",
+      "zh-CN": "轻雾",
+      "en-US": "Mist"
+    },
+    {
+      "key": "S_E47D59B1",
+      "zh-CN": "输入",
+      "en-US": "Input"
+    },
+    {
+      "key": "S_8BA7C3A7",
+      "zh-CN": "输出",
+      "en-US": "Output"
+    },
+    {
+      "key": "BACK",
+      "zh-CN": "返回",
+      "en-US": "Back"
+    },
+    {
+      "key": "S_30F7DD4E",
+      "zh-CN": "连接",
+      "en-US": "Connect"
+    },
+    {
+      "key": "S_03F38597",
+      "zh-CN": "速度",
+      "en-US": "Speed"
+    },
+    {
+      "key": "RESTART",
+      "zh-CN": "重启",
+      "en-US": "Restart"
+    },
+    {
+      "key": "ERROR",
+      "zh-CN": "错误",
+      "en-US": "Error"
+    },
+    {
+      "key": "S_8F4EAD0F",
+      "zh-CN": "阵雨",
+      "en-US": "Shower"
+    },
+    {
+      "key": "S_5CDFA40B",
+      "zh-CN": "阵雪",
+      "en-US": "Snow shower"
+    },
+    {
+      "key": "VIBRATE",
+      "zh-CN": "震动",
+      "en-US": "Vibrate"
+    },
+    {
+      "key": "DEW",
+      "zh-CN": "露点",
+      "en-US": "Dew point"
+    },
+    {
+      "key": "MUSIC",
+      "zh-CN": "音乐",
+      "en-US": "Music"
+    },
+    {
+      "key": "VOLUME",
+      "zh-CN": "音量",
+      "en-US": "Volume"
+    },
+    {
+      "key": "AUDIO",
+      "zh-CN": "音频",
+      "en-US": "Audio"
+    },
+    {
+      "key": "PREVIEW",
+      "zh-CN": "预览",
+      "en-US": "Preview"
+    },
+    {
+      "key": "ALERT",
+      "zh-CN": "预警",
+      "en-US": "Alert"
+    },
+    {
+      "key": "SD_CARD",
+      "zh-CN": "SD卡",
+      "en-US": "SD Card"
+    },
+    {
+      "key": "X_AXIS",
+      "zh-CN": "X 轴",
+      "en-US": "X axis"
+    },
+    {
+      "key": "Y_AXIS",
+      "zh-CN": "Y 轴",
+      "en-US": "Y axis"
+    },
+    {
+      "key": "Z_AXIS",
+      "zh-CN": "Z 轴",
+      "en-US": "Z axis"
+    },
+    {
+      "key": "S_D875EC9A",
+      "zh-CN": "严重霾",
+      "en-US": "Severe haze"
+    },
+    {
+      "key": "S_E0F50BDF",
+      "zh-CN": "中度霾",
+      "en-US": "Moderate haze"
+    },
+    {
+      "key": "S_D6CFA3B2",
+      "zh-CN": "信号中",
+      "en-US": "Fair"
+    },
+    {
+      "key": "S_4F052EDC",
+      "zh-CN": "信号弱",
+      "en-US": "Weak"
+    },
+    {
+      "key": "S_ED178B04",
+      "zh-CN": "信号强",
+      "en-US": "Excellent"
+    },
+    {
+      "key": "S_27277E09",
+      "zh-CN": "充电中",
+      "en-US": "Charging"
+    },
+    {
+      "key": "BUILT_IN_SIM",
+      "zh-CN": "内置卡",
+      "en-US": "Built-in SIM"
+    },
+    {
+      "key": "EXTERNAL_SIM",
+      "zh-CN": "外置卡",
+      "en-US": "External SIM"
+    },
+    {
+      "key": "S_57CA41A0",
+      "zh-CN": "大暴雨",
+      "en-US": "Rainstorm"
+    },
+    {
+      "key": "LOCATION_2",
+      "zh-CN": "定位中",
+      "en-US": "Locating"
+    },
+    {
+      "key": "CLOSE_2",
+      "zh-CN": "已关闭",
+      "en-US": "Close"
+    },
+    {
+      "key": "LOCATION_3",
+      "zh-CN": "已定位",
+      "en-US": "location"
+    },
+    {
+      "key": "S_9DB7A84F",
+      "zh-CN": "已开启",
+      "en-US": "On"
+    },
+    {
+      "key": "S_6BD28F01",
+      "zh-CN": "强浓雾",
+      "en-US": "Dense fog"
+    },
+    {
+      "key": "WAITING_TO_WAKE",
+      "zh-CN": "待唤醒",
+      "en-US": "Waiting to wake"
+    },
+    {
+      "key": "S_F19449E5",
+      "zh-CN": "搜星中",
+      "en-US": "Searching satellites"
+    },
+    {
+      "key": "CAMERA_2",
+      "zh-CN": "摄像头",
+      "en-US": "Camera"
+    },
+    {
+      "key": "S_57691433",
+      "zh-CN": "放电中",
+      "en-US": "Discharging"
+    },
+    {
+      "key": "AVATAR",
+      "zh-CN": "数字人",
+      "en-US": "Avatar"
+    },
+    {
+      "key": "S_42DDAD24",
+      "zh-CN": "新会话",
+      "en-US": "New session"
+    },
+    {
+      "key": "S_7F99DE1A",
+      "zh-CN": "新游戏",
+      "en-US": "New game"
+    },
+    {
+      "key": "S_F4BAF7C6",
+      "zh-CN": "未启动",
+      "en-US": "Not started"
+    },
+    {
+      "key": "LOCATION_4",
+      "zh-CN": "未定位",
+      "en-US": "location"
+    },
+    {
+      "key": "S_588F4879",
+      "zh-CN": "校准中",
+      "en-US": "Calibrate"
+    },
+    {
+      "key": "MODE1",
+      "zh-CN": "模式1",
+      "en-US": "Mode1"
+    },
+    {
+      "key": "MODE2",
+      "zh-CN": "模式2",
+      "en-US": "Mode2"
+    },
+    {
+      "key": "MODE3",
+      "zh-CN": "模式3",
+      "en-US": "Mode3"
+    },
+    {
+      "key": "LEVEL",
+      "zh-CN": "水平仪",
+      "en-US": "Level"
+    },
+    {
+      "key": "S_005AD2F7",
+      "zh-CN": "沙尘暴",
+      "en-US": "Sandstorm"
+    },
+    {
+      "key": "S_BFA56968",
+      "zh-CN": "系统忙",
+      "en-US": "System busy"
+    },
+    {
+      "key": "UV",
+      "zh-CN": "紫外线",
+      "en-US": "UV"
+    },
+    {
+      "key": "S_CCBF5273",
+      "zh-CN": "聆听中",
+      "en-US": "Listening"
+    },
+    {
+      "key": "S_9327CD49",
+      "zh-CN": "能见度",
+      "en-US": "Visibility"
+    },
+    {
+      "key": "CALCULATOR",
+      "zh-CN": "计算器",
+      "en-US": "Calculator"
+    },
+    {
+      "key": "S_2BF5AE66",
+      "zh-CN": "讲话中",
+      "en-US": "Speaking"
+    },
+    {
+      "key": "CONNECTING",
+      "zh-CN": "连接中",
+      "en-US": "Connecting"
+    },
+    {
+      "key": "IN_CALL",
+      "zh-CN": "通话中",
+      "en-US": "In call"
+    },
+    {
+      "key": "S_A92C26A7",
+      "zh-CN": "重度霾",
+      "en-US": "Heavy haze"
+    },
+    {
+      "key": "S_DE0D2608",
+      "zh-CN": "雨夹雪",
+      "en-US": "Sleet"
+    },
+    {
+      "key": "S_BCE455C9",
+      "zh-CN": "雷阵雨",
+      "en-US": "Thunderstorm"
+    },
+    {
+      "key": "VOL",
+      "zh-CN": "音量+",
+      "en-US": "Vol+"
+    },
+    {
+      "key": "VOL_2",
+      "zh-CN": "音量-",
+      "en-US": "Vol-"
+    },
+    {
+      "key": "S_A48C7E2F",
+      "zh-CN": "龙卷风",
+      "en-US": "Tornado"
+    },
+    {
+      "key": "U_CORES",
+      "zh-CN": "%u 核",
+      "en-US": "%u cores"
+    },
+    {
+      "key": "N_1H_PRECIP",
+      "zh-CN": "1h降水",
+      "en-US": "1h precip"
+    },
+    {
+      "key": "N_6_DAY_WEATHER",
+      "zh-CN": "6日天气",
+      "en-US": "6-day forecast"
+    },
+    {
+      "key": "SD_CARD_2",
+      "zh-CN": "SD 卡",
+      "en-US": "SD Card"
+    },
+    {
+      "key": "SECURED_2",
+      "zh-CN": "[加密]",
+      "en-US": "[Secured]"
+    },
+    {
+      "key": "OPEN_2",
+      "zh-CN": "[开放]",
+      "en-US": "[Open]"
+    },
+    {
+      "key": "POWER_ON_FAILED",
+      "zh-CN": "上电失败",
+      "en-US": "Power-on failed"
+    },
+    {
+      "key": "NETWORK_MODE",
+      "zh-CN": "上网方式",
+      "en-US": "Connection type"
+    },
+    {
+      "key": "S_0CE300CD",
+      "zh-CN": "中到大雨",
+      "en-US": "Heavy rain"
+    },
+    {
+      "key": "S_75F0DB1E",
+      "zh-CN": "中到大雪",
+      "en-US": "Heavy snow"
+    },
+    {
+      "key": "DAY_WEATHER",
+      "zh-CN": "今日天气",
+      "en-US": "Today's weather"
+    },
+    {
+      "key": "S_FF023EFC",
+      "zh-CN": "信号很弱",
+      "en-US": "Very weak"
+    },
+    {
+      "key": "S_80B1931B",
+      "zh-CN": "信号较强",
+      "en-US": "Good"
+    },
+    {
+      "key": "CLOSE_3",
+      "zh-CN": "关闭模拟",
+      "en-US": "Close"
+    },
+    {
+      "key": "S_D8E6A633",
+      "zh-CN": "内存不足",
+      "en-US": "Memory"
+    },
+    {
+      "key": "S_4813DBC1",
+      "zh-CN": "切换网络",
+      "en-US": "Switch network"
+    },
+    {
+      "key": "S_ADD221C3",
+      "zh-CN": "创建会话",
+      "en-US": "Create session"
+    },
+    {
+      "key": "DELETE_2",
+      "zh-CN": "删除会话",
+      "en-US": "Delete session"
+    },
+    {
+      "key": "DELETE_3",
+      "zh-CN": "删除失败",
+      "en-US": "Delete failed"
+    },
+    {
+      "key": "S_866B795E",
+      "zh-CN": "加载失败",
+      "en-US": "Load failed"
+    },
+    {
+      "key": "ID",
+      "zh-CN": "区划ID",
+      "en-US": "District ID"
+    },
+    {
+      "key": "LOCATION_5",
+      "zh-CN": "卫星定位",
+      "en-US": "GPS fix"
+    },
+    {
+      "key": "TEST_2",
+      "zh-CN": "压力测试",
+      "en-US": "Stress Test"
+    },
+    {
+      "key": "BACK_2",
+      "zh-CN": "右滑返回",
+      "en-US": "Back"
+    },
+    {
+      "key": "VERSION",
+      "zh-CN": "固件版本",
+      "en-US": "Firmware"
+    },
+    {
+      "key": "LOCATION_6",
+      "zh-CN": "基站定位",
+      "en-US": "Cell locate"
+    },
+    {
+      "key": "RESET",
+      "zh-CN": "复位蓝牙",
+      "en-US": "Reset Bluetooth"
+    },
+    {
+      "key": "S_F5D9C0EB",
+      "zh-CN": "大到暴雨",
+      "en-US": "Rainstorm"
+    },
+    {
+      "key": "S_8944F7FA",
+      "zh-CN": "大到暴雪",
+      "en-US": "Blizzard"
+    },
+    {
+      "key": "LOCATION_7",
+      "zh-CN": "定位失败",
+      "en-US": "Locate failed"
+    },
+    {
+      "key": "S_421EBEE1",
+      "zh-CN": "实况详情",
+      "en-US": "Current details"
+    },
+    {
+      "key": "PREVIEW_2",
+      "zh-CN": "实时预览",
+      "en-US": "Preview"
+    },
+    {
+      "key": "PASSWORD",
+      "zh-CN": "密码超长",
+      "en-US": "Password too long"
+    },
+    {
+      "key": "S_E4865EDB",
+      "zh-CN": "小到中雨",
+      "en-US": "Light to moderate rain"
+    },
+    {
+      "key": "S_7624E7BC",
+      "zh-CN": "小到中雪",
+      "en-US": "Light to moderate snow"
+    },
+    {
+      "key": "LOCATION_8",
+      "zh-CN": "尚未定位",
+      "en-US": "Not located yet"
+    },
+    {
+      "key": "S_9594A2B9",
+      "zh-CN": "屏幕亮度",
+      "en-US": "Screen brightness"
+    },
+    {
+      "key": "START",
+      "zh-CN": "开始校准",
+      "en-US": "Start calibration"
+    },
+    {
+      "key": "PIN_TEST",
+      "zh-CN": "引脚测试",
+      "en-US": "Pin Test"
+    },
+    {
+      "key": "S_A1E62546",
+      "zh-CN": "弱高吹雪",
+      "en-US": "Light blowing snow"
+    },
+    {
+      "key": "S_6D84BF64",
+      "zh-CN": "强沙尘暴",
+      "en-US": "Sandstorm"
+    },
+    {
+      "key": "CURRENT_BRIGHTNESS",
+      "zh-CN": "当前亮度",
+      "en-US": "Current brightness"
+    },
+    {
+      "key": "CURRENT_LANGUAGE",
+      "zh-CN": "当前语言",
+      "en-US": "Current language"
+    },
+    {
+      "key": "CURRENT_VOLUME",
+      "zh-CN": "当前音量",
+      "en-US": "Current volume"
+    },
+    {
+      "key": "S_DA3C79E8",
+      "zh-CN": "录音中…",
+      "en-US": "Recording…"
+    },
+    {
+      "key": "S_68C15533",
+      "zh-CN": "扫描中…",
+      "en-US": "Scanning…"
+    },
+    {
+      "key": "S_5EC14542",
+      "zh-CN": "扫描失败",
+      "en-US": "Scan failed"
+    },
+    {
+      "key": "SCAN_DEVICES",
+      "zh-CN": "扫描设备",
+      "en-US": "Scan devices"
+    },
+    {
+      "key": "SCAN_TIMEOUT",
+      "zh-CN": "扫描超时",
+      "en-US": "Scan timed out"
+    },
+    {
+      "key": "DRAG_TO_ADJUST",
+      "zh-CN": "拖动调节",
+      "en-US": "Drag to adjust"
+    },
+    {
+      "key": "S_F3CBB272",
+      "zh-CN": "拨号失败",
+      "en-US": "Dial"
+    },
+    {
+      "key": "S_F9E3C38B",
+      "zh-CN": "按住录音",
+      "en-US": "Hold to record"
+    },
+    {
+      "key": "S_B5A35424",
+      "zh-CN": "按住说话",
+      "en-US": "Hold to talk"
+    },
+    {
+      "key": "S_01B2247A",
+      "zh-CN": "搜网超时",
+      "en-US": "Network search timeout"
+    },
+    {
+      "key": "S_220C0A6F",
+      "zh-CN": "播放中…",
+      "en-US": "Playing…"
+    },
+    {
+      "key": "PASSWORD_2",
+      "zh-CN": "显示密码",
+      "en-US": "Show password"
+    },
+    {
+      "key": "S_6151ABB3",
+      "zh-CN": "暂无照片",
+      "en-US": "No photos"
+    },
+    {
+      "key": "UNKNOWNERROR",
+      "zh-CN": "未知错误",
+      "en-US": "UnknownError"
+    },
+    {
+      "key": "S_BA2A25B4",
+      "zh-CN": "查看 >",
+      "en-US": "View >"
+    },
+    {
+      "key": "LOCATION_9",
+      "zh-CN": "模拟定位",
+      "en-US": "Mock location"
+    },
+    {
+      "key": "NEVER_POWER_OFF",
+      "zh-CN": "永不关机",
+      "en-US": "Never power off"
+    },
+    {
+      "key": "NEVER_ENTER",
+      "zh-CN": "永不进入",
+      "en-US": "Never enter"
+    },
+    {
+      "key": "TEST_3",
+      "zh-CN": "测试中…",
+      "en-US": "Test …"
+    },
+    {
+      "key": "TEST_4",
+      "zh-CN": "测试失败",
+      "en-US": "Test Failed"
+    },
+    {
+      "key": "CLEAR_3",
+      "zh-CN": "清空会话",
+      "en-US": "Clear sessions"
+    },
+    {
+      "key": "CLEAR_4",
+      "zh-CN": "清空全部",
+      "en-US": "Clear all"
+    },
+    {
+      "key": "S_11C5A6E6",
+      "zh-CN": "特大暴雨",
+      "en-US": "Rainstorm"
+    },
+    {
+      "key": "S_99969B9D",
+      "zh-CN": "特强浓雾",
+      "en-US": "Extreme fog"
+    },
+    {
+      "key": "S_393FB60D",
+      "zh-CN": "生活指数",
+      "en-US": "Living index"
+    },
+    {
+      "key": "POWER_OPTIONS",
+      "zh-CN": "电源选项",
+      "en-US": "Power options"
+    },
+    {
+      "key": "TEST_5",
+      "zh-CN": "硬件测试",
+      "en-US": "Hardware Test"
+    },
+    {
+      "key": "CHINESE_SIMPLIFIED",
+      "zh-CN": "简体中文",
+      "en-US": "简体中文"
+    },
+    {
+      "key": "SYSTEM_INFO",
+      "zh-CN": "系统信息",
+      "en-US": "System Info"
+    },
+    {
+      "key": "POWER_OFF_2",
+      "zh-CN": "系统关机",
+      "en-US": "Power off"
+    },
+    {
+      "key": "S_79F78E73",
+      "zh-CN": "编译时间",
+      "en-US": "Build time"
+    },
+    {
+      "key": "S_2BC4E815",
+      "zh-CN": "网络切换",
+      "en-US": "Network switch"
+    },
+    {
+      "key": "NETWORK",
+      "zh-CN": "网络配置",
+      "en-US": "Network"
+    },
+    {
+      "key": "AUTO_POWER_OFF",
+      "zh-CN": "自动关机",
+      "en-US": "Auto power off"
+    },
+    {
+      "key": "TEST_6",
+      "zh-CN": "自动测试",
+      "en-US": "Auto Test"
+    },
+    {
+      "key": "S_45982737",
+      "zh-CN": "芯片型号",
+      "en-US": "Chip model"
+    },
+    {
+      "key": "LOCATION_10",
+      "zh-CN": "获取定位",
+      "en-US": "Get location"
+    },
+    {
+      "key": "MUSIC_2",
+      "zh-CN": "蓝牙音乐",
+      "en-US": "BT music"
+    },
+    {
+      "key": "DEFAULT",
+      "zh-CN": "设为默认",
+      "en-US": "Set default"
+    },
+    {
+      "key": "S_5858832B",
+      "zh-CN": "设备型号",
+      "en-US": "Device model"
+    },
+    {
+      "key": "READ_FAILED",
+      "zh-CN": "读取失败",
+      "en-US": "read failed"
+    },
+    {
+      "key": "ENTER_STANDBY",
+      "zh-CN": "进入待机",
+      "en-US": "Enter standby"
+    },
+    {
+      "key": "S_0745FC09",
+      "zh-CN": "连接失败",
+      "en-US": "Connection failed"
+    },
+    {
+      "key": "CONNECTED",
+      "zh-CN": "连接成功",
+      "en-US": "connected"
+    },
+    {
+      "key": "S_5F4AA5FB",
+      "zh-CN": "连接超时",
+      "en-US": "Connect timeout"
+    },
+    {
+      "key": "S_E9A36D56",
+      "zh-CN": "选择地区",
+      "en-US": "Select region"
+    },
+    {
+      "key": "MODE",
+      "zh-CN": "通话模式",
+      "en-US": "Call mode"
+    },
+    {
+      "key": "S_75E1781B",
+      "zh-CN": "重新扫描",
+      "en-US": "Rescan"
+    },
+    {
+      "key": "S_510253A1",
+      "zh-CN": "重置校准",
+      "en-US": "Calibrate"
+    },
+    {
+      "key": "VIBRATEMOTOR",
+      "zh-CN": "震动马达",
+      "en-US": "Vibrate Motor"
+    },
+    {
+      "key": "MUSIC_MODE",
+      "zh-CN": "音乐模式",
+      "en-US": "Music mode"
+    },
+    {
+      "key": "D_MIN",
+      "zh-CN": "%d 分钟",
+      "en-US": "%d min"
+    },
+    {
+      "key": "N_24H_WEATHER",
+      "zh-CN": "24时天气",
+      "en-US": "24-hour"
+    },
+    {
+      "key": "GPS_LOCATION",
+      "zh-CN": "GPS定位",
+      "en-US": "GPS location"
+    },
+    {
+      "key": "THEME_D",
+      "zh-CN": "主题 %d",
+      "en-US": "Theme %d"
+    },
+    {
+      "key": "SAVE_2",
+      "zh-CN": "保存并启用",
+      "en-US": "Save & enable"
+    },
+    {
+      "key": "S_E3E13B21",
+      "zh-CN": "响应体为空",
+      "en-US": "Empty response"
+    },
+    {
+      "key": "S_C5ABFEBA",
+      "zh-CN": "已重置校准",
+      "en-US": "Calibrate"
+    },
+    {
+      "key": "S_C61AD1DE",
+      "zh-CN": "弹框已销毁",
+      "en-US": "Dialog dismissed"
+    },
+    {
+      "key": "S",
+      "zh-CN": "当前：%s",
+      "en-US": "Current: %s"
+    },
+    {
+      "key": "S_18609266",
+      "zh-CN": "当前：--",
+      "en-US": "Current: --"
+    },
+    {
+      "key": "CAMERAPREVIEW",
+      "zh-CN": "摄像头预览",
+      "en-US": "Camera Preview"
+    },
+    {
+      "key": "S_044D1458",
+      "zh-CN": "无缓存坐标",
+      "en-US": "No cached coords"
+    },
+    {
+      "key": "S_35A03073",
+      "zh-CN": "未发现网络",
+      "en-US": "No network found"
+    },
+    {
+      "key": "S_C33F00DC",
+      "zh-CN": "未命名会话",
+      "en-US": "Untitled session"
+    },
+    {
+      "key": "S_66349FB1",
+      "zh-CN": "查询失败：",
+      "en-US": "Query failed: "
+    },
+    {
+      "key": "LEVEL_2",
+      "zh-CN": "校准水平仪",
+      "en-US": "Level"
+    },
+    {
+      "key": "S_65A57001",
+      "zh-CN": "模组无响应",
+      "en-US": "Module no response"
+    },
+    {
+      "key": "SAVE_3",
+      "zh-CN": "正在保存…",
+      "en-US": "Save…"
+    },
+    {
+      "key": "DELETE_4",
+      "zh-CN": "正在删除…",
+      "en-US": "Delete…"
+    },
+    {
+      "key": "S_2D857CFA",
+      "zh-CN": "正在扫描…",
+      "en-US": "Scanning…"
+    },
+    {
+      "key": "CLEAR_5",
+      "zh-CN": "正在清空…",
+      "en-US": "Clear…"
+    },
+    {
+      "key": "RESTART_2",
+      "zh-CN": "正在重启…",
+      "en-US": "Rebooting…"
+    },
+    {
+      "key": "TEST_CANCEL",
+      "zh-CN": "测试已取消",
+      "en-US": "Test Cancel"
+    },
+    {
+      "key": "S_2",
+      "zh-CN": "用时 %s",
+      "en-US": "Time %s"
+    },
+    {
+      "key": "TEST_7",
+      "zh-CN": "等待测试…",
+      "en-US": "Test…"
+    },
+    {
+      "key": "S_ABBF0F61",
+      "zh-CN": "经纬度无效",
+      "en-US": "Invalid coordinates"
+    },
+    {
+      "key": "D",
+      "zh-CN": "缩放 %d",
+      "en-US": "Zoom %d"
+    },
+    {
+      "key": "AVAILABLE",
+      "zh-CN": "网络不可用",
+      "en-US": "Available"
+    },
+    {
+      "key": "S_F309E394",
+      "zh-CN": "解码失败：",
+      "en-US": "Decode failed: "
+    },
+    {
+      "key": "DEVICE_NOT_ACTIVATED",
+      "zh-CN": "设备未激活",
+      "en-US": "Device not activated"
+    },
+    {
+      "key": "LOBSTER_OFFLINE",
+      "zh-CN": "龙虾不在线",
+      "en-US": "Lobster offline"
+    },
+    {
+      "key": "N_24H_FORECAST",
+      "zh-CN": "24小时预报",
+      "en-US": "24h forecast"
+    },
+    {
+      "key": "N_4G_BUILT_IN_SIM",
+      "zh-CN": "4G·内置卡",
+      "en-US": "4G·Built-in SIM"
+    },
+    {
+      "key": "N_4G_EXTERNAL_SIM",
+      "zh-CN": "4G·外置卡",
+      "en-US": "4G·External SIM"
+    },
+    {
+      "key": "CPU_CORES",
+      "zh-CN": "CPU 核心",
+      "en-US": "CPU cores"
+    },
+    {
+      "key": "I2C_NOT_READY",
+      "zh-CN": "I2C未就绪",
+      "en-US": "I2C not ready"
+    },
+    {
+      "key": "IDF_VERSION",
+      "zh-CN": "IDF 版本",
+      "en-US": "IDF version"
+    },
+    {
+      "key": "MAC_ADDRESS",
+      "zh-CN": "MAC 地址",
+      "en-US": "MAC address"
+    },
+    {
+      "key": "OTA_PARTITION",
+      "zh-CN": "OTA 分区",
+      "en-US": "OTA partition"
+    },
+    {
+      "key": "PING_FAILED",
+      "zh-CN": "PING失败",
+      "en-US": "PING failed"
+    },
+    {
+      "key": "PING_OK",
+      "zh-CN": "PING成功",
+      "en-US": "PING ok"
+    },
+    {
+      "key": "WIFI_LOCATION",
+      "zh-CN": "WiFi定位",
+      "en-US": "WiFi location"
+    },
+    {
+      "key": "UPLOADING",
+      "zh-CN": "上传中...",
+      "en-US": "Uploading..."
+    },
+    {
+      "key": "UPLOAD_FAILED",
+      "zh-CN": "上传失败: ",
+      "en-US": "Upload failed: "
+    },
+    {
+      "key": "CREATE_FAILED",
+      "zh-CN": "任务创建失败",
+      "en-US": "Failed to create task"
+    },
+    {
+      "key": "REFRESH_2",
+      "zh-CN": "刷新消息失败",
+      "en-US": "Refresh"
+    },
+    {
+      "key": "LOADING",
+      "zh-CN": "加载中...",
+      "en-US": "Loading..."
+    },
+    {
+      "key": "S_109A6531",
+      "zh-CN": "响应解析失败",
+      "en-US": "Parse failed"
+    },
+    {
+      "key": "S_17417326",
+      "zh-CN": "地图下载失败",
+      "en-US": "Map download failed"
+    },
+    {
+      "key": "S_B85E6AB8",
+      "zh-CN": "地图数据为空",
+      "en-US": "Map data empty"
+    },
+    {
+      "key": "S_3",
+      "zh-CN": "已切换到%s",
+      "en-US": "Switched to %s"
+    },
+    {
+      "key": "DELETE_5",
+      "zh-CN": "已删除该网络",
+      "en-US": "Network deleted"
+    },
+    {
+      "key": "START_TEST",
+      "zh-CN": "开始压力测试",
+      "en-US": "Start Stress Test"
+    },
+    {
+      "key": "DIALING",
+      "zh-CN": "拨号中...",
+      "en-US": "Dialing..."
+    },
+    {
+      "key": "BACKERROR",
+      "zh-CN": "接口返回错误",
+      "en-US": "BackError"
+    },
+    {
+      "key": "S_8ACC2CD8",
+      "zh-CN": "无线充电成功",
+      "en-US": "Wireless chargingSuccess"
+    },
+    {
+      "key": "N_6",
+      "zh-CN": "暂无6日预报",
+      "en-US": "No 6-day forecast"
+    },
+    {
+      "key": "WEATHER_2",
+      "zh-CN": "暂无天气数据",
+      "en-US": "No weather data"
+    },
+    {
+      "key": "S_0D856ACA",
+      "zh-CN": "暂无生活指数",
+      "en-US": "No living index"
+    },
+    {
+      "key": "S_F8D4946A",
+      "zh-CN": "暂无缓存坐标",
+      "en-US": "No cached coords"
+    },
+    {
+      "key": "S_488E1BBF",
+      "zh-CN": "暴雨到大暴雨",
+      "en-US": "Rainstorm Rainstorm"
+    },
+    {
+      "key": "S_4EA9BFB7",
+      "zh-CN": "查询中...",
+      "en-US": "Querying..."
+    },
+    {
+      "key": "S_84561CC4",
+      "zh-CN": "检测中...",
+      "en-US": "Detecting..."
+    },
+    {
+      "key": "BATTERY",
+      "zh-CN": "电量 --%",
+      "en-US": "Battery --%"
+    },
+    {
+      "key": "BATTERY_85",
+      "zh-CN": "电量 85%",
+      "en-US": "Battery 85%"
+    },
+    {
+      "key": "S_32942C17",
+      "zh-CN": "纬度格式有误",
+      "en-US": "Invalid latitude format"
+    },
+    {
+      "key": "S_7E5DEADA",
+      "zh-CN": "组装请求失败",
+      "en-US": "Build request failed"
+    },
+    {
+      "key": "S_3189F120",
+      "zh-CN": "经度格式有误",
+      "en-US": "Invalid longitude format"
+    },
+    {
+      "key": "BGMVOLUME",
+      "zh-CN": "背景音乐音量",
+      "en-US": "BGM Volume"
+    },
+    {
+      "key": "LOCATION_11",
+      "zh-CN": "请先获取定位",
+      "en-US": "Get location first"
+    },
+    {
+      "key": "ID_2",
+      "zh-CN": "读取ID失败",
+      "en-US": "Failed to read ID"
+    },
+    {
+      "key": "PREVIEW_START_FAILED",
+      "zh-CN": "预览启动失败",
+      "en-US": "Preview start failed"
+    },
+    {
+      "key": "PREVIEW_BUFFER_FAILED",
+      "zh-CN": "预览缓冲失败",
+      "en-US": "Preview buffer failed"
+    },
+    {
+      "key": "N_4G_MODULE_UNAVAILABLE",
+      "zh-CN": "4G模块不可用",
+      "en-US": "4G module unavailable"
+    },
+    {
+      "key": "AT_COMMAND_FAILED",
+      "zh-CN": "AT 指令失败",
+      "en-US": "AT command failed"
+    },
+    {
+      "key": "ENGLISH",
+      "zh-CN": "English",
+      "en-US": "English"
+    },
+    {
+      "key": "I2C_NOT_DETECTED",
+      "zh-CN": "I2C未检测到",
+      "en-US": "I2C not detected"
+    },
+    {
+      "key": "I2C_READ_FAILED",
+      "zh-CN": "I2C读取失败",
+      "en-US": "I2C read failed"
+    },
+    {
+      "key": "OPEN_FAILED",
+      "zh-CN": "Open 失败",
+      "en-US": "Open failed"
+    },
+    {
+      "key": "SCCB_NO_ACK",
+      "zh-CN": "SCCB无应答",
+      "en-US": "SCCB no ack"
+    },
+    {
+      "key": "SD_CARD_INSERTED",
+      "zh-CN": "SD 卡已插入",
+      "en-US": "SD card inserted"
+    },
+    {
+      "key": "SIM_SWITCH",
+      "zh-CN": "SIM 卡切换",
+      "en-US": "SIM switch"
+    },
+    {
+      "key": "SIM_SELECTION",
+      "zh-CN": "SIM 卡选择",
+      "en-US": "SIM selection"
+    },
+    {
+      "key": "WIFI_LOCATION_2",
+      "zh-CN": "WiFi 定位",
+      "en-US": "WiFi  location"
+    },
+    {
+      "key": "WIFI_PASSWORD",
+      "zh-CN": "WiFi 密码",
+      "en-US": "Wi-Fi password"
+    },
+    {
+      "key": "SIM",
+      "zh-CN": "切换SIM失败",
+      "en-US": "SIM switch failed"
+    },
+    {
+      "key": "S_2DA32F3C",
+      "zh-CN": "初始化中...",
+      "en-US": "Initializing..."
+    },
+    {
+      "key": "D_2",
+      "zh-CN": "发现 %d 个",
+      "en-US": "Found %d"
+    },
+    {
+      "key": "START_2",
+      "zh-CN": "开始扫描...",
+      "en-US": "Start ..."
+    },
+    {
+      "key": "D_3",
+      "zh-CN": "总共%d条会话",
+      "en-US": "%d session(s) total"
+    },
+    {
+      "key": "N_4G_MODULE",
+      "zh-CN": "无 4G 模块",
+      "en-US": "4G module"
+    },
+    {
+      "key": "OKVIBRATE",
+      "zh-CN": "是否正常震动？",
+      "en-US": "Vibration OK?"
+    },
+    {
+      "key": "NMEA",
+      "zh-CN": "未收到NMEA",
+      "en-US": "NMEA"
+    },
+    {
+      "key": "INFO",
+      "zh-CN": "未收到基站信息",
+      "en-US": "No cell info received"
+    },
+    {
+      "key": "SIM_2",
+      "zh-CN": "未检测到SIM",
+      "en-US": "SIM not detected"
+    },
+    {
+      "key": "S_615E18AE",
+      "zh-CN": "未检测到传感器",
+      "en-US": "Sensor not detected"
+    },
+    {
+      "key": "BACK_LOCATION",
+      "zh-CN": "未返回定位数据",
+      "en-US": "Back location"
+    },
+    {
+      "key": "MODE1_SETTINGS",
+      "zh-CN": "模式1 已设置",
+      "en-US": "Mode1 Settings"
+    },
+    {
+      "key": "MODE3_SETTINGS",
+      "zh-CN": "模式3 已设置",
+      "en-US": "Mode3 Settings"
+    },
+    {
+      "key": "LOCATION_CLOSE",
+      "zh-CN": "模拟定位已关闭",
+      "en-US": "location Close"
+    },
+    {
+      "key": "SHUTTING_DOWN",
+      "zh-CN": "正在关机...",
+      "en-US": "Shutting down..."
+    },
+    {
+      "key": "S_0E48E426",
+      "zh-CN": "正在扫描...",
+      "en-US": "Scanning..."
+    },
+    {
+      "key": "S_37EBA56B",
+      "zh-CN": "正在连接...",
+      "en-US": "Connecting..."
+    },
+    {
+      "key": "S_58437800",
+      "zh-CN": "等待数据...",
+      "en-US": "Waiting for data..."
+    },
+    {
+      "key": "S_B0D0DA7F",
+      "zh-CN": "网络注册被拒绝",
+      "en-US": "Sign up Reject"
+    },
+    {
+      "key": "RESET_2",
+      "zh-CN": "蓝牙电源已复位",
+      "en-US": "BT power reset"
+    },
+    {
+      "key": "UUID",
+      "zh-CN": "设备 UUID",
+      "en-US": "UUID"
+    },
+    {
+      "key": "CHECK_MOBILE_NETWORK",
+      "zh-CN": "请检查移动网络",
+      "en-US": "Check mobile network"
+    },
+    {
+      "key": "MODE_2",
+      "zh-CN": "请选择蓝牙模式",
+      "en-US": "Choose Bluetooth mode"
+    },
+    {
+      "key": "S_4",
+      "zh-CN": "连接到: %s",
+      "en-US": "Connect to: %s"
+    },
+    {
+      "key": "WIFI",
+      "zh-CN": "附近 WiFi",
+      "en-US": "Nearby Wi-Fi"
+    },
+    {
+      "key": "S_12BDF4D7",
+      "zh-CN": "雷阵雨伴有冰雹",
+      "en-US": "Thunderstorm"
+    },
+    {
+      "key": "CODE_S",
+      "zh-CN": "验证码: %s",
+      "en-US": "Code: %s"
+    },
+    {
+      "key": "LOBSTER_PLUGIN_OFFLINE",
+      "zh-CN": "龙虾插件不在线",
+      "en-US": "Lobster plugin offline"
+    },
+    {
+      "key": "LOBSTER_SERVICE_UNAVAILABLE",
+      "zh-CN": "龙虾服务不可用",
+      "en-US": "Lobster service unavailable"
+    },
+    {
+      "key": "S_DEFAULT",
+      "zh-CN": "%s  (默认)",
+      "en-US": "%s  (default)"
+    },
+    {
+      "key": "S_CONNECTED",
+      "zh-CN": "%s 连接成功！",
+      "en-US": "Connected to %s!"
+    },
+    {
+      "key": "CFUN_0_FAILED",
+      "zh-CN": "CFUN=0失败",
+      "en-US": "CFUN=0 failed"
+    },
+    {
+      "key": "FLASH_SIZE",
+      "zh-CN": "Flash 容量",
+      "en-US": "Flash size"
+    },
+    {
+      "key": "HTTP_UNAVAILABLE",
+      "zh-CN": "HTTP 不可用",
+      "en-US": "HTTP unavailable"
+    },
+    {
+      "key": "PING_COMMAND_FAILED",
+      "zh-CN": "PING命令失败",
+      "en-US": "PING command failed"
+    },
+    {
+      "key": "PING_TIMEOUT",
+      "zh-CN": "PING等待超时",
+      "en-US": "PING timeout"
+    },
+    {
+      "key": "SIM_SLOT_NOT_APPLIED",
+      "zh-CN": "SIM槽位未生效",
+      "en-US": "SIM slot not applied"
+    },
+    {
+      "key": "SRAM_SIZE",
+      "zh-CN": "SRAM 总大小",
+      "en-US": "SRAM size"
+    },
+    {
+      "key": "INVALID_SSID",
+      "zh-CN": "SSID 不合法",
+      "en-US": "Invalid SSID"
+    },
+    {
+      "key": "SAVE_4",
+      "zh-CN": "保存任务启动失败",
+      "en-US": "Failed to start save task"
+    },
+    {
+      "key": "D_4",
+      "zh-CN": "共 %d 个网络",
+      "en-US": "%d network(s)"
+    },
+    {
+      "key": "SAVE_5",
+      "zh-CN": "写入失败，未保存",
+      "en-US": "Write failed, not saved"
+    },
+    {
+      "key": "MODE1_2",
+      "zh-CN": "切换模式1...",
+      "en-US": "Mode1..."
+    },
+    {
+      "key": "MODE2_2",
+      "zh-CN": "切换模式2...",
+      "en-US": "Mode2..."
+    },
+    {
+      "key": "MODE3_2",
+      "zh-CN": "切换模式3...",
+      "en-US": "Mode3..."
+    },
+    {
+      "key": "DELETE_S",
+      "zh-CN": "删除失败: %s",
+      "en-US": "Delete : %s"
+    },
+    {
+      "key": "S_5",
+      "zh-CN": "加载失败: %s",
+      "en-US": "Load failed: %s"
+    },
+    {
+      "key": "S_6",
+      "zh-CN": "发现设备: %s",
+      "en-US": "Found device: %s"
+    },
+    {
+      "key": "INFO_ERROR",
+      "zh-CN": "基站信息格式错误",
+      "en-US": "Info Error"
+    },
+    {
+      "key": "INFO_2",
+      "zh-CN": "基站信息解析失败",
+      "en-US": "Failed to parse cell info"
+    },
+    {
+      "key": "S_110281F0",
+      "zh-CN": "大暴雨到特大暴雨",
+      "en-US": "Rainstorm Rainstorm"
+    },
+    {
+      "key": "SAVE_WIFI",
+      "zh-CN": "已保存 WiFi",
+      "en-US": "Saved Wi-Fi"
+    },
+    {
+      "key": "N_0_0",
+      "zh-CN": "已录 0.0 秒",
+      "en-US": "Recorded 0.0 s"
+    },
+    {
+      "key": "SETTINGS_DEFAULT",
+      "zh-CN": "已设置为默认网络",
+      "en-US": "Set as default network"
+    },
+    {
+      "key": "AVAILABLE_2",
+      "zh-CN": "扫描附近可用网络",
+      "en-US": "Scan available networks nearby"
+    },
+    {
+      "key": "S_92006439",
+      "zh-CN": "拖动滑条调整振幅",
+      "en-US": "Drag slider to adjust amplitude"
+    },
+    {
+      "key": "CAMERA_INIT_FAILED",
+      "zh-CN": "摄像头初始化失败",
+      "en-US": "camera init failed"
+    },
+    {
+      "key": "S_423D0C00",
+      "zh-CN": "无法启动切换任务",
+      "en-US": "Cannot start switch task"
+    },
+    {
+      "key": "DELETE_6",
+      "zh-CN": "无法启动删除任务",
+      "en-US": "Cannot start delete task"
+    },
+    {
+      "key": "S_67C488B0",
+      "zh-CN": "无法启动加载任务",
+      "en-US": "Cannot start load task"
+    },
+    {
+      "key": "S_96322896",
+      "zh-CN": "无法启动扫描任务",
+      "en-US": "Cannot start scan task"
+    },
+    {
+      "key": "CLEAR_6",
+      "zh-CN": "无法启动清空任务",
+      "en-US": "Cannot start clear task"
+    },
+    {
+      "key": "S_1DA29D76",
+      "zh-CN": "无法启动连接任务",
+      "en-US": "Cannot start connect task"
+    },
+    {
+      "key": "DELETE_7",
+      "zh-CN": "是否删除此会话？",
+      "en-US": "Delete this session?"
+    },
+    {
+      "key": "N_24H_FORECAST_2",
+      "zh-CN": "暂无24小时预报",
+      "en-US": "No 24h forecast"
+    },
+    {
+      "key": "S_1A5967BB",
+      "zh-CN": "未插卡或挂载失败",
+      "en-US": "Mount"
+    },
+    {
+      "key": "READ_FAILED_2",
+      "zh-CN": "未插卡或读取失败",
+      "en-US": "read failed"
+    },
+    {
+      "key": "SIM_3",
+      "zh-CN": "未检测到SIM卡",
+      "en-US": "SIM card not detected"
+    },
+    {
+      "key": "BACK_DATA",
+      "zh-CN": "未返回 data",
+      "en-US": "Back data"
+    },
+    {
+      "key": "CAMERA_3",
+      "zh-CN": "正在启动摄像头…",
+      "en-US": "camera…"
+    },
+    {
+      "key": "CLEAR_S",
+      "zh-CN": "清空失败: %s",
+      "en-US": "Clear : %s"
+    },
+    {
+      "key": "N_00_00",
+      "zh-CN": "用时 00:00",
+      "en-US": "Time 00:00"
+    },
+    {
+      "key": "SAVE_6",
+      "zh-CN": "编码失败，未保存",
+      "en-US": "Encode failed, not saved"
+    },
+    {
+      "key": "MODE2_3",
+      "zh-CN": "请先切换到模式2",
+      "en-US": "Mode2"
+    },
+    {
+      "key": "S_71854277",
+      "zh-CN": "请先结束当前对话",
+      "en-US": "End the current chat first"
+    },
+    {
+      "key": "S_4CC27D6B",
+      "zh-CN": "请先连接蓝牙设备",
+      "en-US": "Connect a Bluetooth device first"
+    },
+    {
+      "key": "SD",
+      "zh-CN": "请插入 SD 卡",
+      "en-US": "Please insert SD card"
+    },
+    {
+      "key": "S_7",
+      "zh-CN": "连接 %s 超时",
+      "en-US": "Connection to %s timed out"
+    },
+    {
+      "key": "CHOOSE_DISPLAY_LANGUAGE",
+      "zh-CN": "选择界面显示语言",
+      "en-US": "Choose display language"
+    },
+    {
+      "key": "D_D",
+      "zh-CN": "%d 年 %d 月",
+      "en-US": "%d / %d"
+    },
+    {
+      "key": "N_0_60_MIN",
+      "zh-CN": "0 ~ 60 分钟",
+      "en-US": "0 ~ 60 min"
+    },
+    {
+      "key": "HTTP_CREATE_FAILED",
+      "zh-CN": "HTTP 创建失败",
+      "en-US": "HTTP create failed"
+    },
+    {
+      "key": "PSRAM_SIZE",
+      "zh-CN": "PSRAM 总大小",
+      "en-US": "PSRAM size"
+    },
+    {
+      "key": "NO_FILES_ON_SD_CARD",
+      "zh-CN": "SD 卡内没有文件",
+      "en-US": "No files on SD card"
+    },
+    {
+      "key": "SIM_SWITCH_FAILED",
+      "zh-CN": "SIM 卡切换失败",
+      "en-US": "SIM switch failed"
+    },
+    {
+      "key": "UART_NOT_INITIALIZED",
+      "zh-CN": "UART 未初始化",
+      "en-US": "UART not initialized"
+    },
+    {
+      "key": "WIFI_SCAN_TIMEOUT",
+      "zh-CN": "WiFi 扫描超时",
+      "en-US": "WiFi scan timeout"
+    },
+    {
+      "key": "THEME_D_2",
+      "zh-CN": "主题 %d  当前",
+      "en-US": "Theme %d  current"
+    },
+    {
+      "key": "BRIGHTNESS_IS_SAVED_AUTOMATICALLY",
+      "zh-CN": "亮度设置会自动保存",
+      "en-US": "Brightness is saved automatically"
+    },
+    {
+      "key": "S_CDE37683",
+      "zh-CN": "信号太弱，连接超时",
+      "en-US": "Signal too weak, connection timed out"
+    },
+    {
+      "key": "D_5",
+      "zh-CN": "充电中  %d%%",
+      "en-US": "Charging  %d%%"
+    },
+    {
+      "key": "SAVE_7",
+      "zh-CN": "内存不足，保存失败",
+      "en-US": "Out of memory, save failed"
+    },
+    {
+      "key": "N_4G",
+      "zh-CN": "准备切换到 4G…",
+      "en-US": "Preparing to switch to 4G…"
+    },
+    {
+      "key": "MODE_3",
+      "zh-CN": "切换通话模式...",
+      "en-US": "Mode..."
+    },
+    {
+      "key": "MUSIC_MODE_2",
+      "zh-CN": "切换音乐模式...",
+      "en-US": "Music mode..."
+    },
+    {
+      "key": "SAVE_SD",
+      "zh-CN": "已保存到 SD 卡",
+      "en-US": "Save SD"
+    },
+    {
+      "key": "START_3",
+      "zh-CN": "开始与龙虾对话吧！",
+      "en-US": "Start chatting with lobster!"
+    },
+    {
+      "key": "S_9D54D863",
+      "zh-CN": "录音太短，再试一次",
+      "en-US": "Recording too short, try again"
+    },
+    {
+      "key": "STANDBY_SETTINGS_ARE_SAVED_AUTOMATICALLY",
+      "zh-CN": "待机设置会自动保存",
+      "en-US": "Standby settings are saved automatically"
+    },
+    {
+      "key": "OPENCAMERA",
+      "zh-CN": "打开摄像头设备失败",
+      "en-US": "Opencamera"
+    },
+    {
+      "key": "S_6FEAC09F",
+      "zh-CN": "按住下面的按钮说话",
+      "en-US": "Hold the button below to talk"
+    },
+    {
+      "key": "SD_2",
+      "zh-CN": "未检测到 SD 卡",
+      "en-US": "SD card not detected"
+    },
+    {
+      "key": "S_9590EBA7",
+      "zh-CN": "正在加载地图...",
+      "en-US": "Loading map..."
+    },
+    {
+      "key": "RESET_3",
+      "zh-CN": "正在复位蓝牙...",
+      "en-US": "Reset ..."
+    },
+    {
+      "key": "S_6FA76CB2",
+      "zh-CN": "正在录音…松开结束",
+      "en-US": "Recording… release to finish"
+    },
+    {
+      "key": "S_B5CAEECD",
+      "zh-CN": "正在检查网络...",
+      "en-US": "Checking network..."
+    },
+    {
+      "key": "S_BC636F36",
+      "zh-CN": "正在检查龙虾状态…",
+      "en-US": "Checking lobster status…"
+    },
+    {
+      "key": "S_8",
+      "zh-CN": "正在连接\n%s …",
+      "en-US": "Connecting\n%s…"
+    },
+    {
+      "key": "S_9",
+      "zh-CN": "正在连接 %s …",
+      "en-US": "Connecting to %s…"
+    },
+    {
+      "key": "S_D58EE169",
+      "zh-CN": "烧录蓝牙固件时使用",
+      "en-US": "Used when flashing BT firmware"
+    },
+    {
+      "key": "POWER_OFF_3",
+      "zh-CN": "用户选择 [关机]",
+      "en-US": "[Power off]"
+    },
+    {
+      "key": "CONNECTED_2",
+      "zh-CN": "管理已连接过的网络",
+      "en-US": "Manage previously connected networks"
+    },
+    {
+      "key": "LANGUAGE_IS_SAVED_AUTOMATICALLY",
+      "zh-CN": "语言设置会自动保存",
+      "en-US": "Language is saved automatically"
+    },
+    {
+      "key": "S_A8E64761",
+      "zh-CN": "连接失败 (超时)",
+      "en-US": "Connection failed (timeout)"
+    },
+    {
+      "key": "VOLUME_IS_SAVED_AUTOMATICALLY",
+      "zh-CN": "音量设置会自动保存",
+      "en-US": "Volume is saved automatically"
+    },
+    {
+      "key": "WIFI_INIT_FAILED",
+      "zh-CN": "WiFi 初始化失败",
+      "en-US": "Wi-Fi init failed"
+    },
+    {
+      "key": "WIFI_SCAN_EMPTY",
+      "zh-CN": "WiFi 扫描无结果",
+      "en-US": "WiFi scan empty"
+    },
+    {
+      "key": "THEME_D_3",
+      "zh-CN": "切换到主题 %d ?",
+      "en-US": "Theme %d ?"
+    },
+    {
+      "key": "S_10",
+      "zh-CN": "加载消息失败: %s",
+      "en-US": "Failed to load messages: %s"
+    },
+    {
+      "key": "S_DB0AF1A2",
+      "zh-CN": "卫星 (使用/可见)",
+      "en-US": "Satellites (used/visible)"
+    },
+    {
+      "key": "PASSWORDERROR",
+      "zh-CN": "密码错误，请重新输入",
+      "en-US": "Wrong password, please try again"
+    },
+    {
+      "key": "U",
+      "zh-CN": "已加载 %u 条消息",
+      "en-US": "Loaded %u message(s)"
+    },
+    {
+      "key": "D_D_2",
+      "zh-CN": "已录 %d.%d 秒",
+      "en-US": "%d.%d"
+    },
+    {
+      "key": "CLEAR_SAVE",
+      "zh-CN": "已清空所有已保存网络",
+      "en-US": "All saved networks cleared"
+    },
+    {
+      "key": "OK",
+      "zh-CN": "录音、喇叭是否正常？",
+      "en-US": "Mic and speaker OK?"
+    },
+    {
+      "key": "SD_SAVE",
+      "zh-CN": "无 SD 卡，未保存",
+      "en-US": "No SD card, not saved"
+    },
+    {
+      "key": "BACK_PNG",
+      "zh-CN": "服务器未返回 PNG",
+      "en-US": "Back PNG"
+    },
+    {
+      "key": "N_4G_MODULE_2",
+      "zh-CN": "未检测到 4G 模块",
+      "en-US": "4G module not detected"
+    },
+    {
+      "key": "S_93A4E532",
+      "zh-CN": "未检测到(需无线充)",
+      "en-US": "Not detected (need wireless charger)"
+    },
+    {
+      "key": "N_1F",
+      "zh-CN": "未水平  %.1f°",
+      "en-US": "Not level  %.1f°"
+    },
+    {
+      "key": "ONLINE",
+      "zh-CN": "检查在线状态失败: ",
+      "en-US": "Online :"
+    },
+    {
+      "key": "S_20AE7D82",
+      "zh-CN": "游戏结束!\n点击继续",
+      "en-US": "Game over!\nTap to continue"
+    },
+    {
+      "key": "BATTERY_D_S",
+      "zh-CN": "电量 %d%% %s",
+      "en-US": "Battery %d%% %s"
+    },
+    {
+      "key": "CONNECTING_S",
+      "zh-CN": "连接中: %s...",
+      "en-US": "Connecting: %s..."
+    },
+    {
+      "key": "S_60A9EBD4",
+      "zh-CN": "全部输出 · 周期方波",
+      "en-US": "All outs · square wave"
+    },
+    {
+      "key": "WIFI_2",
+      "zh-CN": "准备切换到 WiFi…",
+      "en-US": "Preparing to switch to Wi-Fi…"
+    },
+    {
+      "key": "S_5414EC42",
+      "zh-CN": "切换方向 · 控制电平",
+      "en-US": "Set direction · set level"
+    },
+    {
+      "key": "N_39_908823",
+      "zh-CN": "如 39.908823",
+      "en-US": "e.g. 39.908823"
+    },
+    {
+      "key": "S_DCB86708",
+      "zh-CN": "已有正在进行的连接任务",
+      "en-US": "A connect task is already running"
+    },
+    {
+      "key": "S_38F0CBEF",
+      "zh-CN": "当前设备不支持网络切换",
+      "en-US": "This device cannot switch networks"
+    },
+    {
+      "key": "WIFI_3",
+      "zh-CN": "未发现 WiFi 网络",
+      "en-US": "WiFi"
+    },
+    {
+      "key": "S_S",
+      "zh-CN": "正在切换到%s…\n%s",
+      "en-US": "Switching to %s…\n%s"
+    },
+    {
+      "key": "WIFI_4",
+      "zh-CN": "正在初始化 WiFi…",
+      "en-US": "Initializing Wi-Fi…"
+    },
+    {
+      "key": "S_F65CA8C5",
+      "zh-CN": "正在连接，请稍后再扫描",
+      "en-US": "Connecting, try scanning later"
+    },
+    {
+      "key": "S_S_2",
+      "zh-CN": "连接 %s 失败：%s",
+      "en-US": "Failed to connect to %s: %s"
+    },
+    {
+      "key": "ENTER_STANDBY_AFTER_IDLE_ON_HOME",
+      "zh-CN": "首页无操作后进入待机页",
+      "en-US": "Enter standby after idle on home"
+    },
+    {
+      "key": "PING_LOSS_D_D",
+      "zh-CN": "PING丢包 %d/%d",
+      "en-US": "PING loss %d/%d"
+    },
+    {
+      "key": "UPLOADING_1FS",
+      "zh-CN": "上传中… (%.1fs)",
+      "en-US": "Uploading… (%.1fs)"
+    },
+    {
+      "key": "TODAY_D_D_S",
+      "zh-CN": "今天 %d/%d 周%s",
+      "en-US": "Today %d/%d %s"
+    },
+    {
+      "key": "S_716D4F11",
+      "zh-CN": "关联失败，路由器拒绝连接",
+      "en-US": "Association failed, router refused"
+    },
+    {
+      "key": "APPLIES_IMMEDIATELY_AND_RETURNS_TO_HOME",
+      "zh-CN": "切换后立即生效并返回主页",
+      "en-US": "Applies immediately and returns to home"
+    },
+    {
+      "key": "S_S_3",
+      "zh-CN": "剩余 %s / 总 %s",
+      "en-US": "%s / %s"
+    },
+    {
+      "key": "HTTP_CREATE_FAILED_2",
+      "zh-CN": "地图 HTTP 创建失败",
+      "en-US": "HTTP create failed"
+    },
+    {
+      "key": "N_116_397470",
+      "zh-CN": "如 116.397470",
+      "en-US": "e.g. 116.397470"
+    },
+    {
+      "key": "CONNECTED_WIFI",
+      "zh-CN": "暂无已连接过的 WiFi",
+      "en-US": "No saved Wi-Fi yet"
+    },
+    {
+      "key": "S_9C1E6F58",
+      "zh-CN": "未检测到传感器，无法校准",
+      "en-US": "Sensor not detected, cannot calibrate"
+    },
+    {
+      "key": "WIFI_5",
+      "zh-CN": "正在扫描附近 WiFi…",
+      "en-US": "Scanning nearby Wi-Fi…"
+    },
+    {
+      "key": "DONE_D",
+      "zh-CN": "扫描完成，共 %d 个网络",
+      "en-US": "Scan done, %d network(s)"
+    },
+    {
+      "key": "DONE_D_2",
+      "zh-CN": "扫描完成，共 %d 个设备",
+      "en-US": "Scan done, %d device(s)"
+    },
+    {
+      "key": "U_AUTO_POWER_OFF",
+      "zh-CN": "无操作 %u 分钟自动关机",
+      "en-US": "%u Auto power off"
+    },
+    {
+      "key": "SIM_4",
+      "zh-CN": "无法启动 SIM 切换任务",
+      "en-US": "Cannot start SIM switch task"
+    },
+    {
+      "key": "N_0_32",
+      "zh-CN": "校准中... 0 / 32",
+      "en-US": "Calibrating... 0 / 32"
+    },
+    {
+      "key": "MODE2_SETTINGS_SCAN_DEVICES",
+      "zh-CN": "模式2 已设置，可扫描设备",
+      "en-US": "Mode 2 ready, you can scan devices"
+    },
+    {
+      "key": "APPLY_BACK",
+      "zh-CN": "确定后将立即应用并返回主页",
+      "en-US": "Apply Back"
+    },
+    {
+      "key": "PASSWORD_3",
+      "zh-CN": "该网络无需密码，可直接连接",
+      "en-US": "Open network, no password needed"
+    },
+    {
+      "key": "POWER_OFF_AFTER_IDLE_ON_HOME_AND_STANDBY",
+      "zh-CN": "首页+待机累计无操作后关机",
+      "en-US": "Power off after idle on home and standby"
+    },
+    {
+      "key": "LOBSTER_PLUGIN_OFFLINE_LOBSTER_OFFLINE",
+      "zh-CN": "龙虾插件不在线，龙虾不在线",
+      "en-US": "Lobster plugin offline, lobster offline"
+    },
+    {
+      "key": "AT_CFUN_0_FAILED",
+      "zh-CN": "AT+CFUN=0 执行失败",
+      "en-US": "AT+CFUN=0 failed"
+    },
+    {
+      "key": "S_SIZE_S",
+      "zh-CN": "剩余 %s / 总容量 %s",
+      "en-US": "%s / size %s"
+    },
+    {
+      "key": "STOP",
+      "zh-CN": "周期方波运行中 · 点击停止",
+      "en-US": "Square wave on · tap to stop"
+    },
+    {
+      "key": "D_D_3",
+      "zh-CN": "校准中... %d / %d",
+      "en-US": "... %d / %d"
+    },
+    {
+      "key": "BATTERY_D_S_2",
+      "zh-CN": "电量 %d%% 充电中 %s",
+      "en-US": "Battery %d%% %s"
+    },
+    {
+      "key": "S_RESTART",
+      "zh-CN": "连接 %s 成功，准备重启…",
+      "en-US": "Connected to %s, rebooting…"
+    },
+    {
+      "key": "MODE_SCO",
+      "zh-CN": "通话模式 (SCO 已建立)",
+      "en-US": "Mode (SCO )"
+    },
+    {
+      "key": "POWER_OFF_5_POWER_OFF",
+      "zh-CN": "长按关机键 5 秒可强制关机",
+      "en-US": "Power off 5 Power off"
+    },
+    {
+      "key": "MUSIC_MODE_SCO_DISCONNECTED",
+      "zh-CN": "音乐模式 (SCO 已断开)",
+      "en-US": "Music mode (SCO disconnected)"
+    },
+    {
+      "key": "S_A37DB1CD",
+      "zh-CN": "----年--月--日 星期-",
+      "en-US": "----/--/-- -"
+    },
+    {
+      "key": "ESPCLAW",
+      "zh-CN": "即将进入 ESPClaw...",
+      "en-US": "ESPClaw..."
+    },
+    {
+      "key": "ERR_D",
+      "zh-CN": "启动扫描失败 (err=%d)",
+      "en-US": "Failed to start scan (err=%d)"
+    },
+    {
+      "key": "S_5FC23277",
+      "zh-CN": "在棋盘上滑动：上下左右移动方块",
+      "en-US": "Swipe on board: move tiles U/D/L/R"
+    },
+    {
+      "key": "S_6C90DDEC",
+      "zh-CN": "未发现网络，点右上「扫描」试试",
+      "en-US": "No networks found. Tap Scan at top-right"
+    },
+    {
+      "key": "WIFI_6",
+      "zh-CN": "未找到该 WiFi（信号丢失）",
+      "en-US": "Wi-Fi not found (signal lost)"
+    },
+    {
+      "key": "LOCATION_LOCATION",
+      "zh-CN": "模拟定位已开启，可点击获取定位",
+      "en-US": "Mock location on, tap to locate"
+    },
+    {
+      "key": "DONE_CHAT",
+      "zh-CN": "请先完成设备激活后再使用聊天。",
+      "en-US": "Activate the device before using Chat."
+    },
+    {
+      "key": "AT_ECSIMCFG_FAILED",
+      "zh-CN": "AT+ECSIMCFG 执行失败",
+      "en-US": "AT+ECSIMCFG failed"
+    },
+    {
+      "key": "BACK_STATICMAPURL",
+      "zh-CN": "未返回 staticMapUrl",
+      "en-US": "Back staticMapUrl"
+    },
+    {
+      "key": "S_RESTART_2",
+      "zh-CN": "正在切换到 %s\n设备即将重启…",
+      "en-US": "Switching to %s\nDevice will reboot…"
+    },
+    {
+      "key": "N_90_90",
+      "zh-CN": "纬度需在 -90 ~ 90 之间",
+      "en-US": "Latitude must be between -90 and 90"
+    },
+    {
+      "key": "DONE_AVATAR",
+      "zh-CN": "请先完成设备激活后再使用数字人。",
+      "en-US": "Activate the device before using Avatar."
+    },
+    {
+      "key": "N_2048",
+      "zh-CN": "你赢了 2048!\n继续玩或点这里",
+      "en-US": "You reached 2048!\nKeep playing or tap here"
+    },
+    {
+      "key": "BUILT_IN_SIM_PHONE_EXTERNAL_SIM",
+      "zh-CN": "内置卡无法拨打电话，请切换到外置卡",
+      "en-US": "Built-in SIM cannot dial, switch to external SIM"
+    },
+    {
+      "key": "CLOSE_AT_CFUN_0",
+      "zh-CN": "正在关闭射频…\nAT+CFUN=0",
+      "en-US": "Turning RF off…\nAT+CFUN=0"
+    },
+    {
+      "key": "AT_CFUN_1",
+      "zh-CN": "正在重新搜网…\nAT+CFUN=1",
+      "en-US": "Searching network…\nAT+CFUN=1"
+    },
+    {
+      "key": "CONFIRM",
+      "zh-CN": "请确认路由器已开启，或点击重新扫描",
+      "en-US": "Make sure the router is on, or tap Rescan"
+    },
+    {
+      "key": "REASON_U",
+      "zh-CN": "连接被拒绝 (reason=%u)",
+      "en-US": "Connection refused (reason=%u)"
+    },
+    {
+      "key": "S_REBOOTING_IN_D_S",
+      "zh-CN": "%s\n设备将在 %d 秒后自动重启…",
+      "en-US": "%s\nDevice will reboot in %d s…"
+    },
+    {
+      "key": "S_AT_CFUN_0",
+      "zh-CN": "正在切换到%s…\nAT+CFUN=0",
+      "en-US": "Switching to %s…\nAT+CFUN=0"
+    },
+    {
+      "key": "CLEAR_7",
+      "zh-CN": "此操作会清空设备全部会话，是否确定？",
+      "en-US": "This clears all sessions on the device. Continue?"
+    },
+    {
+      "key": "N_180_180",
+      "zh-CN": "经度需在 -180 ~ 180 之间",
+      "en-US": "Longitude must be between -180 and 180"
+    },
+    {
+      "key": "APPLIES_IMMEDIATELY_RETURN_HOME_TO_SEE_NEW_ICONS",
+      "zh-CN": "切换后将立即应用，并返回主页查看新图标",
+      "en-US": "Applies immediately; return home to see new icons"
+    },
+    {
+      "key": "N_04D_02D_02D_S",
+      "zh-CN": "%04d年%02d月%02d日 星期%s",
+      "en-US": "%04d-%02d-%02d %s"
+    },
+    {
+      "key": "S_SAVE",
+      "zh-CN": "当前：%s（修改后点「保存并启用」生效）",
+      "en-US": "Current: %s (tap Save & Enable to apply)"
+    },
+    {
+      "key": "WIFI_PASSWORD_8_63",
+      "zh-CN": "请输入 WiFi 密码（8~63 字符）",
+      "en-US": "Enter Wi-Fi password (8–63 chars)"
+    },
+    {
+      "key": "RESTART_3",
+      "zh-CN": "选择上网方式。切换后设备将自动重启生效。",
+      "en-US": "Choose how to go online. The device will reboot to apply."
+    },
+    {
+      "key": "N_4G_MODE_SIM",
+      "zh-CN": "当前不在 4G 模式，无法切换 SIM 卡",
+      "en-US": "Not in 4G mode, cannot switch SIM"
+    },
+    {
+      "key": "CHAT_HI",
+      "zh-CN": "快来和我聊天吧\n用 \"Hi 钛灵\" 唤醒我",
+      "en-US": "Come chat with me\nWake me with \"Hi Tai Ling\""
+    },
+    {
+      "key": "SET_CONFIG_FAILED_ERR_D",
+      "zh-CN": "set_config 失败 (err=%d)",
+      "en-US": "set_config failed (err=%d)"
+    },
+    {
+      "key": "N_15_DONE_PLEASE_CHECK_RETRY",
+      "zh-CN": "未能在 15 秒内完成连接，请检查网络后重试",
+      "en-US": "Could not connect within 15s, check network and retry"
+    },
+    {
+      "key": "DONE_OPENCLAW",
+      "zh-CN": "请先完成设备激活后再使用 OpenClaw。",
+      "en-US": "Activate the device before using OpenClaw."
+    },
+    {
+      "key": "STATUS_QMC6309_NOT_DETECTED",
+      "zh-CN": "STATUS=--  未检测到 QMC6309",
+      "en-US": "STATUS=--  QMC6309 not detected"
+    },
+    {
+      "key": "ESPCLAW_CONFIRM_PARTITION",
+      "zh-CN": "未找到 ESPClaw\n请确认是否已安装到分区",
+      "en-US": "ESPClaw Confirm partition"
+    },
+    {
+      "key": "DONE_OX_D_OY_D_OZ_D",
+      "zh-CN": "校准完成\nox=%d  oy=%d  oz=%d",
+      "en-US": "Done ox=%d oy=%d oz=%d"
+    },
+    {
+      "key": "ESP_WIFI_CONNECT_FAILED_ERR_D",
+      "zh-CN": "esp_wifi_connect 失败 (err=%d)",
+      "en-US": "esp_wifi_connect failed (err=%d)"
+    },
+    {
+      "key": "MODE1_AT_RX_2_AT_MODE_1",
+      "zh-CN": "模式1 已激活\n(AT+RX=2 / AT+MODE=1)",
+      "en-US": "Mode1 (AT+RX=2 / AT+MODE=1)"
+    },
+    {
+      "key": "N_6_MIN_LOOP_LVGL_STRESS_BGM_MOTOR_CAMERA",
+      "zh-CN": "6 分钟循环：LVGL 压测 + 背景音乐 → 马达 → 摄像头",
+      "en-US": "6-min loop: LVGL stress + BGM → motor → camera"
+    },
+    {
+      "key": "SETTINGS_AUDIO_ESP32_C5",
+      "zh-CN": "以下设置用于外置蓝牙音频解码芯片，非 ESP32-C5 内置蓝牙",
+      "en-US": "Settings for external BT audio codec, not ESP32-C5 built-in BT"
+    },
+    {
+      "key": "N_4G_SIM_RESTART",
+      "zh-CN": "选择 4G 模组使用的 SIM 卡。\n切换后设备将自动重启生效。",
+      "en-US": "Choose the SIM used by the 4G module.\nThe device will reboot to apply."
+    },
+    {
+      "key": "MODE_MUSIC_APP",
+      "zh-CN": "蓝牙音箱模式 · 手机蓝牙连接本设备后，用手机音乐 App 播放歌曲",
+      "en-US": "BT speaker mode · connect phone via BT, play via Music app"
+    },
+    {
+      "key": "START_1_2",
+      "zh-CN": "请将设备水平放置在桌面上保持静止，\n点击 “开始校准” 后等待 1~2 秒",
+      "en-US": "Place device flat and still on a desk,\ntap \"Start calibration\" and wait 1–2 s"
+    },
+    {
+      "key": "S_0704EBCF",
+      "zh-CN": "AT 命令序列：\n  AT+CFUN=0\n  AT+ECSIMCFG=SimSlot,X\n  AT+CFUN=1",
+      "en-US": "AT sequence:\n  AT+CFUN=0\n  AT+ECSIMCFG=SimSlot,X\n  AT+CFUN=1"
+    },
+    {
+      "key": "WEATHER_HOUR_DETAIL_FMT",
+      "zh-CN": "%s %s  湿度%d%%  降水%.1f  云量%d%%  降水概率%d%%  UV%d  %dhPa 露点%d°  风向角%d°",
+      "en-US": "%s %s  humidity %d%%  precip %.1f  cloud %d%%  pop %d%%  UV%d  %dhPa dew %d°  wind dir %d°"
+    },
+    {
+      "key": "WEATHER_FEELS_HUMIDITY_FMT",
+      "zh-CN": "体感 %d°  湿度 %d%%",
+      "en-US": "Feels like %d°  humidity %d%%"
+    },
+    {
+      "key": "WEATHER_WIND_ANGLE_FMT",
+      "zh-CN": "%s %s  风向角 %d°",
+      "en-US": "%s %s  wind %d°"
+    },
+    {
+      "key": "DIGITAL_PEOPLE_NO_SD_HINT",
+      "zh-CN": "未检测到 SD 卡\n\n请将数字人资源包放入 SD 卡\nsystem/emotion/ 目录",
+      "en-US": "SD card not detected\n\nPut the avatar pack on the SD card under\nsystem/emotion/"
+    },
+    {
+      "key": "DIGITAL_PEOPLE_MISSING_RES_HINT",
+      "zh-CN": "数字人资源缺失\n\n请将资源包复制到 SD 卡\nsystem/emotion/ 目录\n\n需包含 6 个表情资源文件",
+      "en-US": "Avatar resources missing\n\nCopy the pack to SD card\nsystem/emotion/\n\nRequires 6 emotion files"
+    },
+    {
+      "key": "WEEKDAY_MONDAY",
+      "zh-CN": "星期一",
+      "en-US": "Mon"
+    },
+    {
+      "key": "WEEKDAY_TUESDAY",
+      "zh-CN": "星期二",
+      "en-US": "Tue"
+    },
+    {
+      "key": "WEEKDAY_WEDNESDAY",
+      "zh-CN": "星期三",
+      "en-US": "Wed"
+    },
+    {
+      "key": "WEEKDAY_THURSDAY",
+      "zh-CN": "星期四",
+      "en-US": "Thu"
+    },
+    {
+      "key": "WEEKDAY_FRIDAY",
+      "zh-CN": "星期五",
+      "en-US": "Fri"
+    },
+    {
+      "key": "WEEKDAY_SATURDAY",
+      "zh-CN": "星期六",
+      "en-US": "Sat"
+    },
+    {
+      "key": "WEEKDAY_SUNDAY",
+      "zh-CN": "星期日",
+      "en-US": "Sun"
+    },
+    {
+      "key": "WEEKDAY_MON_SHORT",
+      "zh-CN": "周一",
+      "en-US": "Mon"
+    },
+    {
+      "key": "WEEKDAY_TUE_SHORT",
+      "zh-CN": "周二",
+      "en-US": "Tue"
+    },
+    {
+      "key": "WEEKDAY_WED_SHORT",
+      "zh-CN": "周三",
+      "en-US": "Wed"
+    },
+    {
+      "key": "WEEKDAY_THU_SHORT",
+      "zh-CN": "周四",
+      "en-US": "Thu"
+    },
+    {
+      "key": "WEEKDAY_FRI_SHORT",
+      "zh-CN": "周五",
+      "en-US": "Fri"
+    },
+    {
+      "key": "WEEKDAY_SAT_SHORT",
+      "zh-CN": "周六",
+      "en-US": "Sat"
+    },
+    {
+      "key": "WEEKDAY_SUN_SHORT",
+      "zh-CN": "周日",
+      "en-US": "Sun"
+    }
+  ]
+}

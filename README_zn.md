@@ -1,5 +1,9 @@
 # Metalio Claw4
 
+<p align="center">
+  <img src="images/product.png" alt="Metalio Claw4" width="720"/>
+</p>
+
 **中文** | [English](README.md)
 
 **快速链接**
@@ -129,9 +133,9 @@ Metalio Claw4 的电源通断由专用**开关机芯片**管理，与主控 MCU 
 | `PWR_KEY`       | P0-5    | IN  | 读取用户按压电源键      |
 | `PWR_KEY_PULSE` | P0-4    | OUT | 向开关机芯片输出模拟按键脉冲 |
 
-固件关机时向 `PWR_KEY_PULSE` 发送脉冲序列：**高电平 100 ms / 低电平 100 ms，共 10 次**。该序列用于 UI「关机」、低电量保护、主屏 5 分钟无操作自动关机等场景。相关逻辑见 `home_screen.cc`（`PwrShutdownPulseTask`）与 `metalio-claw-4.cc`（开机电量保护）。
+固件关机时向 `PWR_KEY_PULSE` **持续**发送脉冲：**高电平 100 ms / 低电平 100 ms 循环**，直到开关机芯片断电（任务随电源切断自然结束）。用于 UI「关机」、低电量保护、主屏待机关机等场景。相关逻辑见 `home_screen.cc`（`PwrShutdownPulseTask`）与 `metalio-claw-4.cc`（开机电量保护）。
 
-设备已开机时，固件检测到 `PWR_KEY` 长按约 **1.5 秒**会弹出「重启 / 关机」对话框；选择关机后同样走上述脉冲序列。电源对话框底部亦提示：**长按电源键 5 秒可强制关机**（硬件行为）。
+设备已开机时，固件检测到 `PWR_KEY` 长按约 **1.5 秒**会弹出「重启 / 关机」对话框；选择关机后同样走上述持续脉冲。电源对话框底部亦提示：**长按电源键 5 秒可强制关机**（硬件行为）。
 
 #### NU1680 充电电流控制
 

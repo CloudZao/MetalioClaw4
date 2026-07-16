@@ -18,6 +18,8 @@ main/mmap_generate_emoji.h
 !/full-xingzhi-ai-395.bin
 !wakeword/
 !wakeword/*.bin
+!esp_claw_bin/
+!esp_claw_bin/*.bin
 mmap_generate_*.h
 .clangd
 patch_esp_ml307_http_log.py

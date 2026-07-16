@@ -1,4 +1,5 @@
 #include "digital_people_screen.h"
+#include "i18n.h"
 
 #include <cstdio>
 #include <cstring>
@@ -168,14 +169,12 @@ bool CheckEmotionResourcesReady() {
 
 const char* MissingResourceHintText() {
     if (!SdCardManager::GetInstance().IsMounted()) {
-        return "未检测到 SD 卡\n\n"
-               "请将数字人资源包放入 SD 卡\n"
-               "system/emotion/ 目录";
+        return I18n::T(
+            "未检测到 SD 卡\n\n请将数字人资源包放入 SD 卡\nsystem/emotion/ 目录");
     }
-    return "数字人资源缺失\n\n"
-           "请将资源包复制到 SD 卡\n"
-           "system/emotion/ 目录\n\n"
-           "需包含 6 个表情资源文件";
+    return I18n::T(
+        "数字人资源缺失\n\n请将资源包复制到 SD 卡\nsystem/emotion/ 目录\n\n"
+        "需包含 6 个表情资源文件");
 }
 
 lv_obj_t* BuildMissingResourceHint(lv_obj_t* parent) {
@@ -318,7 +317,7 @@ void open_activation_blocked_dialog() {
     lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t* title = lv_label_create(card);
-    lv_label_set_text(title, "设备未激活");
+    lv_label_set_text(title, I18n::T("设备未激活"));
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
@@ -327,7 +326,7 @@ void open_activation_blocked_dialog() {
     lv_obj_t* desc = lv_label_create(card);
     lv_label_set_long_mode(desc, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(desc, kCardW - 56);
-    lv_label_set_text(desc, "请先完成设备激活后再使用数字人。");
+    lv_label_set_text(desc, I18n::T("请先完成设备激活后再使用数字人。"));
     lv_obj_set_style_text_color(desc, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(desc, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_set_style_text_align(desc, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -336,7 +335,7 @@ void open_activation_blocked_dialog() {
 
     if (has_code) {
         char code_buf[64];
-        std::snprintf(code_buf, sizeof(code_buf), "验证码: %s",
+        std::snprintf(code_buf, sizeof(code_buf), I18n::T("验证码: %s"),
                       app.GetPendingActivationCode().c_str());
         lv_obj_t* code_lbl = lv_label_create(card);
         lv_label_set_text(code_lbl, code_buf);
@@ -360,7 +359,7 @@ void open_activation_blocked_dialog() {
     screen_swipe_back_ignore(back, true);
 
     lv_obj_t* back_lbl = lv_label_create(back);
-    lv_label_set_text(back_lbl, "返回");
+    lv_label_set_text(back_lbl, I18n::T("返回"));
     lv_obj_set_style_text_color(back_lbl, lv_color_hex(0xE5E7EB), LV_PART_MAIN);
     lv_obj_set_style_text_font(back_lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_center(back_lbl);
@@ -517,11 +516,9 @@ void DigitalPeopleScreen::LifecycleCallback(screen_lifecycle_event_t event) {
         } else {
             ESP_LOGI(TAG, "load: digital_people_screen");
         }
-        screen_register_pwr_key_toggle_chat();
         audio_service.EnableWakeWordDetection(true);
     } else {
         ESP_LOGI(TAG, "unload: digital_people_screen");
-        screen_unregister_pwr_key_toggle_chat();
         Application::GetInstance().ForceReturnToIdle();
         audio_service.EnableWakeWordDetection(false);
     }

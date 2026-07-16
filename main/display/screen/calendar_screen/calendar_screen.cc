@@ -1,4 +1,5 @@
 #include "calendar_screen.h"
+#include "i18n.h"
 
 #include "home_screen/home_screen.h"
 #include "screen_util.h"
@@ -66,7 +67,8 @@ constexpr uint32_t kColorTodayText     = 0x10131A;
 constexpr uint32_t kColorAccentDot     = 0xFF4A4A;
 constexpr uint32_t kColorBadgeBg       = 0x202632;
 
-const char* const kWeekdayNames[7] = {"日", "一", "二", "三", "四", "五", "六"};
+// msgid 源文案；显示时 I18n::T（勿在静态初始化调用 T）。
+constexpr const char* kWeekdayMsgIds[7] = {"日", "一", "二", "三", "四", "五", "六"};
 
 // ---- date math ------------------------------------------------------------
 
@@ -146,8 +148,8 @@ void BuildTodayBadge(lv_obj_t* parent, int month, int mday, int wday) {
     lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, LV_PART_MAIN);
 
     char buf[48];
-    snprintf(buf, sizeof(buf), "今天 %d/%d 周%s", month, mday,
-             kWeekdayNames[wday]);
+    snprintf(buf, sizeof(buf), I18n::T("今天 %d/%d 周%s"), month, mday,
+             I18n::T(kWeekdayMsgIds[wday]));
     lv_obj_t* lbl = lv_label_create(badge);
     lv_label_set_text(lbl, buf);
     lv_obj_set_style_text_font(lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -170,7 +172,7 @@ void BuildHeaderRow(lv_obj_t* content, int year, int month, int mday,
     BuildAccentBar(header);
 
     char buf[32];
-    snprintf(buf, sizeof(buf), "%d 年 %d 月", year, month);
+    snprintf(buf, sizeof(buf), I18n::T("%d 年 %d 月"), year, month);
     lv_obj_t* title = lv_label_create(header);
     lv_label_set_text(title, buf);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
@@ -201,7 +203,7 @@ void BuildWeekdayRow(lv_obj_t* content, int32_t inner_w) {
     for (int i = 0; i < kColumns; ++i) {
         const bool is_weekend = (i == 0 || i == 6);
         lv_obj_t* lbl = lv_label_create(content);
-        lv_label_set_text(lbl, kWeekdayNames[i]);
+        lv_label_set_text(lbl, I18n::T(kWeekdayMsgIds[i]));
         lv_obj_set_style_text_font(lbl, &font_puhui_20_4, LV_PART_MAIN);
         lv_obj_set_style_text_color(
             lbl,
@@ -360,7 +362,7 @@ lv_obj_t* CalendarScreen::Create() {
 
     // "右滑返回" hint along the bottom.
     lv_obj_t* hint = lv_label_create(content);
-    lv_label_set_text(hint, "右滑返回");
+    lv_label_set_text(hint, I18n::T("右滑返回"));
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_set_style_text_color(hint, lv_color_hex(kColorSubtleText),
                                 LV_PART_MAIN);

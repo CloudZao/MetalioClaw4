@@ -1,5 +1,6 @@
 #include "boot_screen.h"
 #include "lv_eaf.h"
+#include "i18n.h"
 LV_FONT_DECLARE(font_puhui_30_4);
 
 lv_obj_t* BootScreen::Create() {

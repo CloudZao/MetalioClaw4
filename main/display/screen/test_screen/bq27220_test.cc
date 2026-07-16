@@ -1,4 +1,5 @@
 #include "bq27220_test.h"
+#include "i18n.h"
 
 #include <cstdio>
 
@@ -39,12 +40,12 @@ void SetValueText(const char* msg) {
 
 const char* ChargeLabel(bool charging, bool discharging) {
     if (charging) {
-        return "充电中";
+        return I18n::T("充电中");
     }
     if (discharging) {
-        return "放电中";
+        return I18n::T("放电中");
     }
-    return "空闲";
+    return I18n::T("空闲");
 }
 
 bool EnsureGauge() {
@@ -76,7 +77,7 @@ void BuildRow(lv_obj_t* list) {
     lv_obj_t* ctrl = nullptr;
     TestUiCreateRowShell(list, "BQ27220", &s_status_icon, &ctrl);
     s_value_lbl = TestUiCreateValueLabel(ctrl);
-    lv_label_set_text(s_value_lbl, "检测中...");
+    lv_label_set_text(s_value_lbl, I18n::T("检测中..."));
 }
 
 void OnLoad() {
@@ -97,7 +98,7 @@ void Poll() {
     }
 
     if (!EnsureGauge()) {
-        SetErrorText("I2C未检测到");
+        SetErrorText(I18n::T("I2C未检测到"));
         return;
     }
 
@@ -110,7 +111,7 @@ void Poll() {
     if (!gauge.GetVoltageMv(mv) ||
         !gauge.GetBatteryLevel(level, charging, discharging)) {
         s_comm_ok = false;
-        SetErrorText("读取失败");
+        SetErrorText(I18n::T("读取失败"));
         return;
     }
 

@@ -1,5 +1,6 @@
 #include "settings_screen.h"
 
+#include <cstdint>
 #include <cstdio>
 
 #include <esp_log.h>
@@ -9,6 +10,7 @@
 #include "bluetooth_screen/bluetooth_screen.h"
 #include "board.h"
 #include "home_screen/home_screen.h"
+#include "i18n.h"
 #include "screen_util.h"
 #include "settings.h"
 
@@ -44,8 +46,10 @@ struct UiState {
     lv_obj_t* brightness_slider = nullptr;
     lv_obj_t* volume_pct_label = nullptr;
     lv_obj_t* volume_slider = nullptr;
-    lv_obj_t* standby_min_label = nullptr;
-    lv_obj_t* standby_slider = nullptr;
+    lv_obj_t* enter_standby_min_label = nullptr;
+    lv_obj_t* enter_standby_slider = nullptr;
+    lv_obj_t* shutdown_min_label = nullptr;
+    lv_obj_t* shutdown_slider = nullptr;
 };
 UiState s_ui;
 
@@ -184,7 +188,8 @@ lv_obj_t* CreateSliderRow(lv_obj_t* parent, int min_value, int max_value,
 void BuildSliderPanel(lv_obj_t* parent, const char* title, const char* hint,
                       const char* range_hint, int initial_value,
                       lv_obj_t** pct_label_out, lv_obj_t** slider_out,
-                      int slider_min, int slider_max, lv_event_cb_t slider_cb) {
+                      int slider_min, int slider_max, lv_event_cb_t slider_cb,
+                      int card_height = 180) {
     lv_obj_set_style_pad_all(parent, 24, LV_PART_MAIN);
     lv_obj_set_style_pad_row(parent, 20, LV_PART_MAIN);
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
@@ -195,7 +200,7 @@ void BuildSliderPanel(lv_obj_t* parent, const char* title, const char* hint,
     lv_obj_t* card = lv_obj_create(parent);
     screen_strip_obj_chrome(card);
     lv_obj_set_width(card, LV_PCT(100));
-    lv_obj_set_height(card, 180);
+    lv_obj_set_height(card, card_height);
     lv_obj_set_style_bg_color(card, lv_color_hex(kColorCard), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(card, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_radius(card, 24, LV_PART_MAIN);
@@ -211,14 +216,16 @@ void BuildSliderPanel(lv_obj_t* parent, const char* title, const char* hint,
     lv_obj_set_style_text_color(pct, lv_color_hex(kColorValue), LV_PART_MAIN);
     lv_obj_set_style_text_font(pct, &font_puhui_number_50_4, LV_PART_MAIN);
     lv_obj_set_style_text_align(pct, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_align(pct, LV_ALIGN_CENTER, 0, -16);
+    const int value_y = card_height <= 150 ? -10 : -16;
+    const int hint_y = card_height <= 150 ? -12 : -20;
+    lv_obj_align(pct, LV_ALIGN_CENTER, 0, value_y);
     UpdatePctLabel(pct, initial_value);
 
     lv_obj_t* card_hint = lv_label_create(card);
     lv_label_set_text(card_hint, hint);
     lv_obj_set_style_text_color(card_hint, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(card_hint, &font_puhui_20_4, LV_PART_MAIN);
-    lv_obj_align(card_hint, LV_ALIGN_BOTTOM_MID, 0, -20);
+    lv_obj_align(card_hint, LV_ALIGN_BOTTOM_MID, 0, hint_y);
 
     lv_obj_t* slider_hdr = lv_obj_create(parent);
     lv_obj_remove_style_all(slider_hdr);
@@ -247,62 +254,82 @@ void BuildBrightnessTab(lv_obj_t* tab, int initial_brightness) {
     char range_buf[24];
     std::snprintf(range_buf, sizeof(range_buf), "%d%% ~ 100%%",
                   static_cast<int>(kBacklightMinPercent));
-    BuildSliderPanel(tab, "拖动调节", "当前亮度", range_buf, initial_brightness,
-                     &s_ui.brightness_pct_label, &s_ui.brightness_slider,
+    BuildSliderPanel(tab, I18n::T("拖动调节"), I18n::T("当前亮度"), range_buf,
+                     initial_brightness, &s_ui.brightness_pct_label,
+                     &s_ui.brightness_slider,
                      static_cast<int>(kBacklightMinPercent), 100,
                      OnBrightnessSliderChanged);
 
     lv_obj_t* foot = lv_label_create(tab);
-    lv_label_set_text(foot, "亮度设置会自动保存");
+    lv_label_set_text(foot, I18n::T("亮度设置会自动保存"));
     lv_obj_set_style_text_color(foot, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(foot, &font_puhui_20_4, LV_PART_MAIN);
 }
 
-void UpdateStandbyMinLabel(lv_obj_t* label, int minutes) {
+void UpdateMinutesLabel(lv_obj_t* label, int minutes, const char* never_text) {
     if (label == nullptr) {
         return;
     }
     char buf[24];
     if (minutes <= 0) {
-        std::snprintf(buf, sizeof(buf), "永不关机");
+        std::snprintf(buf, sizeof(buf), "%s", never_text);
     } else {
-        std::snprintf(buf, sizeof(buf), "%d 分钟", minutes);
+        std::snprintf(buf, sizeof(buf), I18n::T("%d 分钟"), minutes);
     }
     lv_label_set_text(label, buf);
 }
 
-void OnStandbySliderChanged(lv_event_t* e) {
+void OnEnterStandbySliderChanged(lv_event_t* e) {
     auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(e));
     int value = static_cast<int>(lv_slider_get_value(slider));
-    UpdateStandbyMinLabel(s_ui.standby_min_label, value);
+    UpdateMinutesLabel(s_ui.enter_standby_min_label, value, I18n::T("永不进入"));
+    HomeScreen::SetIdleStandbyMinutes(value);
+}
+
+void OnShutdownSliderChanged(lv_event_t* e) {
+    auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(e));
+    int value = static_cast<int>(lv_slider_get_value(slider));
+    UpdateMinutesLabel(s_ui.shutdown_min_label, value, I18n::T("永不关机"));
     HomeScreen::SetIdleShutdownMinutes(value);
 }
 
 void BuildStandbyTab(lv_obj_t* tab) {
-    const int initial_minutes = HomeScreen::GetIdleShutdownMinutes();
-    BuildSliderPanel(tab, "拖动调节", "主屏无操作自动关机", "0 ~ 60 分钟",
-                     initial_minutes, &s_ui.standby_min_label,
-                     &s_ui.standby_slider, 0, 60, OnStandbySliderChanged);
-    UpdateStandbyMinLabel(s_ui.standby_min_label, initial_minutes);
+    const int initial_standby = HomeScreen::GetIdleStandbyMinutes();
+    const int initial_shutdown = HomeScreen::GetIdleShutdownMinutes();
+    constexpr int kStandbyCardH = 132;
 
-    lv_obj_t* desc = lv_label_create(tab);
-    lv_label_set_text(desc, "设为 0 表示关闭自动关机");
-    lv_obj_set_style_text_color(desc, lv_color_hex(kColorSubtle), LV_PART_MAIN);
-    lv_obj_set_style_text_font(desc, &font_puhui_20_4, LV_PART_MAIN);
+    BuildSliderPanel(tab, I18n::T("进入待机"), I18n::T("首页无操作后进入待机页"),
+                     I18n::T("0 ~ 60 分钟"), initial_standby,
+                     &s_ui.enter_standby_min_label, &s_ui.enter_standby_slider,
+                     0, 60, OnEnterStandbySliderChanged, kStandbyCardH);
+    UpdateMinutesLabel(s_ui.enter_standby_min_label, initial_standby,
+                       I18n::T("永不进入"));
+
+    BuildSliderPanel(tab, I18n::T("自动关机"),
+                     I18n::T("首页+待机累计无操作后关机"), I18n::T("0 ~ 60 分钟"),
+                     initial_shutdown, &s_ui.shutdown_min_label,
+                     &s_ui.shutdown_slider, 0, 60, OnShutdownSliderChanged,
+                     kStandbyCardH);
+    UpdateMinutesLabel(s_ui.shutdown_min_label, initial_shutdown,
+                       I18n::T("永不关机"));
+
+    // 待机 Tab 内容更密：略收紧行距，并加大底部留白。
+    lv_obj_set_style_pad_row(tab, 14, LV_PART_MAIN);
+    lv_obj_set_style_pad_bottom(tab, 56, LV_PART_MAIN);
 
     lv_obj_t* foot = lv_label_create(tab);
-    lv_label_set_text(foot, "待机设置会自动保存");
+    lv_label_set_text(foot, I18n::T("待机设置会自动保存"));
     lv_obj_set_style_text_color(foot, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(foot, &font_puhui_20_4, LV_PART_MAIN);
 }
 
 void BuildVolumeTab(lv_obj_t* tab, int initial_volume) {
-    BuildSliderPanel(tab, "拖动调节", "当前音量", "0% ~ 100%", initial_volume,
-                     &s_ui.volume_pct_label, &s_ui.volume_slider, 0, 100,
-                     OnVolumeSliderChanged);
+    BuildSliderPanel(tab, I18n::T("拖动调节"), I18n::T("当前音量"), "0% ~ 100%",
+                     initial_volume, &s_ui.volume_pct_label, &s_ui.volume_slider,
+                     0, 100, OnVolumeSliderChanged);
 
     lv_obj_t* foot = lv_label_create(tab);
-    lv_label_set_text(foot, "音量设置会自动保存");
+    lv_label_set_text(foot, I18n::T("音量设置会自动保存"));
     lv_obj_set_style_text_color(foot, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(foot, &font_puhui_20_4, LV_PART_MAIN);
 }
@@ -334,10 +361,102 @@ void BuildHeader(lv_obj_t* parent) {
     lv_obj_center(back_icon);
 
     lv_obj_t* title = lv_label_create(header);
-    lv_label_set_text(title, "设置");
+    lv_label_set_text(title, I18n::T("设置"));
     lv_obj_set_style_text_color(title, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 16 + kBackBtnSize + 16, 0);
+}
+
+void GoHomeAfterLocaleChange() {
+    HomeScreen::ResetToFirstPage();
+    lv_obj_t* old_scr = lv_screen_active();
+    lv_obj_t* home = HomeScreen::Create();
+    lv_screen_load(home);
+    if (old_scr != nullptr && old_scr != home) {
+        lv_obj_delete_async(old_scr);
+    }
+}
+
+void OnLanguageCardClicked(lv_event_t* e) {
+    auto locale = static_cast<I18n::Locale>(
+        reinterpret_cast<uintptr_t>(lv_event_get_user_data(e)));
+    if (!I18n::SetLocale(locale)) {
+        return;
+    }
+    ESP_LOGI(TAG, "language -> %s (rebuild home)", I18n::GetLocaleCode());
+    GoHomeAfterLocaleChange();
+}
+
+void BuildLanguageTab(lv_obj_t* tab) {
+    lv_obj_set_style_pad_all(tab, 24, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(tab, 16, LV_PART_MAIN);
+    lv_obj_set_flex_flow(tab, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(tab, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_START);
+    lv_obj_add_flag(tab, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* hint = lv_label_create(tab);
+    lv_label_set_text(hint, I18n::T("选择界面显示语言"));
+    lv_obj_set_style_text_color(hint, lv_color_hex(kColorSubtle), LV_PART_MAIN);
+    lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
+
+    const I18n::Locale current = I18n::GetLocale();
+    for (size_t i = 0; i < I18n::GetLocaleCount(); ++i) {
+        const I18n::LocaleInfo* info =
+            I18n::GetLocaleInfo(static_cast<I18n::Locale>(i));
+        if (info == nullptr) {
+            continue;
+        }
+
+        lv_obj_t* card = lv_obj_create(tab);
+        screen_strip_obj_chrome(card);
+        lv_obj_set_width(card, LV_PCT(100));
+        lv_obj_set_height(card, 88);
+        lv_obj_set_style_bg_color(card, lv_color_hex(kColorCard), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(card, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_radius(card, 20, LV_PART_MAIN);
+        lv_obj_set_style_border_width(card, 2, LV_PART_MAIN);
+        const bool selected = (info->id == current);
+        lv_obj_set_style_border_color(
+            card, lv_color_hex(selected ? kColorAccent : kColorCard),
+            LV_PART_MAIN);
+        lv_obj_set_style_border_opa(card, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(card, OnLanguageCardClicked, LV_EVENT_CLICKED,
+                            reinterpret_cast<void*>(static_cast<uintptr_t>(
+                                static_cast<unsigned>(info->id))));
+        screen_swipe_back_ignore(card, true);
+
+        lv_obj_t* name = lv_label_create(card);
+        // Native name stays in its own script (简体中文 / English).
+        lv_label_set_text(name, info->native_name);
+        lv_obj_set_style_text_color(name, lv_color_hex(kColorText),
+                                    LV_PART_MAIN);
+        lv_obj_set_style_text_font(name, &font_puhui_30_4, LV_PART_MAIN);
+        lv_obj_align(name, LV_ALIGN_LEFT_MID, 20, -10);
+
+        lv_obj_t* code = lv_label_create(card);
+        lv_label_set_text(code, info->english_name);
+        lv_obj_set_style_text_color(code, lv_color_hex(kColorSubtle),
+                                    LV_PART_MAIN);
+        lv_obj_set_style_text_font(code, &font_puhui_20_4, LV_PART_MAIN);
+        lv_obj_align(code, LV_ALIGN_LEFT_MID, 20, 18);
+
+        if (selected) {
+            lv_obj_t* mark = lv_label_create(card);
+            lv_label_set_text(mark, I18n::T("当前语言"));
+            lv_obj_set_style_text_color(mark, lv_color_hex(kColorValue),
+                                        LV_PART_MAIN);
+            lv_obj_set_style_text_font(mark, &font_puhui_20_4, LV_PART_MAIN);
+            lv_obj_align(mark, LV_ALIGN_RIGHT_MID, -20, 0);
+        }
+    }
+
+    lv_obj_t* foot = lv_label_create(tab);
+    lv_label_set_text(foot, I18n::T("切换后立即生效并返回主页"));
+    lv_obj_set_style_text_color(foot, lv_color_hex(kColorSubtle), LV_PART_MAIN);
+    lv_obj_set_style_text_font(foot, &font_puhui_20_4, LV_PART_MAIN);
 }
 
 void FixTabBarItemHeights(lv_obj_t* tabview) {
@@ -400,16 +519,19 @@ void BuildTabView(lv_obj_t* parent) {
     lv_obj_t* content = lv_tabview_get_content(tv);
     screen_swipe_back_ignore(content, true);
 
-    lv_obj_t* tab_brightness = lv_tabview_add_tab(tv, "亮度");
+    lv_obj_t* tab_brightness = lv_tabview_add_tab(tv, I18n::T("亮度"));
     BuildBrightnessTab(tab_brightness, initial_brightness);
 
-    lv_obj_t* tab_standby = lv_tabview_add_tab(tv, "待机");
+    lv_obj_t* tab_standby = lv_tabview_add_tab(tv, I18n::T("待机"));
     BuildStandbyTab(tab_standby);
 
-    lv_obj_t* tab_volume = lv_tabview_add_tab(tv, "音量");
+    lv_obj_t* tab_volume = lv_tabview_add_tab(tv, I18n::T("音量"));
     BuildVolumeTab(tab_volume, initial_volume);
 
-    lv_obj_t* tab_bluetooth = lv_tabview_add_tab(tv, "蓝牙");
+    lv_obj_t* tab_language = lv_tabview_add_tab(tv, I18n::T("语言"));
+    BuildLanguageTab(tab_language);
+
+    lv_obj_t* tab_bluetooth = lv_tabview_add_tab(tv, I18n::T("蓝牙"));
     BuildBluetoothTab(tab_bluetooth);
 
     FixTabBarItemHeights(tv);
@@ -438,8 +560,10 @@ void OnScreenUnloaded(lv_event_t* /*e*/) {
     s_ui.brightness_slider = nullptr;
     s_ui.volume_pct_label = nullptr;
     s_ui.volume_slider = nullptr;
-    s_ui.standby_min_label = nullptr;
-    s_ui.standby_slider = nullptr;
+    s_ui.enter_standby_min_label = nullptr;
+    s_ui.enter_standby_slider = nullptr;
+    s_ui.shutdown_min_label = nullptr;
+    s_ui.shutdown_slider = nullptr;
 }
 
 }  // namespace

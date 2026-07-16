@@ -4,12 +4,7 @@
 
 #include "esp_log.h"
 
-#include "IOExpander.hpp"
-#include "application.h"
-
 namespace {
-
-constexpr const char* kScreenUtilTag = "ScreenUtil";
 
 // 720x720 panel -> use a slightly larger threshold than the 480p source.
 constexpr int16_t kSwipeBackThreshold = 80;
@@ -245,19 +240,4 @@ void screen_attach_lifecycle(lv_obj_t* scr, screen_lifecycle_cb_t cb) {
                         user_data);
     lv_obj_add_event_cb(scr, lifecycle_unloaded_cb, LV_EVENT_SCREEN_UNLOADED,
                         user_data);
-}
-
-void screen_register_pwr_key_toggle_chat() {
-    const esp_err_t err = IOExpander::getInstance().onClick(
-        IOExpander::Pin::PWR_KEY, []() {
-            Application::GetInstance().ToggleChatState();
-        });
-    if (err != ESP_OK) {
-        ESP_LOGW(kScreenUtilTag, "PWR_KEY toggle register failed: 0x%x",
-                 static_cast<unsigned>(err));
-    }
-}
-
-void screen_unregister_pwr_key_toggle_chat() {
-    IOExpander::getInstance().offClick(IOExpander::Pin::PWR_KEY);
 }

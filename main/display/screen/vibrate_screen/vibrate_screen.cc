@@ -1,4 +1,5 @@
 #include "vibrate_screen.h"
+#include "i18n.h"
 
 #include <cstdio>
 #include <cstring>
@@ -57,6 +58,7 @@ struct PresetEntry {
     Mode        target_mode;
 };
 
+// label = zh-CN msgid；按钮文字用 I18n::T(label)。
 constexpr PresetEntry kPresets[] = {
     { "关闭", 0,   Mode::kManual    },
     { "弱",   30,  Mode::kManual    },
@@ -201,9 +203,9 @@ void shutdown_pwm() {
 // ---------------------------------------------------------------------------
 const char* mode_name(Mode m) {
     switch (m) {
-    case Mode::kManual:    return s_slider_pct == 0 ? "关闭" : "恒定";
-    case Mode::kPulse:     return "脉冲";
-    case Mode::kHeartbeat: return "心跳";
+    case Mode::kManual:    return s_slider_pct == 0 ? I18n::T("关闭") : I18n::T("恒定");
+    case Mode::kPulse:     return I18n::T("脉冲");
+    case Mode::kHeartbeat: return I18n::T("心跳");
     }
     return "?";
 }
@@ -363,7 +365,7 @@ lv_obj_t* VibrateScreen::Create() {
     lv_obj_center(back_icon);
 
     lv_obj_t* title = lv_label_create(header);
-    lv_label_set_text(title, "震动");
+    lv_label_set_text(title, I18n::T("震动"));
     lv_obj_set_style_text_color(title, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 16 + kBackBtnSize + 16, 0);
@@ -391,7 +393,7 @@ lv_obj_t* VibrateScreen::Create() {
 
     lv_obj_t* mode_lbl = lv_label_create(card);
     s_ui.mode_label = mode_lbl;
-    lv_label_set_text(mode_lbl, "关闭");
+    lv_label_set_text(mode_lbl, I18n::T("关闭"));
     lv_obj_set_style_text_color(mode_lbl, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(mode_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(mode_lbl, LV_ALIGN_BOTTOM_MID, 0, -20);
@@ -414,7 +416,7 @@ lv_obj_t* VibrateScreen::Create() {
                         LV_EVENT_VALUE_CHANGED, nullptr);
 
     lv_obj_t* hint = lv_label_create(scr);
-    lv_label_set_text(hint, "拖动滑条调整振幅");
+    lv_label_set_text(hint, I18n::T("拖动滑条调整振幅"));
     lv_obj_set_style_text_color(hint, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align(hint, LV_ALIGN_TOP_MID, 0, kSliderY + 50);
@@ -444,7 +446,7 @@ lv_obj_t* VibrateScreen::Create() {
                             reinterpret_cast<void*>(static_cast<intptr_t>(i)));
 
         lv_obj_t* lbl = lv_label_create(btn);
-        lv_label_set_text(lbl, kPresets[i].label);
+        lv_label_set_text(lbl, I18n::T(kPresets[i].label));
         lv_obj_set_style_text_color(lbl, lv_color_white(), LV_PART_MAIN);
         lv_obj_set_style_text_font(lbl, &font_puhui_30_4, LV_PART_MAIN);
         lv_obj_center(lbl);

@@ -1,4 +1,5 @@
 #include "call_screen.h"
+#include "i18n.h"
 
 #include "home_screen/home_screen.h"
 #include "screen_util.h"
@@ -198,7 +199,7 @@ void RefreshActionButton() {
 void RefreshStatus() {
     if (s_call_state == CallState::kCalling) {
         if (s_number[0] != '\0') {
-            lv_label_set_text(s_status_lbl, "拨号中...");
+            lv_label_set_text(s_status_lbl, I18n::T("拨号中..."));
         } else {
             lv_label_set_text(s_status_lbl, "");
         }
@@ -297,21 +298,21 @@ void OnAtResult(void* user_data) {
         switch (res->outcome) {
             case AtOutcome::kDialOk:
                 // ATD 已经收到 OK，正在通话中。
-                SetStatusText("通话中");
+                SetStatusText(I18n::T("通话中"));
                 break;
             case AtOutcome::kSimNotReady:
                 s_call_state = CallState::kIdle;
                 ++s_call_epoch;
                 RefreshActionButton();
                 RefreshNumberDisplay();
-                SetStatusText("请检查移动网络");
+                SetStatusText(I18n::T("请检查移动网络"));
                 break;
             case AtOutcome::kNo4G:
                 s_call_state = CallState::kIdle;
                 ++s_call_epoch;
                 RefreshActionButton();
                 RefreshNumberDisplay();
-                SetStatusText("无 4G 模块");
+                SetStatusText(I18n::T("无 4G 模块"));
                 break;
             case AtOutcome::kDialFailed:
             default:
@@ -319,7 +320,7 @@ void OnAtResult(void* user_data) {
                 ++s_call_epoch;
                 RefreshActionButton();
                 RefreshNumberDisplay();
-                SetStatusText("拨号失败");
+                SetStatusText(I18n::T("拨号失败"));
                 break;
         }
     } else {
@@ -391,7 +392,7 @@ void DispatchDial(const std::string& number) {
     if (r != pdPASS) {
         ESP_LOGE(TAG, "xTaskCreate(call_at dial) failed");
         delete job;
-        SetStatusText("系统忙");
+        SetStatusText(I18n::T("系统忙"));
     }
 }
 
@@ -432,7 +433,7 @@ void StartCall() {
     // 内置卡（数据卡）不能拨号。保持 idle 状态，只在状态栏给出指引，
     // 让用户去 网络配置 → SIM 卡切换 把卡换成外置卡再拨。
     if (IsInternalSimActive()) {
-        SetStatusText("内置卡无法拨打电话，请切换到外置卡");
+        SetStatusText(I18n::T("内置卡无法拨打电话，请切换到外置卡"));
         return;
     }
 
@@ -441,7 +442,7 @@ void StartCall() {
     RefreshActionButton();
     RefreshNumberDisplay();
     // 拨号前要先体检 SIM，UI 上先告诉用户在做什么，避免好像“按下没反应”。
-    SetStatusText("正在检查网络...");
+    SetStatusText(I18n::T("正在检查网络..."));
 
     DispatchDial(s_number);
 }
@@ -552,7 +553,7 @@ void BuildHeader(lv_obj_t* parent) {
 
     // 标题放在按钮右侧，与按钮垂直居中对齐。
     lv_obj_t* title = lv_label_create(parent);
-    lv_label_set_text(title, "电话");
+    lv_label_set_text(title, I18n::T("电话"));
     lv_obj_set_style_text_color(title, lv_color_hex(kColorTextPrimary),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);

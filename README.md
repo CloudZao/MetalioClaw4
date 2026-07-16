@@ -1,5 +1,9 @@
 # Metalio Claw4
 
+<p align="center">
+  <img src="images/product_en.png" alt="Metalio Claw4" width="720"/>
+</p>
+
 **English** | [中文](README_zn.md)
 
 **Quick Links**
@@ -129,9 +133,9 @@ Power on/off is handled by a dedicated **power management IC**, independent of t
 | `PWR_KEY`       | P0‑5    | IN        | Reads user power‑key press              |
 | `PWR_KEY_PULSE` | P0‑4    | OUT       | Sends simulated press pulse to power IC |
 
-During firmware shutdown, a pulse sequence is sent to `PWR_KEY_PULSE`: **high 100 ms / low 100 ms, repeated 10 times**. This sequence is used for UI “shutdown”, low‑voltage protection, and the home‑screen 5‑minute auto‑power‑off. Logic resides in `home_screen.cc` (`PwrShutdownPulseTask`) and `metalio-claw-4.cc` (boot‑time low‑voltage protection).
+During firmware shutdown, pulses are sent to `PWR_KEY_PULSE` **continuously**: **high 100 ms / low 100 ms in a loop**, until the power IC cuts power (the task ends with the power loss). Used for UI “shutdown”, low‑voltage protection, and home‑screen idle auto‑power‑off. Logic resides in `home_screen.cc` (`PwrShutdownPulseTask`) and `metalio-claw-4.cc` (boot‑time low‑voltage protection).
 
-When the device is already on, detecting a long press of `PWR_KEY` for ≈ 1.5 s triggers a “Restart / Shutdown” dialog; choosing shutdown follows the same pulse sequence. The dialog footer reminds: **Long‑press power key 5 s for forced shutdown** (hardware behavior).
+When the device is already on, detecting a long press of `PWR_KEY` for ≈ 1.5 s triggers a “Restart / Shutdown” dialog; choosing shutdown follows the same continuous pulse. The dialog footer reminds: **Long‑press power key 5 s for forced shutdown** (hardware behavior).
 
 #### NU1680 Charging Current Control
 

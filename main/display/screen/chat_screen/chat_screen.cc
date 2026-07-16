@@ -1,4 +1,5 @@
 #include "chat_screen.h"
+#include "i18n.h"
 
 #include <cstdio>
 #include <cstring>
@@ -151,7 +152,7 @@ void chat_update_device_state_label() {
         return;
     }
 
-    lv_label_set_text(s_status_state_lbl, text);
+    lv_label_set_text(s_status_state_lbl, I18n::T(text));
     lv_obj_set_style_text_color(s_status_state_lbl, lv_color_hex(color),
                                 LV_PART_MAIN);
     lv_obj_remove_flag(s_status_state_lbl, LV_OBJ_FLAG_HIDDEN);
@@ -322,7 +323,7 @@ void open_activation_blocked_dialog() {
     lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t* title = lv_label_create(card);
-    lv_label_set_text(title, "设备未激活");
+    lv_label_set_text(title, I18n::T("设备未激活"));
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
@@ -331,7 +332,7 @@ void open_activation_blocked_dialog() {
     lv_obj_t* desc = lv_label_create(card);
     lv_label_set_long_mode(desc, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(desc, kCardW - 56);
-    lv_label_set_text(desc, "请先完成设备激活后再使用聊天。");
+    lv_label_set_text(desc, I18n::T("请先完成设备激活后再使用聊天。"));
     lv_obj_set_style_text_color(desc, lv_color_hex(0x9AA3B2), LV_PART_MAIN);
     lv_obj_set_style_text_font(desc, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_set_style_text_align(desc, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -340,7 +341,7 @@ void open_activation_blocked_dialog() {
 
     if (has_code) {
         char code_buf[64];
-        std::snprintf(code_buf, sizeof(code_buf), "验证码: %s",
+        std::snprintf(code_buf, sizeof(code_buf), I18n::T("验证码: %s"),
                       app.GetPendingActivationCode().c_str());
         lv_obj_t* code_lbl = lv_label_create(card);
         lv_label_set_text(code_lbl, code_buf);
@@ -364,7 +365,7 @@ void open_activation_blocked_dialog() {
     screen_swipe_back_ignore(back, true);
 
     lv_obj_t* back_lbl = lv_label_create(back);
-    lv_label_set_text(back_lbl, "返回");
+    lv_label_set_text(back_lbl, I18n::T("返回"));
     lv_obj_set_style_text_color(back_lbl, lv_color_hex(0xE5E7EB), LV_PART_MAIN);
     lv_obj_set_style_text_font(back_lbl, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_center(back_lbl);
@@ -600,13 +601,13 @@ void build_header(lv_obj_t* parent) {
     lv_obj_center(back_icon);
 
     lv_obj_t* title = lv_label_create(header);
-    lv_label_set_text(title, "聊天");
+    lv_label_set_text(title, I18n::T("聊天"));
     lv_obj_set_style_text_color(title, lv_color_hex(kColorHeaderText), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_LEFT_MID, 16 + kBackBtnSize + 12, 0);
 
     s_status_state_lbl = lv_label_create(header);
-    lv_label_set_text(s_status_state_lbl, "待唤醒");
+    lv_label_set_text(s_status_state_lbl, I18n::T("待唤醒"));
     lv_obj_set_style_text_font(s_status_state_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_set_style_text_color(s_status_state_lbl, lv_color_hex(kColorStateIdle),
                                 LV_PART_MAIN);
@@ -623,7 +624,7 @@ void build_header(lv_obj_t* parent) {
     style_header_btn(clear);
     lv_obj_add_event_cb(clear, on_clear_clicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* clear_lbl = lv_label_create(clear);
-    lv_label_set_text(clear_lbl, "清空");
+    lv_label_set_text(clear_lbl, I18n::T("清空"));
     lv_obj_set_style_text_color(clear_lbl, lv_color_hex(kColorHeaderBtnText),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_font(clear_lbl, &font_puhui_20_4, LV_PART_MAIN);
@@ -643,7 +644,7 @@ void build_header(lv_obj_t* parent) {
     lv_obj_set_style_pad_column(vol_wrap, 8, LV_PART_MAIN);
     screen_swipe_back_ignore(vol_wrap, true);
 
-    create_volume_btn(vol_wrap, "音量-", on_volume_down_clicked);
+    create_volume_btn(vol_wrap, I18n::T("音量-"), on_volume_down_clicked);
 
     s_volume_value_lbl = lv_label_create(vol_wrap);
     lv_obj_set_width(s_volume_value_lbl, kVolumeValueW);
@@ -656,7 +657,7 @@ void build_header(lv_obj_t* parent) {
     chat_update_volume_value_label(initial_volume);
     screen_make_input_passive(s_volume_value_lbl);
 
-    create_volume_btn(vol_wrap, "音量+", on_volume_up_clicked);
+    create_volume_btn(vol_wrap, I18n::T("音量+"), on_volume_up_clicked);
 }
 
 void build_message_list(lv_obj_t* parent) {
@@ -680,7 +681,7 @@ void build_message_list(lv_obj_t* parent) {
     // screen_make_input_passive 不能用在列表自身上（否则滚不动）。
 
     s_empty_hint = lv_label_create(parent);
-    lv_label_set_text(s_empty_hint, kEmptyHint);
+    lv_label_set_text(s_empty_hint, I18n::T(kEmptyHint));
     lv_obj_set_width(s_empty_hint, kPanelW * 80 / 100);
     lv_label_set_long_mode(s_empty_hint, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(s_empty_hint, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -746,12 +747,10 @@ void ChatScreen::LifecycleCallback(screen_lifecycle_event_t event) {
         } else {
             ESP_LOGI(TAG, "load: chat_screen");
         }
-        screen_register_pwr_key_toggle_chat();
         audio_service.EnableWakeWordDetection(true);
         RefreshDeviceState();
     } else {
         ESP_LOGI(TAG, "unload: chat_screen");
-        screen_unregister_pwr_key_toggle_chat();
         Application::GetInstance().ForceReturnToIdle();
         audio_service.EnableWakeWordDetection(false);
     }

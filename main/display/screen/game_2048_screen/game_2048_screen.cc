@@ -1,4 +1,5 @@
 #include "game_2048_screen.h"
+#include "i18n.h"
 
 #include "home_screen/home_screen.h"
 
@@ -288,9 +289,9 @@ void hide_overlay() {
 void refresh_after_move() {
     update_tiles_ui();
     if (s_game_over) {
-        show_overlay("游戏结束!\n点击继续");
+        show_overlay(I18n::T("游戏结束!\n点击继续"));
     } else if (s_won && !s_win_dismissed) {
-        show_overlay("你赢了 2048!\n继续玩或点这里");
+        show_overlay(I18n::T("你赢了 2048!\n继续玩或点这里"));
     }
 }
 
@@ -417,9 +418,9 @@ void build_header(lv_obj_t* parent) {
     const int box_w = 120;
     const int box_h = 64;
     const int box_y = HEADER_Y + 8;
-    make_score_box(parent, "分数", &s_score_val,
+    make_score_box(parent, I18n::T("分数"), &s_score_val,
                    SCR_W - MARGIN_X - box_w * 2 - 10, box_y, box_w, box_h);
-    make_score_box(parent, "最高", &s_best_val,
+    make_score_box(parent, I18n::T("最高"), &s_best_val,
                    SCR_W - MARGIN_X - box_w, box_y, box_w, box_h);
 
     // "新游戏" button on the left.
@@ -431,7 +432,7 @@ void build_header(lv_obj_t* parent) {
     lv_obj_set_style_pad_all(new_btn, 4, LV_PART_MAIN);
     lv_obj_add_event_cb(new_btn, new_game_btn_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_t* nbt = lv_label_create(new_btn);
-    lv_label_set_text(nbt, "新游戏");
+    lv_label_set_text(nbt, I18n::T("新游戏"));
     lv_obj_set_style_text_color(nbt, lv_color_hex(0xf9f6f2), LV_PART_MAIN);
     lv_obj_center(nbt);
 
@@ -444,7 +445,7 @@ void build_header(lv_obj_t* parent) {
     lv_obj_set_style_pad_all(back_btn, 4, LV_PART_MAIN);
     lv_obj_add_event_cb(back_btn, back_btn_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_t* bbt = lv_label_create(back_btn);
-    lv_label_set_text(bbt, "返回");
+    lv_label_set_text(bbt, I18n::T("返回"));
     lv_obj_set_style_text_color(bbt, lv_color_hex(0xf9f6f2), LV_PART_MAIN);
     lv_obj_center(bbt);
 }
@@ -487,7 +488,7 @@ void build_board(lv_obj_t* parent) {
 
 void build_footer(lv_obj_t* parent) {
     lv_obj_t* hint = lv_label_create(parent);
-    lv_label_set_text(hint, "在棋盘上滑动：上下左右移动方块");
+    lv_label_set_text(hint, I18n::T("在棋盘上滑动：上下左右移动方块"));
     lv_obj_set_style_text_color(hint, lv_color_hex(0x776e65), LV_PART_MAIN);
     lv_obj_set_width(hint, SCR_W - 2 * MARGIN_X);
     lv_obj_set_pos(hint, MARGIN_X, FOOTER_Y);

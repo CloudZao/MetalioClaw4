@@ -62,4 +62,8 @@
 #define SDMMC_D3_PIN   GPIO_NUM_42
 #define SDMMC_LDO_CHAN_ID     4    // On-chip LDO channel for SDMMC PHY power
 
+// USB OTG FS PHY0（与 USB Serial/JTAG 共用）：启用虚拟 U 盘时切到 OTG MSC
+#define USB_OTG_DM_PIN  GPIO_NUM_24
+#define USB_OTG_DP_PIN  GPIO_NUM_25
+
 #endif // _BOARD_CONFIG_H_

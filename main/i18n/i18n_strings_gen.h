@@ -591,10 +591,25 @@ enum class Str : uint16_t {
     WEEKDAY_THU_SHORT = 572,
     WEEKDAY_FRI_SHORT = 573,
     WEEKDAY_SAT_SHORT = 574,
-    WEEKDAY_SUN_SHORT = 575
+    WEEKDAY_SUN_SHORT = 575,
+    USB_VD_ENABLE = 576,
+    USB_VD_DISABLE = 577,
+    USB_VD_HINT_IDLE = 578,
+    USB_VD_HINT_SWITCHING = 579,
+    USB_VD_HINT_ENABLING = 580,
+    USB_VD_HINT_DISABLING = 581,
+    USB_VD_HINT_ENABLED_HOST = 582,
+    USB_VD_HINT_ENABLED_LOCAL = 583,
+    USB_VD_HINT_DISABLED = 584,
+    USB_VD_HINT_ENABLE_FAILED = 585,
+    USB_VD_HINT_DISABLE_FAILED = 586,
+    USB_VD_HINT_FORMAT = 587,
+    USB_VD_HINT_HOST_BUSY = 588,
+    USB_VD_HINT_UNSUPPORTED = 589,
+    USB_VD_FILES_LOCKED = 590
 };
 
-constexpr size_t kStringCount = 576;
+constexpr size_t kStringCount = 591;
 
 struct LocaleInfo {
     Locale id;
@@ -1186,6 +1201,21 @@ inline constexpr const char* kMsgIds[kStringCount] = {
     "周五",
     "周六",
     "周日",
+    "启用虚拟 U 盘",
+    "停用虚拟 U 盘",
+    "启用后电脑可将本机识别为 U 盘",
+    "正在切换，请稍候…",
+    "正在启用虚拟 U 盘…",
+    "正在停用虚拟 U 盘…",
+    "虚拟 U 盘已启用，请在电脑上访问；停用前请先弹出",
+    "虚拟 U 盘已启用，主机未占用 SD，可浏览；点停用恢复串口",
+    "可浏览 SD 卡；启用虚拟 U 盘后占用 USB，停用后恢复串口",
+    "启用失败，请检查 USB 线并重试",
+    "停用失败，请先在电脑上弹出 U 盘",
+    "SD 卡需要格式化 (FAT32)",
+    "操作失败，请先在电脑上弹出 U 盘",
+    "当前设备不支持虚拟 U 盘",
+    "SD 正被电脑占用，停用或弹出后可浏览",
 };
 
 inline constexpr const char* kStringsZhCN[kStringCount] = {
@@ -1765,6 +1795,21 @@ inline constexpr const char* kStringsZhCN[kStringCount] = {
     "周五",
     "周六",
     "周日",
+    "启用虚拟 U 盘",
+    "停用虚拟 U 盘",
+    "启用后电脑可将本机识别为 U 盘",
+    "正在切换，请稍候…",
+    "正在启用虚拟 U 盘…",
+    "正在停用虚拟 U 盘…",
+    "虚拟 U 盘已启用，请在电脑上访问；停用前请先弹出",
+    "虚拟 U 盘已启用，主机未占用 SD，可浏览；点停用恢复串口",
+    "可浏览 SD 卡；启用虚拟 U 盘后占用 USB，停用后恢复串口",
+    "启用失败，请检查 USB 线并重试",
+    "停用失败，请先在电脑上弹出 U 盘",
+    "SD 卡需要格式化 (FAT32)",
+    "操作失败，请先在电脑上弹出 U 盘",
+    "当前设备不支持虚拟 U 盘",
+    "SD 正被电脑占用，停用或弹出后可浏览",
 };
 
 inline constexpr const char* kStringsEnUS[kStringCount] = {
@@ -2206,7 +2251,7 @@ inline constexpr const char* kStringsEnUS[kStringCount] = {
     "Standby settings are saved automatically",
     "Opencamera",
     "Hold the button below to talk",
-    "SD card not detected",
+    "No SD card detected",
     "Loading map...",
     "Reset ...",
     "Recording… release to finish",
@@ -2344,6 +2389,21 @@ inline constexpr const char* kStringsEnUS[kStringCount] = {
     "Fri",
     "Sat",
     "Sun",
+    "Enable virtual USB drive",
+    "Disable virtual USB drive",
+    "Enable so the PC can use this device as a USB drive",
+    "Switching, please wait…",
+    "Enabling virtual USB drive…",
+    "Disabling virtual USB drive…",
+    "Virtual USB drive enabled; eject on PC before disabling",
+    "Virtual USB drive on; SD free for browsing; disable to restore serial",
+    "Browse SD here; enabling USB drive uses the USB port",
+    "Enable failed; check the USB cable and retry",
+    "Disable failed; eject the drive on the PC first",
+    "SD card needs formatting (FAT32)",
+    "Failed; eject the USB drive on the PC first",
+    "Virtual USB drive is not supported on this device",
+    "SD is in use by the PC; eject or disable to browse",
 };
 
 inline constexpr const char* const* kLocaleTables[kLocaleCount] = {

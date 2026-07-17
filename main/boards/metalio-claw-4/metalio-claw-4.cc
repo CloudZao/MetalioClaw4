@@ -46,6 +46,7 @@
 // #include "power_save_timer.h"
 
 #include "SdCardManager.hpp"
+#include "usb_virtual_disk.h"
 #include "bq27220_gauge.h"
 #include "bt_audio_codec.h"
 #include "display/screen/bluetooth_screen/bluetooth_screen.h"
@@ -234,6 +235,8 @@ private:
         if (!SdCardManager::GetInstance().Mount()) {
             ESP_LOGW(TAG, "SD card not mounted at boot (card may be absent)");
         }
+        // 虚拟 U 盘 worker：默认保持 USB Serial/JTAG，启用时再切 MSC。
+        UsbVirtualDisk::GetInstance().Init();
     }
 
     // ---------- NV3051F (TRULY HE396-040T2BZZ, 36MHz DPI, RGB888) ----------

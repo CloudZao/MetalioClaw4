@@ -146,34 +146,32 @@ jobs:
         id: artifact
         shell: bash
         run: |
-          if [[ ! -f full-xingzhi-ai-395.bin ]]; then
-            echo "full-xingzhi-ai-395.bin not found in repository" >&2
+          if [[ ! -f Metalio_Claw4_Latest.bin ]]; then
+            echo "Metalio_Claw4_Latest.bin not found in repository" >&2
             exit 1
           fi
           TIMESTAMP="$(TZ=Asia/Shanghai date +%Y%m%d_%H%M)"
           ARTIFACT="Metalio_Claw4_Latest_${TIMESTAMP}.bin"
-          cp full-xingzhi-ai-395.bin "$ARTIFACT"
+          cp Metalio_Claw4_Latest.bin "$ARTIFACT"
           echo "path=$ARTIFACT" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare release notes from merge commit
+      - name: Prepare release notes from PR
         id: notes
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          SUBJECT="$(git log -1 --pretty=%s)"
-          BODY="$(git log -1 --pretty=%b)"
-          TITLE="$SUBJECT"
+          TITLE=""
+          BODY=""
 
-          # merge commit：标题用 PR title，描述优先用合并对话框填写的 commit body
-          if [[ "$SUBJECT" == Merge\ pull\ request* ]]; then
-            PR_JSON="$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq '.[0] // empty' 2>/dev/null || true)"
-            if [[ -n "$PR_JSON" && "$PR_JSON" != "null" ]]; then
-              TITLE="$(echo "$PR_JSON" | jq -r '.title')"
-              if [[ -z "$BODY" ]]; then
-                BODY="$(echo "$PR_JSON" | jq -r '.body // ""')"
-              fi
-            fi
+          PR_JSON="$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq '.[0] // empty' 2>/dev/null || true)"
+          if [[ -n "$PR_JSON" && "$PR_JSON" != "null" ]]; then
+            TITLE="$(echo "$PR_JSON" | jq -r '.title // ""')"
+            BODY="$(echo "$PR_JSON" | jq -r '.body // ""')"
+          fi
+
+          if [[ -z "$TITLE" ]]; then
+            TITLE="Latest"
           fi
 
           {

@@ -1,7 +1,7 @@
 # Metalio Claw4
 
 <p align="center">
-  <img src="images/product_en.png" alt="Metalio Claw4" width="720"/>
+  <img src="images/product_en.jpg" alt="Metalio Claw4" width="720"/>
 </p>
 
 **English** | [中文](README_zn.md)
@@ -31,6 +31,8 @@
 13. [Development Environment](#13-development-environment)
 14. [Compilation and Flashing](#14-compilation-and-flashing)
 15. [Debugging and Common Issues](#15-debugging-and-common-issues)
+
+> Recent additions: **runtime UI i18n**, **standby screen**, **Settings / Test**, **ESPClaw dual-boot**, **SD virtual USB drive**, and related sections below.
 
 ---
 
@@ -78,6 +80,7 @@ API details and device‑side capabilities are described in [§10 OpenClaw](#10-
 - **Wi‑Fi**: ESP32‑C5 coprocessor connected via SDIO, supporting **2.4 GHz** and **5 GHz** dual‑band Wi‑Fi  
 - **4G LTE**: NT26 cellular module, factory‑installed **4G SIM‑patch**; supports **internal card / external card** dual‑slot (see below)  
 - **Bluetooth Audio**: Professional Bluetooth audio codec hardware handling voice codec, Bluetooth speaker, and Bluetooth headset connections (see [§12.1](#121-bluetooth-audio-and-three-modes))
+- **Virtual USB drive**: From the **SD Card** app, expose microSD as USB MSC to a PC (shares GPIO24/25 with USB Serial/JTAG — **mutually exclusive**; see [§14.6](#146-sd-card-resources--virtual-usb-drive))
 
 #### 4G and SIM Card
 
@@ -113,7 +116,10 @@ Metalio Claw4 replaces the ES8311 + ES7210 discrete solution with a **profes
 - **Wireless Charging**: NU1680 receiver chip (I2C 0x60), supports Qi wireless charging; charging current configurable via register [`NU1680 charging current control`](#nu1680-charging-current-control)  
 - **USB Charging Detection**: IO extender USB_INSERT_DET pin  
 - **Low‑Voltage Protection**: Device powers off automatically when booting at 0 % and not charging  
-- **Home‑Screen Auto‑Shutdown**: If the home screen remains untouched (no touch or swipe) for **5 minutes**, the device powers off; entering any other app stops the timer, any touch resets it  
+- **Standby & shutdown (configurable)**: While on the **home screen**, idle policy is controlled by **Settings → Standby** (`idle_power_policy`):
+  - **Enter standby**: Default ~**1 minute** idle → `standby_screen` (large clock; charging shows blue particle effect ~10 s)
+  - **Cumulative shutdown**: Default ~**5 minutes** idle (home + standby) → software power‑off; either slider set to **0** disables that action
+  - Entering another app stops the idle timer; any touch resets it. Side‑key short‑press enters standby only when **home is in foreground**
 - **Power‑Management IC**: Hardware long‑press ≈ 1 s to power on, ≈ 5 s to force‑off; firmware can trigger a software power‑off via a pulse on the IO extender (see [Power‑IC & Power Key](#power-ic-and-power-key))
 
 #### Power‑IC and Power Key
@@ -173,42 +179,42 @@ Metalio Claw4 ships with 20+ built‑in apps. Developers can **mix, trim, or sec
 
 ## 4. System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        User Interaction Layer                     │
-│   720×720 LVGL 9 Touch UI  ·  Voice Wake‑up  ·  Power Key (PWR_KEY)│
-├─────────────────────────────────────────────────────────────────┤
-│                        Application Layer                         │
-│  Chat │ OpenClaw │ Camera │ GPS │ Weather │ Music │ Digital Human│ ...│
-├─────────────────────────────────────────────────────────────────┤
-│                        Service Layer                             │
-│  AudioService │ GpsService │ SdCardManager │ MCP Server          │
-├─────────────────────────────────────────────────────────────────┤
-│                        Protocol Layer                            │
-│  WebSocket Protocol │ MQTT+UDP Protocol │ OpenClaw HTTP API      │
-├─────────────────────────────────────────────────────────────────┤
-│                        Board‑Level Abstraction (Board)           │
-│  DualNetworkBoard │ Display │ AudioCodec │ Backlight │ Gauge    │
-├─────────────────────────────────────────────────────────────────┤
-│                        Driver Layer                              │
-│  MIPI‑DSI │ MIPI‑CSI │ I2S │ SDMMC │ I2C │ UART │ IOExpander    │
-├─────────────────────────────────────────────────────────────────┤
-│  ESP32‑P4 (Host)          │  ESP32‑C5 (Slave)  │  NT26 (4G)    │
-│  Main MCU · UI · Audio·Video·Camera │ Wi‑Fi (SDIO)      │ Cellular Network │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                    OpenClaw Cloud
-                    ASR · LLM · TTS · Agent Orchestration
+```mermaid
+flowchart TB
+    ui["User Interaction Layer<br/>720x720 LVGL 9 Touch UI · Voice Wake-up · Power Key PWR_KEY"]
+    apps["Application Layer<br/>Chat · OpenClaw · Camera · GPS · Weather · Music · Digital Human · ..."]
+    svc["Service Layer<br/>AudioService · GpsService · SdCardManager · MCP Server"]
+    proto["Protocol Layer<br/>WebSocket · MQTT+UDP · OpenClaw HTTP API"]
+    board["Board Abstraction<br/>DualNetworkBoard · Display · AudioCodec · Backlight · Gauge"]
+    drv["Driver Layer<br/>MIPI-DSI · MIPI-CSI · I2S · SDMMC · I2C · UART · IOExpander"]
+
+    subgraph hw["Hardware"]
+        direction LR
+        p4["ESP32-P4 Host<br/>Main MCU · UI · Audio/Video · Camera"]
+        c5["ESP32-C5 Slave<br/>Wi-Fi SDIO"]
+        nt26["NT26 4G<br/>Cellular"]
+    end
+
+    cloud["OpenClaw Cloud<br/>ASR · LLM · TTS · Agent Orchestration"]
+
+    ui --> apps --> svc --> proto --> board --> drv --> hw
+    proto <--> cloud
 ```
 
 ### 4.1 Data Flow (Voice Dialogue)
 
-```
-User speaks → I2S microphone → ESP‑SR wake‑word / VAD
-            → AudioService encodes → WebSocket / MQTT
-            → Cloud ASR → LLM → TTS
-            → Device receives audio stream → I2S speaker playback
-            → LVGL UI updates (chat bubbles / digital‑human expressions)
+```mermaid
+flowchart LR
+    speak["User speaks"] --> mic["I2S microphone"]
+    mic --> sr["ESP-SR wake-word / VAD"]
+    sr --> enc["AudioService encodes"]
+    enc --> link["WebSocket / MQTT"]
+    link --> asr["Cloud ASR"]
+    asr --> llm["LLM"]
+    llm --> tts["TTS"]
+    tts --> rx["Device receives audio stream"]
+    rx --> spk["I2S speaker playback"]
+    rx --> lvgl["LVGL UI updates<br/>chat bubbles / digital-human expressions"]
 ```
 
 ---
@@ -239,23 +245,14 @@ User speaks → I2S microphone → ESP‑SR wake‑word / VAD
 
 Metalio Claw4 uses an **ESP32‑P4 + ESP32‑C5** heterogeneous dual‑chip design, communicating via Espressif’s **ESP‑Hosted** framework:
 
-```
-┌──────────────────┐         SDIO 4‑bit          ┌──────────────────┐
-│    ESP32‑P4      │ ◄────────────────────────► │    ESP32‑C5      │
-│    (Host)        │   CMD=50 CLK=51 D0=49      │    (Slave)       │
-│                  │   D1=34 D2=31 D3=53        │                  │
-│  · LVGL UI       │   RESET=54                 │  · Wi‑Fi STA/AP  │
-│  · Audio·Video   │                            │  · Network Stack │
-│  · Camera        │                            │                  │
-│  · GPS / Sensors │                            │                  │
-└──────────────────┘                            └──────────────────┘
-         │
-         │ UART (NT26: TX=28 RX=29 MRDY=13 SRDY=4)
-         ▼
-┌──────────────────┐
-│   NT26 4G Module │
-│   LTE Cellular   │
-└──────────────────┘
+```mermaid
+flowchart TB
+    p4["ESP32-P4 Host<br/>LVGL UI · Audio/Video · Camera · GPS / Sensors"]
+    c5["ESP32-C5 Slave<br/>Wi-Fi STA/AP · Network Stack"]
+    nt26["NT26 4G Module<br/>LTE Cellular"]
+
+    p4 <-->|"SDIO 4-bit<br/>CMD=50 CLK=51 D0=49<br/>D1=34 D2=31 D3=53<br/>RESET=54"| c5
+    p4 -->|"UART<br/>TX=28 RX=29 MRDY=13 SRDY=4"| nt26
 ```
 
 | Chip         | Role              | Interface        | Responsibility                                                   |
@@ -354,26 +351,40 @@ Metalio Claw4 connects P4 and C5 via **SDIO Slot 1**, 4‑bit bus at **40 MH
 
 ### 7.5 Peripheral Block Diagram
 
-```
-                    ┌─────────────────────────────────────┐
-                    │           ESP32‑P4                  │
-                    │                                     │
-  I2S Mic ─────────►│ GPIO 10/11    MIPI‑DSI ────────────►│──► 720×720 LCD
-  I2S Spk ◄─────────│ GPIO 9/12                           │──► GT911 Touch
-                    │                                     │
-  I2C Bus ─────────►│ GPIO 7/8  ──► TCA9555 ──┬──► GPS    │
-                    │              BQ27220     ├──► CAM    │
-                    │              NU1680       ├──► BT     │
-                    │              QMC6309     ├──► 4G Power│
-                    │                          └──► SD/PA   │
-                    │                                     │
-  MIPI‑CSI ◄───────►│ OV2710 Camera                       │
-  SDMMC 4‑bit ◄────►│ microSD                             │
-  UART0 ◄──────────►│ GPS Module                          │
-  UART2 ◄──────────►│ BT Audio Module                     │
-  UART ◄───────────►│ NT26 4G Module                      │
-  SDIO ◄───────────►│ ESP32‑C5 (Wi‑Fi)                    │
-                    └─────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph p4["ESP32-P4"]
+        direction TB
+        i2cBus["I2C GPIO 7/8"]
+        i2s["I2S GPIO 9/10/11/12"]
+        dsi["MIPI-DSI"]
+        csi["MIPI-CSI"]
+        sdmmc["SDMMC 4-bit"]
+        uart0["UART0"]
+        uart2["UART2"]
+        uart4g["UART + MRDY/SRDY"]
+        sdio["SDIO Host"]
+    end
+
+    mic["I2S Mic"] --> i2s
+    i2s --> spk["I2S Spk"]
+    dsi --> lcd["720x720 LCD"]
+    dsi --> touch["GT911 Touch"]
+    i2cBus --> tca["TCA9555"]
+    i2cBus --> bq["BQ27220"]
+    i2cBus --> nu["NU1680"]
+    i2cBus --> qmc["QMC6309"]
+    tca --> gpsPwr["GPS power"]
+    tca --> camPwr["CAM power"]
+    tca --> btPwr["BT power"]
+    tca --> pwr4g["4G power"]
+    tca --> sdPa["SD / PA"]
+    csi <--> ov["OV2710 Camera"]
+    sdmmc <--> sd["microSD"]
+    uart0 <--> gps["GPS Module"]
+    uart2 <--> bt["BT Audio Module"]
+    uart4g <--> nt26["NT26 4G"]
+    sdio <--> c5["ESP32-C5 Wi-Fi"]
 ```
 
 ---
@@ -398,15 +409,29 @@ Metalio Claw4 firmware is based on the [XiaoZhi AI (xiaozhi-esp32)](https://gith
 | **Audio**          | `audio/`                  | Codec, wake‑word, AEC                           |
 | **Protocol**       | `protocols/`              | WebSocket, MQTT+UDP                             |
 | **MCP**            | `mcp_server.cc`           | Device‑side Model Context Protocol              |
-| **Common Drivers** | `boards/common/`          | GPS, SD card, fuel gauge, IO expander, dual‑net |
+| **UI i18n**         | `main/i18n/`              | Runtime zh‑CN / en‑US (`catalog.json` → `I18n::T`); Settings **Language** tab, NVS‑persisted |
+| **Common Drivers** | `boards/common/`          | GPS, SD card, fuel gauge, IO expander, dual‑net, virtual USB (`usb_virtual_disk`) |
 
 ### 9.2 State Machine
 
 `Application` tracks device state:
 
-```
-starting → configuring → idle ⇄ connecting ⇄ listening ⇄ speaking
-                              ↘ upgrading / activating / fatal_error
+```mermaid
+stateDiagram-v2
+    [*] --> starting
+    starting --> configuring
+    configuring --> idle
+    idle --> connecting
+    connecting --> idle
+    connecting --> listening
+    listening --> speaking
+    speaking --> listening
+    speaking --> idle
+    idle --> upgrading
+    idle --> activating
+    connecting --> fatal_error
+    upgrading --> idle
+    activating --> idle
 ```
 
 - **idle** – waiting for wake‑word  
@@ -418,30 +443,37 @@ starting → configuring → idle ⇄ connecting ⇄ listening ⇄ speaking
 
 In `metalio-claw-4.cc` constructor:
 
-1. I2C bus (GPIO 7/8)  
-2. IO expander (TCA9555) – powers/resets peripherals (BT, amp, 4G module, etc.; camera/SD default off)  
-3. BQ27220 fuel gauge + low‑voltage protection  
-4. Bluetooth audio UART + default mode 1  
-5. SD card mount  
-6. MIPI‑DSI LCD init  
-7. GT911 touch  
-8. LVGL display adapter  
-9. NU1680 wireless‑charge detect task  
-10. System‑monitor task (CPU / RAM / battery)
+```mermaid
+flowchart TD
+    s1["1. I2C bus GPIO 7/8"] --> s2["2. TCA9555 IO expander<br/>power peripherals; PA after ~8s; CAM/SD default off"]
+    s2 --> s3["3. BQ27220 fuel gauge + low-voltage protection"]
+    s3 --> s4["4. Bluetooth audio UART + default mode 1"]
+    s4 --> s5["5. SD mount + virtual USB worker<br/>USB Serial/JTAG by default"]
+    s5 --> s6["6. MIPI-DSI LCD"]
+    s6 --> s7["7. GT911 touch"]
+    s7 --> s8["8. LVGL display adapter"]
+    s8 --> s9["9. NU1680 wireless-charge detect task"]
+    s9 --> s10["10. System monitor CPU / RAM / battery"]
+    s10 --> s11["11. I18n::Init read NVS locale<br/>after NVS ready in main.cc"]
+```
 
 ### 9.4 Project Layout
 
 ```
 main/
 ├── application.cc              # Startup, state machine, protocol routing
+├── i18n/                       # Runtime UI locales (catalog.json)
 ├── boards/metalio-claw-4/      # Metalio Claw4 board init
 │   ├── config.h                # GPIO pins, screen params
 │   ├── config.json             # Build config
 │   └── metalio-claw-4.cc       # Board entry point
-├── display/screen/             # LVGL app screens
+├── display/screen/             # LVGL apps (incl. settings / standby / test / sd_card)
 ├── audio/                      # Capture, playback, wake‑word
 ├── protocols/                  # WebSocket / MQTT
-└── boards/common/              # Common drivers (GPS, SD, fuel gauge, etc.)
+└── boards/common/              # Common drivers (GPS, SD, fuel gauge, usb_virtual_disk, …)
+
+esp_claw_bin/                   # ESPClaw (ota_1) companion images & flash notes
+partitions/v1/32m_dual.csv      # 32 MB dual-system table (ota_0=main FW, ota_1=ESPClaw)
 ```
 
 ---
@@ -465,35 +497,61 @@ The device‑side **OpenClaw App** (`openclaw_screen`) provides:
 - Message‑bubble chat UI  
 - Multi‑turn dialogue with the cloud Agent  
 
+### 10.1 ESPClaw (Local Dual‑Boot)
+
+Unlike cloud **OpenClaw**, the home‑screen **ESPClaw** entry boots the local edge_agent flashed in **`ota_1`** (emote / system / storage partitions are also required):
+
+| Slot | Partition table | Contents |
+|:---|:---|:---|
+| `ota_0` (~9 M @ `0x200000`) | `partitions/v1/32m_dual.csv` | This repo’s main firmware (xingzhi / MetalioClaw4) |
+| `ota_1` (~4 M) | same | ESPClaw `edge_agent` |
+| `emote` / `system` / `storage` | same | ESPClaw emote assets & FAT storage |
+
+- Tap home **ESPClaw** → after confirm, switch boot partition to `ota_1` and reboot  
+- If ESPClaw images were never flashed, the UI reports ESPClaw not found  
+- **Flash guide & full image list**: [`esp_claw_bin/README.md`](esp_claw_bin/README.md); partition‑table offset must be `CONFIG_PARTITION_TABLE_OFFSET=0x9000`
+
 ---
 
 ## 11. Built‑in Applications
 
 Home‑screen app list (`home_screen.cc` → `kApps[]`):
 
-| App              | ID               | Description                                                           |
-|:---------------- |:---------------- |:--------------------------------------------------------------------- |
-| Chat             | `chat`           | XiaoZhi AI voice conversation                                         |
-| Network Config   | `wifi`           | Wi‑Fi / 4G switch, SIM swap (internal / external)                     |
-| Digital Human    | `digital_people` | SD‑card SJPG expression animation                                     |
-| Phone            | `call`           | 4G calls (external SIM only)                                          |
-| Music            | `music`          | Bluetooth speaker mode (BT mode 3), supports phone‑push lyric display |
-| Calendar         | `calendar`       | Calendar view                                                         |
-| OpenClaw         | `openclaw`       | Cloud Agent dialogue                                                  |
-| Location         | `gps`            | GPS / Wi‑Fi / Base‑station positioning (latter two need 4G mode)      |
-| Camera           | `camera`         | OV2710 preview & capture (1920×1080)                                  |
-| Spirit Level     | `spirit_level`   | Tilt angle                                                            |
-| Magnet           | `magnet`         | QMC6309 three‑axis visualization                                      |
-| Vibrate          | `vibrate`        | Vibration motor test (GPIO 22)                                        |
-| Bluetooth Config | `bluetooth`      | BT mode 2, scan & pair                                                |
-| Calculator       | `calculator`     | Four‑function arithmetic                                              |
-| Weather          | `weather`        | City weather query                                                    |
-| SD Card          | `sd`             | Storage‑space management                                              |
-| Pin Test         | `pin`            | GPIO test                                                             |
-| 2048             | `2048`           | Small game                                                            |
-| Backlight        | `backlight`      | Brightness adjustment                                                 |
-| System Info      | `info`           | Firmware version / chip / MAC                                         |
-| Theme            | `theme`          | Four icon‑theme packs                                                 |
+| App            | ID               | Description                                                              |
+|:-------------- |:---------------- |:------------------------------------------------------------------------ |
+| Chat           | `chat`           | XiaoZhi AI voice conversation                                            |
+| Network Config | `wifi`           | Wi‑Fi / 4G switch, SIM swap (internal / external)                        |
+| Digital Human  | `digital_people` | SD‑card SJPG expression animation                                        |
+| Phone          | `call`           | 4G calls (**external SIM only**)                                         |
+| Music          | `music`          | Bluetooth speaker mode (BT mode 3), phone‑push lyric display             |
+| Calendar       | `calendar`       | Calendar view                                                            |
+| OpenClaw       | `openclaw`       | Cloud Agent dialogue (§10)                                               |
+| ESPClaw        | `espclaw`        | Switch to `ota_1` local edge_agent (§10.1)                               |
+| Camera         | `camera`         | OV2710 preview & capture (1920×1080)                                     |
+| Location       | `gps`            | GPS / Wi‑Fi / Base‑station positioning (latter two need 4G mode)         |
+| Spirit Level   | `spirit_level`   | Tilt angle                                                               |
+| Magnet         | `magnet`         | QMC6309 three‑axis visualization                                         |
+| Vibrate        | `vibrate`        | Vibration motor test (GPIO 22)                                           |
+| Calculator     | `calculator`     | Four‑function arithmetic                                                 |
+| Weather        | `weather`        | City weather query                                                       |
+| SD Card        | `sd`             | Browse / delete files; **Enable virtual USB** (§14.6)                    |
+| Pin Test       | `pin`            | GPIO test                                                                |
+| 2048           | `2048`           | Small game                                                               |
+| System Info    | `info`           | Firmware version / chip / MAC                                            |
+| Theme          | `theme`          | Four icon‑theme packs                                                    |
+| Test           | `test`           | Factory entry: auto test, stress test, hardware tests, etc.              |
+| Settings       | `settings`       | Volume / brightness / standby / **language (zh/en)** / Bluetooth modes |
+
+#### Settings
+
+- **Language**: Runtime switch Simplified Chinese / English (`I18n::SetLocale`, NVS); home rebuilds after change  
+- **Standby**: Configure “enter standby” and “cumulative shutdown” (minutes; 0 = disable)  
+- **Bluetooth**: Former standalone Bluetooth Config lives here (modes 1/2/3, scan & pair, Reset Bluetooth)  
+- Volume and backlight are also here (no separate home **Backlight** icon)
+
+#### Test
+
+Factory / stress entry (`test_screen`): auto tests (fuel gauge / wireless charge / camera, …), stress test (LVGL + BGM + motor + camera loop), hardware checks. Everyday users can ignore this.
 
 ---
 
@@ -519,7 +577,7 @@ Think of the Bluetooth chip’s three modes as three tasks: **(1) everyday XiaoZ
 Device powers up in mode 1, the default for normal voice interaction. The Bluetooth codec routes I2S for XiaoZhi’s mic & speaker; you just wake‑word → chat. Exiting the **Music** app automatically returns to mode 1.
 
 **Mode 2 – External Bluetooth Device for XiaoZhi Chat**  
-To chat via a Bluetooth headset or speaker (must have a mic), open **Bluetooth Config**, select **Mode 2**, scan, pair. Audio routes to the paired device. Return to mode 1 by manually switching back in the same app.
+To chat via a Bluetooth headset or speaker (must have a mic), open **Settings → Bluetooth**, select **Mode 2**, scan, pair. Audio routes to the paired device. Return to mode 1 by manually switching back on the same tab.
 
 **Mode 3 – Phone → Device as Bluetooth Speaker**  
 Open the **Music** app → firmware auto‑switches to mode 3 (speaker‑waiting). Connect phone via Bluetooth, play music from any app; song info and (if supported) lyrics appear on screen. Leaving the Music app restores mode 1 automatically.
@@ -527,7 +585,7 @@ Open the **Music** app → firmware auto‑switches to mode 3 (speaker‑waiti
 | Mode       | One‑line Summary                            | How to Enter                        | How to Exit                            |
 |:----------:|:------------------------------------------- |:----------------------------------- |:-------------------------------------- |
 | **Mode 1** | Normal XiaoZhi talk; default on boot        | Boot auto; exit Music → auto‑return | Usually stay in default                |
-| **Mode 2** | Use Bluetooth ear‑/speaker for XiaoZhi talk | Bluetooth Config → Mode 2           | Manual switch back to Mode 1           |
+| **Mode 2** | Use Bluetooth ear‑/speaker for XiaoZhi talk | **Settings → Bluetooth** → Mode 2   | Manual switch back to Mode 1           |
 | **Mode 3** | Phone uses device as Bluetooth speaker      | Open Music app (auto‑switch)        | Exit Music app (auto‑return to Mode 1) |
 
 #### Mode‑Switch AT Commands
@@ -549,11 +607,11 @@ Successful switch replies with `SET MODE 1` / `SET MODE 2` / `SET MODE 3`.
 | Device power‑on                             | `AT+RX=2` → `AT+MODE=1` (Mode 1)         |
 | Enter **Music** page                        | `AT+RX=1` → `AT+MODE=3` (Mode 3)         |
 | Leave **Music** page                        | `AT+RX=2` → `AT+MODE=1` (back to Mode 1) |
-| Bluetooth Config page – mode button pressed | Follow table above for selected mode     |
+| Bluetooth Settings tab – mode button pressed | Follow table above for selected mode     |
 
 #### Mode 2: Scan & Connect
 
-After switching to Mode 2 in **Bluetooth Config**, you can use these AT commands (the remote device **must have a mic** for voice chat).
+After switching to Mode 2 in **Settings → Bluetooth**, you can use these AT commands (the remote device **must have a mic** for voice chat).
 
 | Action                     | AT Command                 | Note                                                                 |
 |:-------------------------- |:-------------------------- |:-------------------------------------------------------------------- |
@@ -586,7 +644,7 @@ Entering the **Music** page auto‑sets Mode 3; the screen shows song title & 
 
 #### Bluetooth Reset (Maintenance)
 
-The **Bluetooth Config** page’s top‑right **Reset Bluetooth** icon pulls low/high on `BT_POWER` via the IO extender, power‑cycling the Bluetooth module into download mode. Use **only** when flashing Bluetooth firmware; normal operation does not need it. See [§14.5](#145-bluetooth-chip-flashing).
+**Settings → Bluetooth → Reset Bluetooth** pulls low/high on `BT_POWER` via the IO extender, power‑cycling the Bluetooth module into download mode. Use **only** when flashing Bluetooth firmware; normal operation does not need it. See [§14.5](#145-bluetooth-chip-flashing).
 
 ---
 
@@ -674,12 +732,12 @@ When plugged in and powered, the device typically presents **four** serial ports
 
 | Purpose                                      | System Descriptor            | Note                                                                                              |
 |:-------------------------------------------- |:---------------------------- |:------------------------------------------------------------------------------------------------- |
-| **ESP32‑P4** main‑controller flashing / logs | `USB JTAG/serial debug unit` | Use for `idf.py flash monitor` (P4 firmware)                                                      |
+| **ESP32‑P4** main‑controller flashing / logs | `USB JTAG/serial debug unit` | Use for `idf.py flash monitor` (P4 firmware). **Note:** while **virtual USB** is enabled in the SD Card app, the same pins (GPIO24/25) switch to MSC — this port is unavailable until virtual USB is disabled or you leave the SD page |
 | **Bluetooth codec** comms / flashing         | `USB Serial` (`CH340K`)      | Independent USB UART; use for Bluetooth‑chip flashing (see [§14.5](#145-bluetooth-chip-flashing)) |
 | **4G module** runtime log                    | `log`                        | View NT26 output                                                                                  |
 | **4G module** AT‑command debugging           | `at`                         | Send AT commands directly; baud‑rate per modem spec                                               |
 
-> **Tip:** P4 ↔ Bluetooth everyday communication uses on‑board UART (GPIO 26/27); flashing the Bluetooth chip needs the CH340K USB port. For 4G AT debugging, use the port described as `at`.
+> **Tip:** P4 ↔ Bluetooth everyday communication uses on‑board UART (GPIO 26/27); flashing the Bluetooth chip needs the CH340K USB port. For 4G AT debugging, use the port described as `at`. Close `idf.py monitor` before enabling virtual USB; reopen the monitor after disabling it.
 
 ### 14.4 ESP32‑P4 Flash & Monitor
 
@@ -719,16 +777,37 @@ The Bluetooth audio codec has its own USB‑UART (CH340K). Flashing must use tha
 1. Plug in USB, power the device. Locate the port whose descriptor is **`USB Serial` (CH340K)**.  
 2. Open your Bluetooth‑flash tool and select that CH340K port.  
 3. Put the Bluetooth module into download mode:  
-   - From the home screen, open **Bluetooth Config** and tap the top‑right **Reset Bluetooth** icon; **or** power‑cycle the device.  
+   - From the home screen, open **Settings → Bluetooth** and tap **Reset Bluetooth**; **or** power‑cycle the device.  
    - The module will enter download mode, ready for flashing.  
    - If the flash tool cannot see the device, repeat step 3 then retry.  
 4. After flashing, again tap **Reset Bluetooth** or power‑cycle to boot with the new firmware.  
 
 > “Reset Bluetooth” toggles `BT_POWER` via the IO extender, cutting then restoring power to the Bluetooth chip. Use this **only** for firmware flashing or maintenance; normal operation does not require it.
 
-### 14.6 SD‑Card Resources
+### 14.6 SD‑Card Resources & Virtual USB Drive
 
 Assets for features like the Digital Human are in the [`sd_images/`](sd_images/) folder. Copy the contents to the root of a FAT‑formatted SD card, preserving the directory structure. Details are in [sd_images/README.md](sd_images/README.md).
+
+#### Virtual USB Drive (USB MSC)
+
+The device can expose microSD as **USB Mass Storage** to a PC (`usb_virtual_disk`, TinyUSB MSC):
+
+1. Confirm the SD card is inserted and the **SD Card** app shows it mounted.  
+2. Open **SD Card** → tap **Enable virtual USB**.  
+3. After the PC mounts the drive, copy files; **the same USB port is no longer Serial/JTAG** — stop flashing/monitoring first.  
+4. **Eject / safely remove** on the PC, then tap **Disable virtual USB**; or leave the SD Card page (auto force‑disable and best‑effort restore of serial).
+
+> If disable fails, eject the drive on the PC first to avoid filesystem corruption.
+
+### 14.7 ESPClaw Dual‑System Flashing
+
+Before using home **ESPClaw**, Flash must follow `partitions/v1/32m_dual.csv` and include edge_agent / emote / system / storage images from `esp_claw_bin/`.
+
+**Recommended:** flash the main firmware and ESPClaw‑related bins in **one full pass**. Naming convention and `esptool` examples:
+
+- [`esp_claw_bin/README.md`](esp_claw_bin/README.md)
+
+Partition‑table offset must be **`0x9000`** (same as edge_agent).
 
 ---
 
@@ -749,9 +828,10 @@ Assets for features like the Digital Human are in the [`sd_images/`](sd_images/)
 
 After board init, a background task prints CPU usage, free memory, and battery status each second—handy for performance/power analysis.
 
-### 15.3 Pin‑Test App
+### 15.3 Pin Test & Factory Test
 
-The home‑screen **Pin Test** app (`pin_test_screen`) lets you quickly verify GPIO and peripheral connectivity.
+- Home **Pin Test**: quick GPIO / peripheral connectivity check (`pin_test_screen`).  
+- Home **Test**: factory entry (auto test, stress test, hardware tests, … — `test_screen`).
 
 ### 15.4 Frequently Asked Questions
 
@@ -776,8 +856,8 @@ A: These require the device to be in **4G network mode** with the module success
 **Q: SD‑card mount fails**  
 A: 1. Check the SD card is FAT32 formatted. 2. Verify external power to the SD‑card slot: the IO extender pin `SD` (P0‑3) must be low to enable; firmware drives it low on boot. 3. Ensure the SDMMC PHY power domain is enabled (see `config.h` `SDMMC_LDO_CHAN_ID`, default LDO chan 4); `SdCardManager` requests it at mount time. 4. If the log shows `Failed to create SD power control driver`, the power domain isn’t ready. 5. Confirm SDMMC pins match `config.h`.
 
-**Q: Home screen powers off after a few minutes of idle**  
-A: Expected behavior – see [§2.5 Power & Battery Life](#25-power-and-battery-life).
+**Q: Home screen enters standby / powers off after a few minutes idle**  
+A: Expected behavior – configurable under **Settings → Standby**; see [§2.5 Power & Battery Life](#25-power-and-battery-life).
 
 **Q: Screen suddenly turns blue (blue‑screen)**  
 A: A blue screen indicates a firmware crash; the device auto‑reboots. After reboot you should see the animation and return to the home screen. If blue‑screens recur, connect the serial log to inspect the crash details, ensure you are running the latest firmware, and if the issue persists, file an issue.

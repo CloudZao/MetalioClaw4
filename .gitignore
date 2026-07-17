@@ -15,11 +15,13 @@ main/mmap_generate_emoji.h
 .cache
 *.pyc
 *.bin
-!/full-xingzhi-ai-395.bin
+!/Metalio_Claw4_Latest.bin
 !wakeword/
 !wakeword/*.bin
 !esp_claw_bin/
 !esp_claw_bin/*.bin
+# 合成完整固件输出目录（merge_firmware.sh）
+firmware/
 mmap_generate_*.h
 .clangd
 patch_esp_ml307_http_log.py

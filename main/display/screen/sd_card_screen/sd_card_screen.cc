@@ -17,6 +17,7 @@
 #include "ff.h"
 
 #include "SdCardManager.hpp"
+#include "usb_virtual_disk.h"
 
 LV_FONT_DECLARE(font_puhui_30_4);
 LV_FONT_DECLARE(font_puhui_20_4);
@@ -45,6 +46,15 @@ lv_obj_t* s_capacity_lbl = nullptr;
 lv_obj_t* s_file_list = nullptr;
 lv_obj_t* s_no_files_lbl = nullptr;
 lv_obj_t* s_status_dot = nullptr;
+lv_obj_t* s_usb_btn = nullptr;
+lv_obj_t* s_usb_btn_lbl = nullptr;
+lv_obj_t* s_usb_hint_lbl = nullptr;
+lv_obj_t* s_screen = nullptr;
+
+constexpr int kUsbBtnY = kHeaderH + kPad + 64;
+constexpr int kUsbHintY = kUsbBtnY + 56;
+constexpr int kDividerY = kUsbHintY + 36;
+constexpr int kListY = kDividerY + 16;
 
 // ----- helper: human-readable size (integer-only, safe with newlib-nano) -----
 void FormatSize(uint64_t bytes, char* buf, size_t buf_size) {
@@ -68,6 +78,7 @@ void FormatSize(uint64_t bytes, char* buf, size_t buf_size) {
 
 // ----- navigation -----
 void OnSwipeBack() {
+    UsbVirtualDisk::GetInstance().DisableIfActive();
     lv_obj_t* old_scr = lv_screen_active();
     lv_obj_t* home = HomeScreen::Create();
     lv_screen_load(home);
@@ -85,8 +96,61 @@ struct FileEntry {
 // Forward declarations
 void UpdateStatusUI();
 void RebuildFileList(lv_obj_t* parent);
+void RefreshUsbUi();
+
+void OnUsbVirtualDiskClicked(lv_event_t* /*e*/) {
+    auto& vd = UsbVirtualDisk::GetInstance();
+    if (!vd.IsSupported() || vd.IsBusy()) {
+        return;
+    }
+    vd.Toggle();
+}
+
+void OnUsbUiNotifyAsync(void* /*user_data*/) {
+    // 页面已卸载则忽略过期回调，避免碰已释放的 LVGL 对象
+    if (s_screen == nullptr) {
+        return;
+    }
+    RefreshUsbUi();
+    UpdateStatusUI();
+    RebuildFileList(s_screen);
+}
+
+void OnUsbVirtualDiskNotify() {
+    lv_async_call(OnUsbUiNotifyAsync, nullptr);
+}
+
+void RefreshUsbUi() {
+    auto& vd = UsbVirtualDisk::GetInstance();
+    if (s_usb_btn_lbl != nullptr) {
+        const char* btn_text =
+            vd.IsGadgetActive() ? I18n::T("停用虚拟 U 盘") : I18n::T("启用虚拟 U 盘");
+        lv_label_set_text(s_usb_btn_lbl, btn_text);
+    }
+    if (s_usb_btn != nullptr) {
+        const uint32_t bg =
+            vd.IsGadgetActive() ? static_cast<uint32_t>(0xC44536) : 0x2F6FED;
+        lv_obj_set_style_bg_color(s_usb_btn, lv_color_hex(bg), LV_PART_MAIN);
+        if (vd.IsBusy() || !vd.IsSupported()) {
+            lv_obj_add_state(s_usb_btn, LV_STATE_DISABLED);
+        } else {
+            lv_obj_remove_state(s_usb_btn, LV_STATE_DISABLED);
+        }
+    }
+    if (s_usb_hint_lbl != nullptr) {
+        lv_label_set_text(s_usb_hint_lbl, I18n::T(UsbVirtualDisk::HintMsgid(vd.GetUiHint())));
+    }
+}
 
 void OnDeleteFile(lv_event_t* e) {
+    auto& vd = UsbVirtualDisk::GetInstance();
+    // 仅在 SD 被主机占用或切换中禁止删除
+    if (vd.IsSdExportedToHost() || vd.IsBusy()) {
+        return;
+    }
+    if (!SdCardManager::GetInstance().IsMounted()) {
+        return;
+    }
     auto* entry = static_cast<FileEntry*>(lv_event_get_user_data(e));
     if (entry == nullptr)
         return;
@@ -97,9 +161,10 @@ void OnDeleteFile(lv_event_t* e) {
         return;
     }
 
-    // Refresh file list and capacity after deletion
     UpdateStatusUI();
-    RebuildFileList(lv_obj_get_parent(s_file_list));
+    if (s_file_list != nullptr) {
+        RebuildFileList(lv_obj_get_parent(s_file_list));
+    }
 }
 
 // ----- file list builder -----
@@ -205,6 +270,23 @@ void BuildFileRow(const char* name, const char* path) {
 void RebuildFileList(lv_obj_t* parent) {
     (void)parent;
     ClearFileList();
+
+    auto& vd = UsbVirtualDisk::GetInstance();
+    if (vd.IsSdExportedToHost()) {
+        if (s_no_files_lbl != nullptr) {
+            lv_label_set_text(s_no_files_lbl, I18n::T("SD 正被电脑占用，停用或弹出后可浏览"));
+            lv_obj_remove_flag(s_no_files_lbl, LV_OBJ_FLAG_HIDDEN);
+        }
+        return;
+    }
+
+    if (!SdCardManager::GetInstance().IsMounted()) {
+        if (s_no_files_lbl != nullptr) {
+            lv_label_set_text(s_no_files_lbl, I18n::T("请插入 SD 卡"));
+            lv_obj_remove_flag(s_no_files_lbl, LV_OBJ_FLAG_HIDDEN);
+        }
+        return;
+    }
 
     const char* mount_point = SdCardManager::GetInstance().GetMountPoint();
     DIR* dir = opendir(mount_point);
@@ -313,13 +395,38 @@ void BuildStatusSection(lv_obj_t* parent) {
     lv_obj_set_style_text_font(s_capacity_lbl, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_set_pos(s_capacity_lbl, kPad, kHeaderH + kPad + 32);
 
+    // Virtual USB drive toggle
+    s_usb_btn = lv_button_create(parent);
+    lv_obj_set_size(s_usb_btn, LV_SIZE_CONTENT, 48);
+    lv_obj_set_style_pad_hor(s_usb_btn, 20, LV_PART_MAIN);
+    lv_obj_set_style_radius(s_usb_btn, 16, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(s_usb_btn, lv_color_hex(0x2F6FED), LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(s_usb_btn, 0, LV_PART_MAIN);
+    lv_obj_align(s_usb_btn, LV_ALIGN_TOP_LEFT, kPad, kUsbBtnY);
+    lv_obj_add_event_cb(s_usb_btn, OnUsbVirtualDiskClicked, LV_EVENT_CLICKED, nullptr);
+    screen_swipe_back_ignore(s_usb_btn, true);
+
+    s_usb_btn_lbl = lv_label_create(s_usb_btn);
+    lv_label_set_text(s_usb_btn_lbl, I18n::T("启用虚拟 U 盘"));
+    lv_obj_set_style_text_color(s_usb_btn_lbl, lv_color_hex(kColorTextPrimary), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_usb_btn_lbl, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_center(s_usb_btn_lbl);
+
+    s_usb_hint_lbl = lv_label_create(parent);
+    lv_obj_set_width(s_usb_hint_lbl, kPanelSize - 2 * kPad);
+    lv_label_set_long_mode(s_usb_hint_lbl, LV_LABEL_LONG_WRAP);
+    lv_label_set_text(s_usb_hint_lbl, I18n::T("启用后电脑可将本机识别为 U 盘"));
+    lv_obj_set_style_text_color(s_usb_hint_lbl, lv_color_hex(kColorTextSecondary), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_usb_hint_lbl, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_set_pos(s_usb_hint_lbl, kPad, kUsbHintY);
+
     // Divider line
     lv_obj_t* divider = lv_obj_create(parent);
     lv_obj_remove_style_all(divider);
     lv_obj_set_size(divider, kPanelSize - 2 * kPad, 1);
     lv_obj_set_style_bg_color(divider, lv_color_hex(kColorFileBorder), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(divider, LV_OPA_30, LV_PART_MAIN);
-    lv_obj_set_pos(divider, kPad, kHeaderH + kPad + 60);
+    lv_obj_set_pos(divider, kPad, kDividerY);
 }
 
 // Build the file list container
@@ -332,7 +439,6 @@ void BuildFileListSection(lv_obj_t* parent) {
     lv_obj_align(s_no_files_lbl, LV_ALIGN_CENTER, 0, 40);
 
     // Scrollable file list
-    constexpr int kListY = kHeaderH + kPad + 76;
     constexpr int kListH = kPanelSize - kListY - kPad;
     s_file_list = lv_obj_create(parent);
     lv_obj_remove_style_all(s_file_list);
@@ -346,8 +452,10 @@ void BuildFileListSection(lv_obj_t* parent) {
 
 void UpdateStatusUI() {
     auto& sd = SdCardManager::GetInstance();
+    auto& vd = UsbVirtualDisk::GetInstance();
     sdmmc_card_t* card = sd.GetCard();
-    if (sd.IsMounted() && card != nullptr) {
+    const bool usable = sd.IsMounted() && card != nullptr && !vd.IsSdExportedToHost();
+    if (usable || (card != nullptr && vd.IsGadgetActive())) {
         if (s_status_dot != nullptr) {
             lv_obj_set_style_bg_color(s_status_dot, lv_color_hex(0x00CC00), LV_PART_MAIN);
         }
@@ -355,32 +463,37 @@ void UpdateStatusUI() {
             lv_label_set_text(s_status_lbl, I18n::T("SD 卡已插入"));
         }
 
-        // Update capacity using FatFs free-cluster info
+        // Update capacity using FatFs free-cluster info (only when APP-mounted)
         if (s_capacity_lbl != nullptr) {
-            FATFS* fs = nullptr;
-            DWORD free_clusters = 0;
-            uint64_t total_bytes = 0;
-            uint64_t free_bytes = 0;
-
-            FRESULT res = f_getfree("0:", &free_clusters, &fs);
-            if (res == FR_OK && fs != nullptr) {
-                // FatFs csize is in sectors; convert to bytes
-                DWORD ssize = 512;  // default sector size for SD cards
-                total_bytes = (uint64_t)(fs->n_fatent - 2) * fs->csize * ssize;
-                free_bytes = (uint64_t)free_clusters * fs->csize * ssize;
+            if (!usable) {
+                lv_label_set_text(s_capacity_lbl, I18n::T("SD 正被电脑占用，停用或弹出后可浏览"));
             } else {
-                // Fallback: use CSD capacity
-                total_bytes = (uint64_t)card->csd.capacity * card->csd.sector_size;
-                free_bytes = 0;
+                FATFS* fs = nullptr;
+                DWORD free_clusters = 0;
+                uint64_t total_bytes = 0;
+                uint64_t free_bytes = 0;
+
+                FRESULT res = f_getfree("0:", &free_clusters, &fs);
+                if (res == FR_OK && fs != nullptr) {
+                    // FatFs csize is in sectors; convert to bytes
+                    DWORD ssize = 512;  // default sector size for SD cards
+                    total_bytes = (uint64_t)(fs->n_fatent - 2) * fs->csize * ssize;
+                    free_bytes = (uint64_t)free_clusters * fs->csize * ssize;
+                } else {
+                    // Fallback: use CSD capacity
+                    total_bytes = (uint64_t)card->csd.capacity * card->csd.sector_size;
+                    free_bytes = 0;
+                }
+
+                char total_str[32], free_str[32];
+                FormatSize(total_bytes, total_str, sizeof(total_str));
+                FormatSize(free_bytes, free_str, sizeof(free_str));
+
+                char cap_buf[96];
+                snprintf(cap_buf, sizeof(cap_buf), I18n::T("剩余 %s / 总容量 %s"), free_str,
+                         total_str);
+                lv_label_set_text(s_capacity_lbl, cap_buf);
             }
-
-            char total_str[32], free_str[32];
-            FormatSize(total_bytes, total_str, sizeof(total_str));
-            FormatSize(free_bytes, free_str, sizeof(free_str));
-
-            char cap_buf[96];
-            snprintf(cap_buf, sizeof(cap_buf), I18n::T("剩余 %s / 总容量 %s"), free_str, total_str);
-            lv_label_set_text(s_capacity_lbl, cap_buf);
         }
     } else {
         if (s_status_dot != nullptr) {
@@ -403,6 +516,7 @@ void UpdateStatusUI() {
 
 lv_obj_t* SdCardScreen::Create() {
     lv_obj_t* scr = lv_obj_create(NULL);
+    s_screen = scr;
     lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(scr, lv_color_hex(kColorBg), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
@@ -413,13 +527,16 @@ lv_obj_t* SdCardScreen::Create() {
     BuildStatusSection(scr);
     BuildFileListSection(scr);
 
+    auto& vd = UsbVirtualDisk::GetInstance();
+    vd.Init();
+    vd.SetUiNotify(OnUsbVirtualDiskNotify);
+    RefreshUsbUi();
+
     // SD 卡的挂载已经在板级 init（METALIO_CLAW_4::InitializeSdCard()）里完成。
     // 这里只做一次状态读取并刷新 UI；如果开机时 mount 失败（卡没插），就只
     // 显示状态文字、不去重试，等用户回到首页 / 后续手动 reboot 时再处理。
     UpdateStatusUI();
-    if (SdCardManager::GetInstance().IsMounted()) {
-        RebuildFileList(scr);
-    }
+    RebuildFileList(scr);
 
     // Right-swipe to go back
     screen_attach_swipe_back(scr, OnSwipeBack);
@@ -429,9 +546,26 @@ lv_obj_t* SdCardScreen::Create() {
 
 void SdCardScreen::LifecycleCallback(screen_lifecycle_event_t event) {
     if (event == SCREEN_LIFECYCLE_LOAD) {
-        ESP_LOGI(TAG_SD, "load: sd_card_screen (mounted=%d)",
-                 SdCardManager::GetInstance().IsMounted() ? 1 : 0);
+        ESP_LOGI(TAG_SD, "load: sd_card_screen (mounted=%d gadget=%d)",
+                 SdCardManager::GetInstance().IsMounted() ? 1 : 0,
+                 UsbVirtualDisk::GetInstance().IsGadgetActive() ? 1 : 0);
+        RefreshUsbUi();
+        UpdateStatusUI();
+        if (s_screen != nullptr) {
+            RebuildFileList(s_screen);
+        }
     } else {
         ESP_LOGI(TAG_SD, "unload: sd_card_screen");
+        UsbVirtualDisk::GetInstance().DisableIfActive();
+        UsbVirtualDisk::GetInstance().SetUiNotify(nullptr);
+        s_screen = nullptr;
+        s_usb_btn = nullptr;
+        s_usb_btn_lbl = nullptr;
+        s_usb_hint_lbl = nullptr;
+        s_status_lbl = nullptr;
+        s_capacity_lbl = nullptr;
+        s_file_list = nullptr;
+        s_no_files_lbl = nullptr;
+        s_status_dot = nullptr;
     }
 }

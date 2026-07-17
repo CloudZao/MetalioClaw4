@@ -2207,7 +2207,7 @@
     {
       "key": "SD_2",
       "zh-CN": "未检测到 SD 卡",
-      "en-US": "SD card not detected"
+      "en-US": "No SD card detected"
     },
     {
       "key": "S_9590EBA7",
@@ -2893,6 +2893,81 @@
       "key": "WEEKDAY_SUN_SHORT",
       "zh-CN": "周日",
       "en-US": "Sun"
+    },
+    {
+      "key": "USB_VD_ENABLE",
+      "zh-CN": "启用虚拟 U 盘",
+      "en-US": "Enable virtual USB drive"
+    },
+    {
+      "key": "USB_VD_DISABLE",
+      "zh-CN": "停用虚拟 U 盘",
+      "en-US": "Disable virtual USB drive"
+    },
+    {
+      "key": "USB_VD_HINT_IDLE",
+      "zh-CN": "启用后电脑可将本机识别为 U 盘",
+      "en-US": "Enable so the PC can use this device as a USB drive"
+    },
+    {
+      "key": "USB_VD_HINT_SWITCHING",
+      "zh-CN": "正在切换，请稍候…",
+      "en-US": "Switching, please wait…"
+    },
+    {
+      "key": "USB_VD_HINT_ENABLING",
+      "zh-CN": "正在启用虚拟 U 盘…",
+      "en-US": "Enabling virtual USB drive…"
+    },
+    {
+      "key": "USB_VD_HINT_DISABLING",
+      "zh-CN": "正在停用虚拟 U 盘…",
+      "en-US": "Disabling virtual USB drive…"
+    },
+    {
+      "key": "USB_VD_HINT_ENABLED_HOST",
+      "zh-CN": "虚拟 U 盘已启用，请在电脑上访问；停用前请先弹出",
+      "en-US": "Virtual USB drive enabled; eject on PC before disabling"
+    },
+    {
+      "key": "USB_VD_HINT_ENABLED_LOCAL",
+      "zh-CN": "虚拟 U 盘已启用，主机未占用 SD，可浏览；点停用恢复串口",
+      "en-US": "Virtual USB drive on; SD free for browsing; disable to restore serial"
+    },
+    {
+      "key": "USB_VD_HINT_DISABLED",
+      "zh-CN": "可浏览 SD 卡；启用虚拟 U 盘后占用 USB，停用后恢复串口",
+      "en-US": "Browse SD here; enabling USB drive uses the USB port"
+    },
+    {
+      "key": "USB_VD_HINT_ENABLE_FAILED",
+      "zh-CN": "启用失败，请检查 USB 线并重试",
+      "en-US": "Enable failed; check the USB cable and retry"
+    },
+    {
+      "key": "USB_VD_HINT_DISABLE_FAILED",
+      "zh-CN": "停用失败，请先在电脑上弹出 U 盘",
+      "en-US": "Disable failed; eject the drive on the PC first"
+    },
+    {
+      "key": "USB_VD_HINT_FORMAT",
+      "zh-CN": "SD 卡需要格式化 (FAT32)",
+      "en-US": "SD card needs formatting (FAT32)"
+    },
+    {
+      "key": "USB_VD_HINT_HOST_BUSY",
+      "zh-CN": "操作失败，请先在电脑上弹出 U 盘",
+      "en-US": "Failed; eject the USB drive on the PC first"
+    },
+    {
+      "key": "USB_VD_HINT_UNSUPPORTED",
+      "zh-CN": "当前设备不支持虚拟 U 盘",
+      "en-US": "Virtual USB drive is not supported on this device"
+    },
+    {
+      "key": "USB_VD_FILES_LOCKED",
+      "zh-CN": "SD 正被电脑占用，停用或弹出后可浏览",
+      "en-US": "SD is in use by the PC; eject or disable to browse"
     }
   ]
 }

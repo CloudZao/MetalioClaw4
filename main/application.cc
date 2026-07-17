@@ -18,6 +18,11 @@
 #include <font_awesome.h>
 
 #include <ssid_manager.h>
+#include <inttypes.h>
+
+#if CONFIG_ESP_HOSTED_ENABLED
+#include "esp_hosted.h"
+#endif
 
 #ifdef HAVE_LVGL
 #include "ota_screen.h"
@@ -476,6 +481,34 @@ void Application::Start() {
     //直接校验OTA
     Ota ota;
     ota.MarkCurrentVersionValid();
+
+// #if CONFIG_ESP_HOSTED_ENABLED
+//     /* Boot-time probe: C5 ESP-Hosted slave (WiFi coprocessor) present? */
+//     ESP_LOGI(TAG, "C5 hosted check: connecting to slave...");
+//     if (esp_hosted_connect_to_slave() == ESP_OK) {
+//         esp_hosted_coprocessor_fwver_t fwver{};
+//         uint32_t chip_id = 0;
+//         char target_name[32] = {0};
+//         if (esp_hosted_get_coprocessor_fwversion(&fwver) == ESP_OK) {
+//             ESP_LOGI(TAG,
+//                      "C5 hosted check: OK — FW %" PRIu32 ".%" PRIu32 ".%" PRIu32
+//                      " (rev=%" PRId32 ")",
+//                      fwver.major1, fwver.minor1, fwver.patch1, fwver.revision);
+//         } else {
+//             ESP_LOGW(TAG, "C5 hosted check: transport up, but fwversion RPC failed");
+//         }
+//         if (esp_hosted_get_cp_info(&chip_id, target_name, sizeof(target_name)) == ESP_OK) {
+//             ESP_LOGI(TAG, "C5 hosted check: chip_id=0x%" PRIx32 " target=%s",
+//                      chip_id, target_name[0] ? target_name : "(n/a)");
+//         }
+//     } else {
+//         ESP_LOGE(TAG,
+//                  "C5 hosted check: FAIL — slave not reachable "
+//                  "(no hosted FW / SDIO / reset?)");
+//         PlaySound(Lang::Sounds::OGG_ERR_REG);
+//     }
+// #endif
+
     /* Wait for the network to be ready */
     board.StartNetwork();
 

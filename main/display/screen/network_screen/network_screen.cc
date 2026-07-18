@@ -13,6 +13,7 @@
 #include "esp_netif.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
+#include "esp_eap_client.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
@@ -106,6 +107,7 @@ struct UiState {
     // 密码键盘弹窗
     lv_obj_t* pwd_overlay   = nullptr;
     lv_obj_t* pwd_textarea  = nullptr;
+    lv_obj_t* pwd_username  = nullptr;  // WPA2-Enterprise 用户名输入框
     lv_obj_t* pwd_keyboard  = nullptr;
     lv_obj_t* pwd_title     = nullptr;
     lv_obj_t* pwd_show_chk  = nullptr;
@@ -186,7 +188,9 @@ void schedule_sim_slot_query();
 // 工具
 // ---------------------------------------------------------------------------
 const char* auth_label(wifi_auth_mode_t mode) {
-    return (mode == WIFI_AUTH_OPEN) ? I18n::T("[开放]") : I18n::T("[加密]");
+    if (mode == WIFI_AUTH_OPEN) return I18n::T("[开放]");
+    if (mode == WIFI_AUTH_WPA2_ENTERPRISE || mode == WIFI_AUTH_WPA3_ENTERPRISE) return "[企业]";
+    return I18n::T("[加密]");
 }
 
 // 把 STA_DISCONNECTED 的 reason 码翻成人话。常见值对应密码错误 / AP 找不到 /
@@ -667,6 +671,8 @@ void schedule_scan() {
 struct ConnectCtx {
     std::string ssid;
     std::string password;
+    std::string username;     // WPA2-Enterprise 用户名（空=普通WiFi）
+    bool        is_enterprise = false;
 };
 
 void connect_task(void* arg) {
@@ -683,9 +689,15 @@ void connect_task(void* arg) {
 
     wifi_config_t wc = {};
     strlcpy(reinterpret_cast<char*>(wc.sta.ssid), ctx->ssid.c_str(), 32);
-    strlcpy(reinterpret_cast<char*>(wc.sta.password), ctx->password.c_str(), 64);
-    wc.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
-    wc.sta.failure_retry_cnt = 1;
+    if (ctx->is_enterprise) {
+        // WPA2-Enterprise：密码放到 EAP 配置中，wifi_config 不填 password
+        wc.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+        wc.sta.failure_retry_cnt = 1;
+    } else {
+        strlcpy(reinterpret_cast<char*>(wc.sta.password), ctx->password.c_str(), 64);
+        wc.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+        wc.sta.failure_retry_cnt = 1;
+    }
 
     xEventGroupClearBits(s_evt_group, kBitConnected | kBitDisconnected);
     s_last_disconnect_reason = 0;
@@ -699,6 +711,21 @@ void connect_task(void* arg) {
         delete ctx;
         vTaskDelete(nullptr);
         return;
+    }
+
+    // WPA2-Enterprise 配置
+    if (ctx->is_enterprise) {
+        // 设置 EAP identity 和凭据（PEAP/MSCHAPv2）
+        ESP_ERROR_CHECK(esp_eap_client_set_identity(
+            (const unsigned char*)ctx->username.c_str(), ctx->username.size()));
+        ESP_ERROR_CHECK(esp_eap_client_set_username(
+            (const unsigned char*)ctx->username.c_str(), ctx->username.size()));
+        ESP_ERROR_CHECK(esp_eap_client_set_password(
+            (const unsigned char*)ctx->password.c_str(), ctx->password.size()));
+        // 不验证服务器证书（大多数企业网络 PEAP 场景）
+        ESP_ERROR_CHECK(esp_eap_client_set_disable_time_check(true));
+        ESP_ERROR_CHECK(esp_wifi_sta_enterprise_enable());
+        ESP_LOGI(TAG, "WPA2-Enterprise 已配置: user=%s", ctx->username.c_str());
     }
 
     err = esp_wifi_connect();
@@ -720,12 +747,22 @@ void connect_task(void* arg) {
     if (bits & kBitConnected) {
         // 拿到 IP，记一笔到 SsidManager（SaveToNvs 内已经持久化，重启后生效）
         SsidManager::GetInstance().AddSsid(ctx->ssid, ctx->password);
+        // 企业WiFi额外保存用户名到 NVS
+        if (ctx->is_enterprise) {
+            Settings wifi_settings("wifi", true);
+            wifi_settings.SetString("ent_username", ctx->username);
+            wifi_settings.SetString("ent_ssid", ctx->ssid);
+        }
         snprintf(buf, sizeof(buf), I18n::T("连接 %s 成功，准备重启…"), ctx->ssid.c_str());
         post_status(buf, kColorSuccess);
         refresh_saved_list();
         // 弹出「连接成功 + 倒计时重启」覆盖层，倒计时归零后自动 esp_restart()
         post_open_success_and_reboot(ctx->ssid);
     } else if (bits & kBitDisconnected) {
+        // 企业WiFi连接失败时清理EAP状态
+        if (ctx->is_enterprise) {
+            esp_wifi_sta_enterprise_disable();
+        }
         const uint8_t reason = s_last_disconnect_reason;
         const char* mapped = disconnect_reason_text(reason);
         std::string detail;
@@ -745,6 +782,9 @@ void connect_task(void* arg) {
         snprintf(buf, sizeof(buf), I18n::T("连接 %s 超时"), ctx->ssid.c_str());
         post_status(buf, kColorError);
         esp_wifi_disconnect();
+        if (ctx->is_enterprise) {
+            esp_wifi_sta_enterprise_disable();
+        }
         post_show_failure(I18n::T("连接超时"), I18n::T("未能在 15 秒内完成连接，请检查网络后重试"));
     }
 
@@ -753,7 +793,8 @@ void connect_task(void* arg) {
     vTaskDelete(nullptr);
 }
 
-void schedule_connect(const std::string& ssid, const std::string& password) {
+void schedule_connect(const std::string& ssid, const std::string& password,
+                      const std::string& username = "") {
     if (s_connect_in_progress) {
         post_status(I18n::T("已有正在进行的连接任务"), kColorScanning);
         return;
@@ -766,7 +807,7 @@ void schedule_connect(const std::string& ssid, const std::string& password) {
         post_status(I18n::T("密码超长"), kColorError);
         return;
     }
-    auto* ctx = new ConnectCtx{ssid, password};
+    auto* ctx = new ConnectCtx{ssid, password, username, !username.empty()};
     s_connect_in_progress = true;
     // 立刻弹出转圈遮罩，覆盖密码键盘，让用户得到「我点了连接」的视觉反馈。
     open_connecting_popup(ssid);
@@ -1001,7 +1042,12 @@ void on_kb_event(lv_event_t* e) {
         lv_obj_t* ta = lv_keyboard_get_textarea(kb);
         const char* pwd = (ta != nullptr) ? lv_textarea_get_text(ta) : "";
         // 开放网络若用户没输入密码也允许（password 留空）
-        schedule_connect(s_pending_ssid, pwd ? pwd : "");
+        std::string username;
+        if (s_ui.pwd_username != nullptr) {
+            const char* user = lv_textarea_get_text(s_ui.pwd_username);
+            if (user != nullptr) username = user;
+        }
+        schedule_connect(s_pending_ssid, pwd ? pwd : "", username);
     }
 }
 
@@ -1015,7 +1061,12 @@ void on_show_pwd_changed(lv_event_t* e) {
 void on_pwd_connect_btn(lv_event_t* /*e*/) {
     if (s_ui.pwd_textarea == nullptr) return;
     const char* pwd = lv_textarea_get_text(s_ui.pwd_textarea);
-    schedule_connect(s_pending_ssid, pwd ? pwd : "");
+    std::string username;
+    if (s_ui.pwd_username != nullptr) {
+        const char* user = lv_textarea_get_text(s_ui.pwd_username);
+        if (user != nullptr) username = user;
+    }
+    schedule_connect(s_pending_ssid, pwd ? pwd : "", username);
 }
 
 void on_pwd_cancel_btn(lv_event_t* /*e*/) { close_password_popup(); }
@@ -1063,19 +1114,45 @@ void open_password_popup(const std::string& ssid, wifi_auth_mode_t authmode) {
     lv_obj_align(title, LV_ALIGN_TOP_LEFT, 0, 0);
 
     lv_obj_t* hint = lv_label_create(card);
-    lv_label_set_text(hint,
-                      authmode == WIFI_AUTH_OPEN
-                          ? I18n::T("该网络无需密码，可直接连接")
-                          : I18n::T("请输入 WiFi 密码（8~63 字符）"));
+    const bool is_enterprise = (authmode == WIFI_AUTH_WPA2_ENTERPRISE ||
+                                authmode == WIFI_AUTH_WPA3_ENTERPRISE);
+    if (authmode == WIFI_AUTH_OPEN) {
+        lv_label_set_text(hint, I18n::T("该网络无需密码，可直接连接"));
+    } else if (is_enterprise) {
+        lv_label_set_text(hint, "企业网络，请输入用户名和密码");
+    } else {
+        lv_label_set_text(hint, I18n::T("请输入 WiFi 密码（8~63 字符）"));
+    }
     lv_obj_set_style_text_color(hint, lv_color_hex(kColorSubtle), LV_PART_MAIN);
     lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
     lv_obj_align_to(hint, title, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 12);
 
+    // 企业网络：用户名输入框
+    int ta_y_offset = 92;
+    if (is_enterprise) {
+        lv_obj_t* user_ta = lv_textarea_create(card);
+        s_ui.pwd_username = user_ta;
+        lv_obj_set_size(user_ta, kPanelW - 60 - 40, 50);
+        lv_obj_align(user_ta, LV_ALIGN_TOP_LEFT, 0, 80);
+        lv_textarea_set_one_line(user_ta, true);
+        lv_textarea_set_max_length(user_ta, 64);
+        lv_textarea_set_placeholder_text(user_ta, "用户名");
+        lv_obj_set_style_text_font(user_ta, &font_puhui_20_4, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(user_ta, lv_color_hex(0x121726), LV_PART_MAIN);
+        lv_obj_set_style_text_color(user_ta, lv_color_hex(kColorText), LV_PART_MAIN);
+        lv_obj_set_style_radius(user_ta, 10, LV_PART_MAIN);
+        lv_obj_add_state(user_ta, LV_STATE_FOCUSED);
+        screen_swipe_back_ignore(user_ta, true);
+        ta_y_offset = 142;  // 用户名框占了位置，密码框下移
+    } else {
+        s_ui.pwd_username = nullptr;
+    }
+
     // 密码输入框
     lv_obj_t* ta = lv_textarea_create(card);
     s_ui.pwd_textarea = ta;
-    lv_obj_set_size(ta, kPanelW - 60 - 40, 60);
-    lv_obj_align(ta, LV_ALIGN_TOP_LEFT, 0, 92);
+    lv_obj_set_size(ta, kPanelW - 60 - 40, 50);
+    lv_obj_align(ta, LV_ALIGN_TOP_LEFT, 0, ta_y_offset);
     lv_textarea_set_one_line(ta, true);
     lv_textarea_set_password_mode(ta, true);
     lv_textarea_set_max_length(ta, kMaxPasswordLen);
@@ -1084,7 +1161,9 @@ void open_password_popup(const std::string& ssid, wifi_auth_mode_t authmode) {
     lv_obj_set_style_bg_color(ta, lv_color_hex(0x121726), LV_PART_MAIN);
     lv_obj_set_style_text_color(ta, lv_color_hex(kColorText), LV_PART_MAIN);
     lv_obj_set_style_radius(ta, 10, LV_PART_MAIN);
-    lv_obj_add_state(ta, LV_STATE_FOCUSED);
+    if (!is_enterprise) {
+        lv_obj_add_state(ta, LV_STATE_FOCUSED);
+    }
     screen_swipe_back_ignore(ta, true);
 
     // 显示密码 checkbox
@@ -1145,6 +1224,7 @@ void close_password_popup() {
     }
     s_ui.pwd_overlay  = nullptr;
     s_ui.pwd_textarea = nullptr;
+    s_ui.pwd_username = nullptr;
     s_ui.pwd_keyboard = nullptr;
     s_ui.pwd_title    = nullptr;
     s_ui.pwd_show_chk = nullptr;

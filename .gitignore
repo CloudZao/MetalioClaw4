@@ -20,11 +20,12 @@ main/mmap_generate_emoji.h
 !wakeword/*.bin
 !esp_claw_bin/
 !esp_claw_bin/*.bin
-# 合成完整固件输出目录（merge_firmware.sh）
+# 合成版本固件目录（不含 Latest）
 firmware/
 mmap_generate_*.h
 .clangd
 patch_esp_ml307_http_log.py
 sync-from-xingzhi.sh
 git-commit.sh
+merge_firmware.sh
 local-changes-summary.md

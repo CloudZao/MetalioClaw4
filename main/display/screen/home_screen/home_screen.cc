@@ -34,6 +34,7 @@
 #include "level_screen/level_screen.h"
 #include "magnet_screen/magnet_screen.h"
 #include "music_screen/music_screen.h"
+#include "radio_screen/radio_screen.h"
 #include "openclaw_screen/openclaw_screen.h"
 #include "pwr_key_handler.h"
 #include "screen_util.h"
@@ -121,6 +122,16 @@ void music_lifecycle_cb(screen_lifecycle_event_t event) {
         ESP_LOGI(TAG_HOME, "unload: music_screen");
     }
     MusicScreen::LifecycleCallback(event);
+}
+
+void radio_lifecycle_cb(screen_lifecycle_event_t event) {
+    PwrKey_OnScreenLifecycle("radio", event);
+    if (event == SCREEN_LIFECYCLE_LOAD) {
+        ESP_LOGI(TAG_HOME, "load: radio_screen");
+    } else {
+        ESP_LOGI(TAG_HOME, "unload: radio_screen");
+    }
+    RadioScreen::LifecycleCallback(event);
 }
 
 void weather_lifecycle_cb(screen_lifecycle_event_t event) {
@@ -368,6 +379,16 @@ void LaunchCalendar(screen_lifecycle_cb_t lifecycle_cb) {
 void LaunchMusic(screen_lifecycle_cb_t lifecycle_cb) {
     lv_obj_t* old_scr = lv_screen_active();
     lv_obj_t* app = MusicScreen::Create();
+    screen_attach_lifecycle(app, lifecycle_cb);
+    lv_screen_load(app);
+    if (old_scr != nullptr && old_scr != app) {
+        lv_obj_delete_async(old_scr);
+    }
+}
+
+void LaunchRadio(screen_lifecycle_cb_t lifecycle_cb) {
+    lv_obj_t* old_scr = lv_screen_active();
+    lv_obj_t* app = RadioScreen::Create();
     screen_attach_lifecycle(app, lifecycle_cb);
     lv_screen_load(app);
     if (old_scr != nullptr && old_scr != app) {
@@ -734,6 +755,7 @@ constexpr AppEntry kApps[] = {
     {"theme",          "主题",     LaunchTheme,         theme_lifecycle_cb},
     {"test",           "测试",     LaunchTest,          test_lifecycle_cb},
     {"settings",       "设置",     LaunchSettings,      settings_lifecycle_cb},
+    {"radio",       "电台",     LaunchRadio,      radio_lifecycle_cb},
 };
 
 constexpr int kTotalApps = static_cast<int>(sizeof(kApps) / sizeof(kApps[0]));

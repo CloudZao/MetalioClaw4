@@ -20,6 +20,7 @@
 #include "ssid_manager.h"
 #include "wifi_station.h"
 
+#include "application.h"
 #include "board.h"
 #include "dual_network_board.h"
 #include "nt26_board.h"
@@ -1223,10 +1224,11 @@ void open_connecting_popup(const std::string& ssid) {
 }
 
 void reboot_task(void* /*arg*/) {
-    ESP_LOGI(TAG, "wifi configured -> esp_restart");
+    ESP_LOGI(TAG, "network config done -> Application::Reboot()");
     // 给 LVGL 一点点时间把 「正在重启…」 渲染出来
     vTaskDelay(pdMS_TO_TICKS(200));
-    esp_restart();
+    // 走 App 重启：先关背光再 esp_restart，避免过渡花屏
+    Application::GetInstance().Reboot();
 }
 
 void restart_timer_cb(lv_timer_t* /*timer*/) {

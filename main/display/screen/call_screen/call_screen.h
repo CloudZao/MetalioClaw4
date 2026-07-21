@@ -8,9 +8,9 @@ public:
     // Create a 720x720 fullscreen phone-dialer page.
     // Returns a new LVGL screen object (parent = NULL); the caller is
     // responsible for loading it via lv_screen_load().
-    // The page contains a dial keypad (1-9, *, 0, #), a number display, a
-    // backspace button, a call (拨打) button, a hangup (挂断) button, and a
-    // "返回" button that navigates back to HomeScreen.
+    // The page contains a dial keypad (1-9, 0 centered) with a larger
+    // call/hangup button at the bottom-right, a number display, a backspace
+    // button, and a back button that navigates back to HomeScreen.
     static lv_obj_t* Create();
 
     // 进入 / 退出拨号界面时切换 IOExpander::PA_SWITCH：

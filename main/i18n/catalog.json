@@ -2120,6 +2120,21 @@
       "en-US": "No files on SD card"
     },
     {
+      "key": "THIS_FOLDER_EMPTY",
+      "zh-CN": "此文件夹为空",
+      "en-US": "This folder is empty"
+    },
+    {
+      "key": "CANNOT_OPEN_FILE",
+      "zh-CN": "无法打开文件",
+      "en-US": "Cannot open file"
+    },
+    {
+      "key": "FILE_TOO_LARGE_TRUNCATED",
+      "zh-CN": "文件过大，已截断显示",
+      "en-US": "File too large, truncated"
+    },
+    {
       "key": "SIM_SWITCH_FAILED",
       "zh-CN": "SIM 卡切换失败",
       "en-US": "SIM switch failed"
@@ -2968,6 +2983,31 @@
       "key": "USB_VD_FILES_LOCKED",
       "zh-CN": "SD 正被电脑占用，停用或弹出后可浏览",
       "en-US": "SD is in use by the PC; eject or disable to browse"
+    },
+    {
+      "key": "RADIO",
+      "zh-CN": "电台",
+      "en-US": "Radio"
+    },
+    {
+      "key": "SATELLITE_VOICE",
+      "zh-CN": "卫星之声",
+      "en-US": "Satellite Radio"
+    },
+    {
+      "key": "PLAYING_NOW",
+      "zh-CN": "正在播放",
+      "en-US": "Playing"
+    },
+    {
+      "key": "PAUSED",
+      "zh-CN": "已暂停",
+      "en-US": "Paused"
+    },
+    {
+      "key": "PLAY_FAILED",
+      "zh-CN": "播放失败",
+      "en-US": "Playback failed"
     }
   ]
 }

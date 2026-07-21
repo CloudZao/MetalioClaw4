@@ -22,6 +22,7 @@
 
 LV_FONT_DECLARE(font_puhui_30_4);
 LV_FONT_DECLARE(font_puhui_20_4);
+LV_FONT_DECLARE(font_puhui_number_50_4);
 
 // ---------------------------------------------------------------------------
 // 720x720 layout
@@ -29,15 +30,13 @@ LV_FONT_DECLARE(font_puhui_20_4);
 //  +-----------------------------------------------+ y=0
 //  |  [◀]  电话                                    |  header (h=88)
 //  +-----------------------------------------------+ y=88
-//  |              138 1234 5678          ⌫         |  number display (h=88)
+//  |              138 1234 5678          ⌫         |  number display (h=100)
 //  |              (status line)                     |
-//  +-----------------------------------------------+ y=176
+//  +-----------------------------------------------+ y=188
 //  |   [1]   [2 ABC]   [3 DEF]                      |
-//  |   [4 GHI] [5 JKL] [6 MNO]                      |  keypad 4x3
-//  |   [7 PQRS][8 TUV] [9 WXYZ]                     |  buttons d=96
-//  |   [*]    [0 +]    [#]                          |
-//  +-----------------------------------------------+ y=~586
-//  |         [  call/hangup btn  ]                  |  action bar (h=128)
+//  |   [4 GHI] [5 JKL] [6 MNO]                      |  digit grid 3x3
+//  |   [7 PQRS][8 TUV] [9 WXYZ]                     |  + 0 居中
+//  |            [0 +]              [ call / hangup ]|  拨打：右下角放大
 //  +-----------------------------------------------+ y=720
 // ---------------------------------------------------------------------------
 
@@ -49,20 +48,18 @@ constexpr int kPanelSize    = 720;
 constexpr int kPad          = 16;
 constexpr int kBackBtnSize  = 72;   // 与其他页面一致的返回按钮点击区域
 constexpr int kHeaderH      = 88;   // 容纳 72px 返回按钮 + 上下留白
-// 号码区略压缩，把空间让给拨号盘上移并与底部拨打键拉开间距。
-constexpr int kNumberAreaH  = 88;
+constexpr int kNumberAreaH  = 100;  // 容纳 50px 号码字 + 状态行
 constexpr int kKeypadY      = kHeaderH + kNumberAreaH;
-constexpr int kActionH      = 128;
-constexpr int kKeypadH      = kPanelSize - kKeypadY - kActionH;
-constexpr int kKeypadTopPad = 6;   // 拨号盘顶对齐，不再垂直居中下压
+constexpr int kKeypadH      = kPanelSize - kKeypadY;
+constexpr int kKeypadBottomPad = 16;  // 数字盘与底边留白（拨打键另计）
 
 // ----- number area sub-layout ----------------------------------------------
 // We hand-place the number label, the status line, and the backspace button
 // so the backspace's vertical center sits exactly on the number's vertical
 // center -- making the trio read as a single horizontal row.
-constexpr int kNumberLblTop = kHeaderH + 8;
-constexpr int kNumberLblH   = 44;                  // hugs the 30px font
-constexpr int kStatusLblTop = kNumberLblTop + kNumberLblH + 6;
+constexpr int kNumberLblTop = kHeaderH + 6;
+constexpr int kNumberLblH   = 56;                  // hugs the 50px number font
+constexpr int kStatusLblTop = kNumberLblTop + kNumberLblH + 4;
 constexpr int kStatusLblH   = 28;
 constexpr int kBackspaceBtnSize  = 80;             // visible diameter
 constexpr int kBackspaceClickExt = 16;             // adds 16px to every side
@@ -70,16 +67,16 @@ constexpr int kBackspaceClickExt = 16;             // adds 16px to every side
 constexpr int kBackspaceY   =
     kNumberLblTop + (kNumberLblH - kBackspaceBtnSize) / 2;  // 64
 
-constexpr int kKeypadRows   = 4;
+// 数字区：3 列 × 4 行（末行仅 0 居中）；拨打键贴屏幕右下角放大。
+constexpr int kDigitRows    = 4;
 constexpr int kKeypadCols   = 3;
-constexpr int kKeypadColGap = 40;
-constexpr int kKeypadRowGap = 6;
-constexpr int kKeypadHorPad = 80;  // outer padding inside the keypad strip
-constexpr int kKeyDiameter  = 96;  // circular digit buttons (was 80, ↑ 20%)
+constexpr int kKeypadColGap = 48;
+constexpr int kKeypadRowGap = 16;
+constexpr int kKeyDiameter  = 96;   // circular digit buttons
 
-// Action button (call / hangup) -- 贴近屏幕底部，与拨号盘留出空隙。
-constexpr int kActionBtnD          = 96;
-constexpr int kActionBtnBottomPad  = 18;
+// Action button (call / hangup) — 屏幕右下角，明显大于数字键。
+constexpr int kActionBtnD      = 128;
+constexpr int kActionEdgePad   = 28;  // 距右/底边
 
 // ----- iOS-inspired dark phone palette -------------------------------------
 constexpr uint32_t kColorBg            = 0x000000;
@@ -104,11 +101,12 @@ struct KeyDef {
     int row, col;
 };
 
+// 末行仅保留 0（中间列）；拨打键固定在屏幕右下角（见 BuildKeypad）。
 const KeyDef kKeys[] = {
     {"1", "",     0, 0}, {"2", "ABC",  0, 1}, {"3", "DEF",  0, 2},
     {"4", "GHI",  1, 0}, {"5", "JKL",  1, 1}, {"6", "MNO",  1, 2},
     {"7", "PQRS", 2, 0}, {"8", "TUV",  2, 1}, {"9", "WXYZ", 2, 2},
-    {"*", "",     3, 0}, {"0", "+",    3, 1}, {"#", "",     3, 2},
+    {"0", "+",    3, 1},
 };
 
 // ----- dialer state ---------------------------------------------------------
@@ -121,7 +119,7 @@ CallState      s_call_state;
 lv_obj_t* s_number_lbl;
 lv_obj_t* s_status_lbl;
 lv_obj_t* s_backspace_btn;
-lv_obj_t* s_action_btn;        // single circular button at bottom
+lv_obj_t* s_action_btn;        // 右下角：拨打 / 挂断
 lv_obj_t* s_action_icon;       // image inside action_btn (dial / hangup)
 
 // Tracks whether the call screen is currently mounted. lv_async_call() trampolines
@@ -573,7 +571,8 @@ void BuildNumberArea(lv_obj_t* parent) {
     lv_label_set_text(s_number_lbl, "");
     lv_obj_set_style_text_color(s_number_lbl,
                                 lv_color_hex(kColorTextPrimary), LV_PART_MAIN);
-    lv_obj_set_style_text_font(s_number_lbl, &font_puhui_30_4, LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_number_lbl, &font_puhui_number_50_4,
+                               LV_PART_MAIN);
     lv_obj_set_style_text_align(s_number_lbl, LV_TEXT_ALIGN_CENTER,
                                 LV_PART_MAIN);
     lv_label_set_long_mode(s_number_lbl, LV_LABEL_LONG_SCROLL);
@@ -638,25 +637,25 @@ void StyleKeyButton(lv_obj_t* btn) {
 }
 
 void BuildKeypad(lv_obj_t* parent) {
-    // Total used width inside the keypad strip:
-    //   3 * kKeyDiameter + 2 * kKeypadColGap = 3*96 + 2*40 = 368
-    // Total used height:
-    //   4 * kKeyDiameter + 3 * kKeypadRowGap = 4*96 + 3*6 = 402
-    // 顶对齐并留 kKeypadTopPad，避免拨号盘被垂直居中后贴住底部拨打键。
+    // 数字盘 3×4（0 居中），在号码区下方剩余高度内垂直居中。
+    // 拨打键贴右下角放大，与居中的 0 水平错开，不占数字盘行高。
+    // 宽：3*96 + 2*48 = 384；高：4*96 + 3*16 = 432
     const int row_w =
         kKeypadCols * kKeyDiameter + (kKeypadCols - 1) * kKeypadColGap;
-    const int col_h =
-        kKeypadRows * kKeyDiameter + (kKeypadRows - 1) * kKeypadRowGap;
+    const int digit_h =
+        kDigitRows * kKeyDiameter + (kDigitRows - 1) * kKeypadRowGap;
     const int x_origin = (kPanelSize - row_w) / 2;
-    const int y_origin = kKeypadY + kKeypadTopPad;
-    (void)kKeypadHorPad;  // not needed once we center exactly
+    const int avail_h  = kKeypadH - kKeypadBottomPad;
+    const int y_origin = kKeypadY + (avail_h - digit_h) / 2;
+    const int cell_step_x = kKeyDiameter + kKeypadColGap;
+    const int cell_step_y = kKeyDiameter + kKeypadRowGap;
 
     for (const auto& k : kKeys) {
         lv_obj_t* btn = lv_button_create(parent);
         lv_obj_set_size(btn, kKeyDiameter, kKeyDiameter);
         lv_obj_set_pos(btn,
-                       x_origin + k.col * (kKeyDiameter + kKeypadColGap),
-                       y_origin + k.row * (kKeyDiameter + kKeypadRowGap));
+                       x_origin + k.col * cell_step_x,
+                       y_origin + k.row * cell_step_y);
         StyleKeyButton(btn);
         lv_obj_add_event_cb(btn, KeyEventCb, LV_EVENT_CLICKED,
                             const_cast<KeyDef*>(&k));
@@ -682,12 +681,12 @@ void BuildKeypad(lv_obj_t* parent) {
             lv_obj_remove_flag(sub, LV_OBJ_FLAG_CLICKABLE);
         }
     }
-}
 
-void BuildActionBar(lv_obj_t* parent) {
+    // 拨打 / 挂断：贴屏幕右下角，直径 128 突出主操作。
     s_action_btn = lv_button_create(parent);
     lv_obj_set_size(s_action_btn, kActionBtnD, kActionBtnD);
-    lv_obj_align(s_action_btn, LV_ALIGN_BOTTOM_MID, 0, -kActionBtnBottomPad);
+    lv_obj_align(s_action_btn, LV_ALIGN_BOTTOM_RIGHT,
+                 -kActionEdgePad, -kActionEdgePad);
     lv_obj_set_style_radius(s_action_btn, LV_RADIUS_CIRCLE, LV_PART_MAIN);
     lv_obj_set_style_border_width(s_action_btn, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_width(s_action_btn, 0, LV_PART_MAIN);
@@ -719,7 +718,6 @@ lv_obj_t* CallScreen::Create() {
     BuildHeader(scr);
     BuildNumberArea(scr);
     BuildKeypad(scr);
-    BuildActionBar(scr);
 
     RefreshNumberDisplay();
     RefreshActionButton();

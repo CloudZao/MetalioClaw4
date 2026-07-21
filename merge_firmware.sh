@@ -1,13 +1,52 @@
 #!/usr/bin/env bash
 # 编译并合成 Metalio Claw4 完整固件：
 #   build/（不含唤醒词） + wakeword/srmodels.bin + esp_claw_bin/
-# 输出：firmware/Metalio_Claw4_{PROJECT_VER}.bin
+# 输出：firmware/Metalio_Claw4_{PROJECT_VER}.bin + 根目录 Metalio_Claw4_Latest.bin
+#
+# 用法:
+#   ./merge_firmware.sh           # 仅编译+合并（默认不上传）
+#   ./merge_firmware.sh --upload  # 合并后上传到服务器
+#   ./merge_firmware.sh -u
+#   IDF_PATH=~/esp/v5.5.4 ./merge_firmware.sh --upload
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 FIRMWARE_DIR="firmware"
+DO_UPLOAD=0
+
+usage() {
+  cat <<'EOF'
+用法: ./merge_firmware.sh [选项]
+
+  默认只编译并合并固件，不上传。
+
+选项:
+  -u, --upload   合并完成后上传 Metalio_Claw4_Latest.bin
+  -h, --help     显示帮助
+EOF
+}
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -u|--upload)
+        DO_UPLOAD=1
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "未知参数: $1" >&2
+        usage >&2
+        exit 1
+        ;;
+    esac
+  done
+}
 
 # ---------- IDF 环境 ----------
 # 优先使用已激活环境；否则按候选路径 source export.sh。
@@ -128,6 +167,58 @@ collect_merge_args() {
   fi
 }
 
+# ---------- 上传固件 ----------
+# 上传到 Metalio 固件仓库（可能需 30~40s+）
+upload_firmware() {
+  local file="$1"
+  local url="${FIRMWARE_UPLOAD_URL:-https://metalio.cloudzao.cn/xiaozhi/api/firmware-repos/manage/6a86c9c193fa69b2e9a1b7216f810148/upload}"
+  local version_number
+  version_number="$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)"
+
+  echo "[upload] versionNumber=${version_number}"
+  echo "[upload] POST ${url}"
+
+  local tmp_body http_code
+  tmp_body="$(mktemp)"
+  # 上传较慢，连接 30s、整体 180s
+  http_code="$(
+    curl --silent --show-error --location --request POST "$url" \
+      --connect-timeout 30 \
+      --max-time 180 \
+      --header 'Accept: */*' \
+      --form "file=@${file}" \
+      --form "versionNumber=${version_number}" \
+      --write-out '%{http_code}' \
+      --output "$tmp_body"
+  )"
+
+  echo "[upload] HTTP ${http_code}"
+  echo "[upload] response:"
+  if command -v jq >/dev/null 2>&1; then
+    jq . "$tmp_body" 2>/dev/null || cat "$tmp_body"
+  else
+    cat "$tmp_body"
+  fi
+  echo
+
+  local code=""
+  if command -v jq >/dev/null 2>&1; then
+    code="$(jq -r '.code // empty' "$tmp_body" 2>/dev/null || true)"
+  else
+    code="$(sed -n 's/.*"code"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$tmp_body" | head -1)"
+  fi
+
+  if [[ "$http_code" == "200" && "$code" == "0" ]]; then
+    echo "[upload] 上传成功"
+    rm -f "$tmp_body"
+    return 0
+  fi
+
+  echo "[upload] 上传失败" >&2
+  rm -f "$tmp_body"
+  return 1
+}
+
 # ---------- 主流程 ----------
 main() {
   setup_idf
@@ -164,6 +255,13 @@ main() {
   size="$(wc -c < "$out" | tr -d ' ')"
   echo "[done] ${SCRIPT_DIR}/${out} (${size} bytes)"
   echo "[done] ${SCRIPT_DIR}/${latest}"
+
+  if [[ "$DO_UPLOAD" -eq 1 ]]; then
+    upload_firmware "$latest"
+  else
+    echo "[upload] 已跳过（需要上传请加 -u / --upload）"
+  fi
 }
 
-main "$@"
+parse_args "$@"
+main

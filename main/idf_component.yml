@@ -108,6 +108,11 @@ dependencies:
   espressif/esp_audio_simple_player: ^0.9.6~1
   espressif/gmf_audio: ^0.8.1
   espressif/gmf_io: ^0.8.0
+  # HLS（m3u8）电台：为 esp_audio_simple_player 注册 io_hls
+  # 钉 1.0.2：1.0.3 要求 gmf_io^1.0，与本工程 gmf_io^0.8 / simple_player 不兼容
+  espressif/esp_hls_stream: ==1.0.2
+  # 电台页频谱律动（Q15 实数 FFT）
+  espressif/gmf_fft: ^1.0.0
   # SD 卡页虚拟 U 盘（TinyUSB MSC）；仅 P4 板使用 GPIO24/25 与 USJ 切换
   espressif/esp_tinyusb:
     version: ^2.0.0

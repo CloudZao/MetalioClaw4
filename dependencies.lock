@@ -303,6 +303,13 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 1.5.4
+  espressif/esp_extractor:
+    component_hash: a0a68d2ec10e63dc6e4f0c8bfc9e6bbc8aa9673dd6c443f335b2013f9197a8b8
+    dependencies: []
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 1.0.3
   espressif/esp_h264:
     component_hash: 40cb64e697a8cfd787453165f6ce54e1fb8601844448eb073d677b9f9fde071e
     dependencies:
@@ -316,6 +323,25 @@ dependencies:
     - esp32s3
     - esp32p4
     version: 1.3.0
+  espressif/esp_hls_stream:
+    component_hash: b4202f5e93987ccbe82d0e22829bb42cad7c259d47e3638ea9ea5cf88916ec27
+    dependencies:
+    - name: espressif/esp_extractor
+      registry_url: https://components.espressif.com
+      require: private
+      version: ^1.0.0
+    - name: espressif/gmf_io
+      registry_url: https://components.espressif.com
+      require: private
+      version: ~0.8
+    - name: espressif/media_lib_sal
+      registry_url: https://components.espressif.com
+      require: private
+      version: '*'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.0.2
   espressif/esp_hosted:
     component_hash: e23eb702781c804a62909e5394da0641a2bff9adccec6673a7bff60ce8c8b756
     dependencies:
@@ -947,7 +973,7 @@ dependencies:
     component_hash: b59451ef2f96d22b80c27a162515b21f1b85954dda434c0b092172164028779d
     dependencies: []
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.0.0
   espressif/gmf_io:
@@ -1031,6 +1057,16 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 1.6.58
+  espressif/media_lib_sal:
+    component_hash: af39cd5a569f9125ae4782609cd60a2449887df675cba2359a426d480bb560d1
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.1'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 1.0.2
   espressif/tinyusb:
     component_hash: a72b7d67472914ab76309340fd50d578b31e310963d45ad0f81144bde3314752
     dependencies:
@@ -1215,6 +1251,7 @@ direct_dependencies:
 - espressif/esp32_p4_function_ev_board
 - espressif/esp_audio_simple_player
 - espressif/esp_codec_dev
+- espressif/esp_hls_stream
 - espressif/esp_hosted
 - espressif/esp_image_effects
 - espressif/esp_io_expander_tca9554
@@ -1243,6 +1280,7 @@ direct_dependencies:
 - espressif/esp_video
 - espressif/esp_wifi_remote
 - espressif/gmf_audio
+- espressif/gmf_fft
 - espressif/gmf_io
 - espressif/iot_eth
 - espressif/knob
@@ -1256,6 +1294,6 @@ direct_dependencies:
 - waveshare/esp_lcd_sh8601
 - waveshare/esp_lcd_st7703
 - waveshare/esp_lcd_touch_cst9217
-manifest_hash: 35d40df395128a794f2000cd8f049d307ad6daa1625e9567c2d15ae542b5f787
+manifest_hash: e490f36617d35a78564a2b3d2b4d34553098cf7318423ea77d322492893925eb
 target: esp32p4
 version: 2.0.0

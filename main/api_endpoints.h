@@ -84,6 +84,21 @@ constexpr const char* kOpenClawRemoveAll =
 constexpr const char* kOpenClawConversationDeleteFmt =
     "/api/v1/conversation/delete/%s";
 
+// ASR
+constexpr const char* kAsrTranscribe = "/api/v1/asr/transcribe";
+constexpr const char* kAsrAudioRecords =
+    "/api/v1/asr/audio-records?originalName=";
+// 设备侧原始 WAV 转写（octet-stream body）
+constexpr const char* kXiaozhiAsrWav = "/xiaozhi/api/asr?format=wav";
+
+// DashScope 文生图
+constexpr const char* kText2Image = "/xiaozhi/api/dashscope/text2image";
+constexpr const char* kText2ImageTaskFmt =
+    "/xiaozhi/api/dashscope/text2image/tasks/%s?maxSide=450";
+
+// Sonicloud 实时同声传译：换 Token，返回 data.wsUrl
+constexpr const char* kSinicloudToken = "/xiaozhi/api/sinicloud/token";
+
 // Weather
 constexpr const char* kWeatherDistrictPath =
     "/api/v1/weather/district?dataType=all&districtId=";
@@ -114,6 +129,19 @@ inline std::string OpenClawConversationDeleteUrl(
     char path[192];
     std::snprintf(path, sizeof(path), kOpenClawConversationDeleteFmt,
                   conversation_id.c_str());
+    return Url(path);
+}
+
+inline std::string AsrAudioRecordsUrl(const char* original_name) {
+    if (original_name == nullptr || original_name[0] == '\0') {
+        return Url(kAsrAudioRecords);
+    }
+    return Url(kAsrAudioRecords) + original_name;
+}
+
+inline std::string Text2ImageTaskUrl(const std::string& task_id) {
+    char path[192];
+    std::snprintf(path, sizeof(path), kText2ImageTaskFmt, task_id.c_str());
     return Url(path);
 }
 

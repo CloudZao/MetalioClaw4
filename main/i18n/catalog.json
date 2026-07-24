@@ -1285,6 +1285,11 @@
       "en-US": "GPS location"
     },
     {
+      "key": "GPS_OUTDOOR_HINT",
+      "zh-CN": "请到室外空旷位置，室内无法 GPS 定位",
+      "en-US": "Go outdoors to open sky; GPS does not work indoors"
+    },
+    {
       "key": "THEME_D",
       "zh-CN": "主题 %d",
       "en-US": "Theme %d"
@@ -2840,6 +2845,16 @@
       "en-US": "Avatar resources missing\n\nCopy the pack to SD card\nsystem/emotion/\n\nRequires 6 emotion files"
     },
     {
+      "key": "EMOTION",
+      "zh-CN": "表情",
+      "en-US": "Emotion"
+    },
+    {
+      "key": "CHAT_EMOTION_NO_SD_HINT",
+      "zh-CN": "未检测到 SD 卡\n\n请将聊天表情资源放入 SD 卡\nsystem/chat/ 目录",
+      "en-US": "SD card not detected\n\nPut chat emotion files on the SD card under\nsystem/chat/"
+    },
+    {
       "key": "WEEKDAY_MONDAY",
       "zh-CN": "星期一",
       "en-US": "Mon"
@@ -3008,6 +3023,506 @@
       "key": "PLAY_FAILED",
       "zh-CN": "播放失败",
       "en-US": "Playback failed"
+    },
+    {
+      "key": "SELECT_RADIO_STATION",
+      "zh-CN": "选择电台",
+      "en-US": "Select station"
+    },
+    {
+      "key": "RADIO_DATA_HINT",
+      "zh-CN": "请勿在 4G 模式下使用电台，非常消耗流量，请在 WiFi 下使用",
+      "en-US": "Avoid radio on 4G — it uses a lot of data. Use WiFi instead."
+    },
+    {
+      "key": "RECORDING",
+      "zh-CN": "录音",
+      "en-US": "Recording"
+    },
+    {
+      "key": "START_RECORDING",
+      "zh-CN": "开始录音",
+      "en-US": "Start recording"
+    },
+    {
+      "key": "STOP_RECORDING",
+      "zh-CN": "结束录音",
+      "en-US": "Stop recording"
+    },
+    {
+      "key": "SAVING_ELLIPSIS",
+      "zh-CN": "保存中…",
+      "en-US": "Saving…"
+    },
+    {
+      "key": "RECORDING_IN_PROGRESS",
+      "zh-CN": "正在录音…",
+      "en-US": "Recording…"
+    },
+    {
+      "key": "TAP_TO_START_RECORDING",
+      "zh-CN": "点击下方按钮开始录音（最长 %d 分钟）",
+      "en-US": "Tap below to start (max %d min)"
+    },
+    {
+      "key": "RECORDING_IN_PROGRESS_MAX",
+      "zh-CN": "正在录音…（最长 %d 分钟）",
+      "en-US": "Recording… (max %d min)"
+    },
+    {
+      "key": "RECORD_MAX_REACHED_SAVED",
+      "zh-CN": "已达最长 %d 分钟，已自动保存",
+      "en-US": "Reached max %d min, auto-saved"
+    },
+    {
+      "key": "OPUS_SAVE_DIR",
+      "zh-CN": "单次最长 %d 分钟 · Opus：/sdcard/recordings",
+      "en-US": "Max %d min · Opus: /sdcard/recordings"
+    },
+    {
+      "key": "NO_RECORDINGS",
+      "zh-CN": "暂无录音",
+      "en-US": "No recordings"
+    },
+    {
+      "key": "TAP_TO_PLAY",
+      "zh-CN": "点击播放",
+      "en-US": "Tap to play"
+    },
+    {
+      "key": "NO_SD_FOR_RECORDING",
+      "zh-CN": "未检测到 SD 卡\n\n请插入 SD 卡后再使用录音功能",
+      "en-US": "No SD card detected\n\nInsert an SD card to use recording"
+    },
+    {
+      "key": "CANNOT_CREATE_RECORDINGS_DIR",
+      "zh-CN": "无法创建录音目录",
+      "en-US": "Cannot create recordings folder"
+    },
+    {
+      "key": "AUDIO_NOT_READY",
+      "zh-CN": "音频未就绪",
+      "en-US": "Audio not ready"
+    },
+    {
+      "key": "AUDIO_BUSY_TRY_LATER",
+      "zh-CN": "音频忙，稍后再试",
+      "en-US": "Audio busy, try later"
+    },
+    {
+      "key": "RECORD_TASK_START_FAILED",
+      "zh-CN": "录音任务启动失败",
+      "en-US": "Failed to start recording"
+    },
+    {
+      "key": "CANNOT_OPEN_RECORDING",
+      "zh-CN": "无法打开录音文件",
+      "en-US": "Cannot open recording"
+    },
+    {
+      "key": "RECORDING_FILE_CORRUPT",
+      "zh-CN": "录音文件损坏",
+      "en-US": "Recording file is corrupt"
+    },
+    {
+      "key": "PLAYBACK_ENDED",
+      "zh-CN": "播放结束",
+      "en-US": "Playback finished"
+    },
+    {
+      "key": "FINISH_RECORDING_FIRST",
+      "zh-CN": "请先结束录音",
+      "en-US": "Stop recording first"
+    },
+    {
+      "key": "PLAY_TASK_START_FAILED",
+      "zh-CN": "播放任务启动失败",
+      "en-US": "Failed to start playback"
+    },
+    {
+      "key": "PLAYBACK_STOPPED",
+      "zh-CN": "已停止播放",
+      "en-US": "Playback stopped"
+    },
+    {
+      "key": "DELETED",
+      "zh-CN": "已删除",
+      "en-US": "Deleted"
+    },
+    {
+      "key": "PLEASE_WAIT",
+      "zh-CN": "请稍候",
+      "en-US": "Please wait"
+    },
+    {
+      "key": "DURATION_SIZE_TAP_TO_VIEW",
+      "zh-CN": "时长 %s · %s · 点击查看",
+      "en-US": "Duration %s · %s · Tap to open"
+    },
+    {
+      "key": "SIZE_MB",
+      "zh-CN": "%.2f MB",
+      "en-US": "%.2f MB"
+    },
+    {
+      "key": "SIZE_KB",
+      "zh-CN": "%.1f KB",
+      "en-US": "%.1f KB"
+    },
+    {
+      "key": "SIZE_B",
+      "zh-CN": "%u B",
+      "en-US": "%u B"
+    },
+    {
+      "key": "DURATION_SIZE",
+      "zh-CN": "时长 %s · %s",
+      "en-US": "Duration %s · %s"
+    },
+    {
+      "key": "PLAY",
+      "zh-CN": "播放",
+      "en-US": "Play"
+    },
+    {
+      "key": "STOP_PLAYBACK",
+      "zh-CN": "停止播放",
+      "en-US": "Stop"
+    },
+    {
+      "key": "ASR_TRANSCRIBE",
+      "zh-CN": "录音转写",
+      "en-US": "Transcribe"
+    },
+    {
+      "key": "FULL_TEXT",
+      "zh-CN": "全文",
+      "en-US": "Transcript"
+    },
+    {
+      "key": "AUDIO_DURATION_SEC",
+      "zh-CN": "音频时长：%.1f 秒",
+      "en-US": "Duration: %.1f s"
+    },
+    {
+      "key": "DIALOGUE",
+      "zh-CN": "对话",
+      "en-US": "Dialogue"
+    },
+    {
+      "key": "SUMMARY",
+      "zh-CN": "摘要",
+      "en-US": "Summary"
+    },
+    {
+      "key": "ASR_EMPTY",
+      "zh-CN": "转写成功，但没有可显示的内容",
+      "en-US": "Transcribed, but nothing to show"
+    },
+    {
+      "key": "READ_RECORDING_FAILED",
+      "zh-CN": "读取录音失败",
+      "en-US": "Failed to read recording"
+    },
+    {
+      "key": "RECORDING_TOO_LARGE",
+      "zh-CN": "录音文件过大或无效",
+      "en-US": "Recording too large or invalid"
+    },
+    {
+      "key": "TRANSCRIBING",
+      "zh-CN": "正在转写…",
+      "en-US": "Transcribing…"
+    },
+    {
+      "key": "ASR_UPLOADING",
+      "zh-CN": "正在上传…",
+      "en-US": "Uploading…"
+    },
+    {
+      "key": "ASR_UPLOAD_OK_WAIT",
+      "zh-CN": "上传成功，请稍后来查看转写结果，勿反复上传",
+      "en-US": "Uploaded. Check back later for the transcript; don't re-upload."
+    },
+    {
+      "key": "ASR_PROCESSING_WAIT",
+      "zh-CN": "转写处理中，请稍后",
+      "en-US": "Transcription in progress, please wait"
+    },
+    {
+      "key": "ASR_REQUEST_FAILED",
+      "zh-CN": "转写请求失败",
+      "en-US": "Transcription request failed"
+    },
+    {
+      "key": "ASR_HTTP_FAIL",
+      "zh-CN": "转写失败（HTTP %d）",
+      "en-US": "Transcription failed (HTTP %d)"
+    },
+    {
+      "key": "ASR_PARSE_FAILED",
+      "zh-CN": "转写结果解析失败",
+      "en-US": "Failed to parse transcription"
+    },
+    {
+      "key": "ASR_FAILED",
+      "zh-CN": "转写失败",
+      "en-US": "Transcription failed"
+    },
+    {
+      "key": "ASR_DONE",
+      "zh-CN": "转写完成",
+      "en-US": "Transcription complete"
+    },
+    {
+      "key": "ASR_TASK_START_FAILED",
+      "zh-CN": "转写任务启动失败",
+      "en-US": "Failed to start transcription"
+    },
+    {
+      "key": "ASR_HINT",
+      "zh-CN": "点击「录音转写」上传，稍后再进详情查看结果",
+      "en-US": "Tap Transcribe to upload, then reopen detail later for the result"
+    },
+    {
+      "key": "AI_IMAGE_GEN",
+      "zh-CN": "AI生图",
+      "en-US": "AI Image"
+    },
+    {
+      "key": "AI_IMAGE_COUNT",
+      "zh-CN": "生成图片数量",
+      "en-US": "Image count"
+    },
+    {
+      "key": "AI_IMAGE_PROCESSING",
+      "zh-CN": "处理中...",
+      "en-US": "Processing..."
+    },
+    {
+      "key": "AI_IMAGE_PROMPT_HINT",
+      "zh-CN": "按住说话，说出想画的内容",
+      "en-US": "Hold to talk and describe what to draw"
+    },
+    {
+      "key": "AI_IMAGE_RECOGNIZING",
+      "zh-CN": "识别中…",
+      "en-US": "Recognizing…"
+    },
+    {
+      "key": "AI_IMAGE_RECOGNIZE_FAILED",
+      "zh-CN": "识别失败: ",
+      "en-US": "Recognition failed: "
+    },
+    {
+      "key": "AI_IMAGE_NO_TEXT",
+      "zh-CN": "未识别到有效文字",
+      "en-US": "No valid text recognized"
+    },
+    {
+      "key": "AI_IMAGE_GENERATING",
+      "zh-CN": "正在生成图片…",
+      "en-US": "Generating images…"
+    },
+    {
+      "key": "AI_IMAGE_PARSE_CREATE_FAILED",
+      "zh-CN": "生图响应解析失败",
+      "en-US": "Failed to parse image response"
+    },
+    {
+      "key": "AI_IMAGE_CREATE_FAILED",
+      "zh-CN": "生图请求失败",
+      "en-US": "Image request failed"
+    },
+    {
+      "key": "AI_IMAGE_MISSING_TASK_ID",
+      "zh-CN": "缺少 taskId",
+      "en-US": "Missing taskId"
+    },
+    {
+      "key": "AI_IMAGE_PARSE_TASK_FAILED",
+      "zh-CN": "任务状态解析失败",
+      "en-US": "Failed to parse task status"
+    },
+    {
+      "key": "AI_IMAGE_QUERY_TASK_FAILED",
+      "zh-CN": "查询任务失败",
+      "en-US": "Failed to query task"
+    },
+    {
+      "key": "AI_IMAGE_GEN_FAILED",
+      "zh-CN": "生图失败",
+      "en-US": "Image generation failed"
+    },
+    {
+      "key": "AI_IMAGE_GEN_FAILED_PREFIX",
+      "zh-CN": "生图失败: ",
+      "en-US": "Image generation failed: "
+    },
+    {
+      "key": "AI_IMAGE_GENERATING_SIMPLE",
+      "zh-CN": "生成中…",
+      "en-US": "Generating…"
+    },
+    {
+      "key": "AI_IMAGE_GENERATING_ELAPSED",
+      "zh-CN": "生成中… 已用时 %d 秒",
+      "en-US": "Generating… %d s"
+    },
+    {
+      "key": "AI_IMAGE_GENERATING_ELAPSED_0",
+      "zh-CN": "生成中… 已用时 0 秒",
+      "en-US": "Generating… 0 s"
+    },
+    {
+      "key": "AI_IMAGE_GENERATING_N",
+      "zh-CN": "生成中… (%d)",
+      "en-US": "Generating… (%d)"
+    },
+    {
+      "key": "AI_IMAGE_TIMEOUT",
+      "zh-CN": "生成超时，请重试",
+      "en-US": "Timed out, please retry"
+    },
+    {
+      "key": "AI_IMAGE_DOWNLOADING",
+      "zh-CN": "下载图片中…",
+      "en-US": "Downloading images…"
+    },
+    {
+      "key": "AI_IMAGE_DOWNLOADING_SIMPLE",
+      "zh-CN": "下载中…",
+      "en-US": "Downloading…"
+    },
+    {
+      "key": "AI_IMAGE_DOWNLOADING_N",
+      "zh-CN": "下载图片 %d/%d…",
+      "en-US": "Downloading %d/%d…"
+    },
+    {
+      "key": "AI_IMAGE_DOWNLOAD_FAILED",
+      "zh-CN": "图片下载失败",
+      "en-US": "Image download failed"
+    },
+    {
+      "key": "AI_IMAGE_NOT_IMAGE",
+      "zh-CN": "非图片响应",
+      "en-US": "Response is not an image"
+    },
+    {
+      "key": "AI_IMAGE_DONE",
+      "zh-CN": "生成完成，可继续说话",
+      "en-US": "Done. Hold to talk again"
+    },
+    {
+      "key": "AI_IMAGE_TASK_START_FAILED",
+      "zh-CN": "任务启动失败",
+      "en-US": "Failed to start task"
+    },
+    {
+      "key": "TRANSLATE",
+      "zh-CN": "翻译",
+      "en-US": "Translate"
+    },
+    {
+      "key": "TRANSLATE_LIVE",
+      "zh-CN": "实时翻译",
+      "en-US": "Live translate"
+    },
+    {
+      "key": "TRANSLATE_STOP",
+      "zh-CN": "停止翻译",
+      "en-US": "Stop translate"
+    },
+    {
+      "key": "TRANSLATE_STOPPING",
+      "zh-CN": "停止中…",
+      "en-US": "Stopping…"
+    },
+    {
+      "key": "TRANSLATE_CONNECTING",
+      "zh-CN": "连接中…",
+      "en-US": "Connecting…"
+    },
+    {
+      "key": "TRANSLATE_HINT",
+      "zh-CN": "选择语言后点击实时翻译",
+      "en-US": "Pick languages, then start"
+    },
+    {
+      "key": "TRANSLATE_SOURCE_HINT",
+      "zh-CN": "识别原文将显示在这里",
+      "en-US": "Recognized text appears here"
+    },
+    {
+      "key": "TRANSLATE_TRANS_HINT",
+      "zh-CN": "译文将显示在这里",
+      "en-US": "Translation appears here"
+    },
+    {
+      "key": "TRANSLATE_SOURCE_TITLE",
+      "zh-CN": "识别原文",
+      "en-US": "Source"
+    },
+    {
+      "key": "TRANSLATE_TRANS_TITLE",
+      "zh-CN": "译文",
+      "en-US": "Translation"
+    },
+    {
+      "key": "TRANSLATE_FETCHING_TOKEN",
+      "zh-CN": "获取令牌…",
+      "en-US": "Fetching token…"
+    },
+    {
+      "key": "TRANSLATE_TOKEN_FAILED",
+      "zh-CN": "获取令牌失败",
+      "en-US": "Token request failed"
+    },
+    {
+      "key": "TRANSLATE_CONNECT_FAILED",
+      "zh-CN": "连接失败",
+      "en-US": "Connection failed"
+    },
+    {
+      "key": "TRANSLATE_READY_TIMEOUT",
+      "zh-CN": "等待就绪超时",
+      "en-US": "Ready timeout"
+    },
+    {
+      "key": "TRANSLATE_IN_PROGRESS",
+      "zh-CN": "翻译中",
+      "en-US": "Translating"
+    },
+    {
+      "key": "TRANSLATE_STOPPED",
+      "zh-CN": "已停止",
+      "en-US": "Stopped"
+    },
+    {
+      "key": "TRANSLATE_ERROR",
+      "zh-CN": "翻译出错",
+      "en-US": "Translate error"
+    },
+    {
+      "key": "TRANSLATE_SAME_LANG",
+      "zh-CN": "源语言与目标语言不能相同",
+      "en-US": "Source and target must differ"
+    },
+    {
+      "key": "TRANSLATE_AUDIO_NOT_READY",
+      "zh-CN": "音频未就绪",
+      "en-US": "Audio not ready"
+    },
+    {
+      "key": "TRANSLATE_AUDIO_BUSY",
+      "zh-CN": "音频忙，稍后再试",
+      "en-US": "Audio busy, try later"
+    },
+    {
+      "key": "TRANSLATE_START_FAILED",
+      "zh-CN": "启动失败",
+      "en-US": "Failed to start"
     }
   ]
 }

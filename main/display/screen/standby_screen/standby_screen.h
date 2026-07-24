@@ -5,7 +5,7 @@
 
 class StandbyScreen {
 public:
-    // 全屏待机页：显示大号时分秒、日期星期、电量等；点击或侧面键短按返回首页。
+    // 全屏待机页：翻页时钟（时分秒）、日期星期、充电特效等；点击或侧面键短按返回首页。
     static lv_obj_t* Create();
     static void LifecycleCallback(screen_lifecycle_event_t event);
 

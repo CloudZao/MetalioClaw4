@@ -94,12 +94,6 @@ MusicUi s_ui;
 bool s_screen_active = false;
 std::string s_rx_buffer;
 
-// 音量调节：先 AT+VOLUME=1 查询，回包 AT+VOL=0~15；
-// 当前音量 > kVolMaxAllowed 时禁止 VOLUP，VOLDOWN 仍允许。
-constexpr int kVolMaxAllowed = 12;
-enum class PendingVol : uint8_t { None, Up, Down };
-PendingVol s_pending_vol = PendingVol::None;
-
 void sync_album_eaf(bool playing) {
     if (s_ui.album_eaf == nullptr) {
         return;
@@ -233,8 +227,6 @@ void post_lyric(const std::string& text) {
     lv_async_call(async_set_lyric, msg);
 }
 
-void send_at(const char* cmd);
-
 // ---------------------------------------------------------------------------
 // JSON 解析（极简）—— 只支持下面这两种行：
 //   {"type":"song",  "data":"..."}
@@ -302,55 +294,15 @@ void handle_play_state_line(const std::string& line) {
     }
 }
 
-// 解析 AT+VOL=N（N=0~15）。匹配行内子串，兼容前后杂音。
-bool parse_vol_reply(const std::string& line, int& out_vol) {
-    constexpr const char* kPrefix = "AT+VOL=";
-    size_t p = line.find(kPrefix);
-    if (p == std::string::npos) {
-        return false;
-    }
-    p += strlen(kPrefix);
-    if (p >= line.size() || line[p] < '0' || line[p] > '9') {
-        return false;
-    }
-    int vol = 0;
-    while (p < line.size() && line[p] >= '0' && line[p] <= '9') {
-        vol = vol * 10 + (line[p] - '0');
-        ++p;
-    }
-    out_vol = vol;
-    return true;
-}
-
-void handle_vol_reply(int vol) {
-    const PendingVol pending = s_pending_vol;
-    s_pending_vol = PendingVol::None;
-    if (pending == PendingVol::None) {
-        return;
-    }
-    ESP_LOGI(TAG, "AT+VOL=%d (pending %s)", vol,
-             pending == PendingVol::Up ? "UP" : "DOWN");
-    if (pending == PendingVol::Up && vol > kVolMaxAllowed) {
-        ESP_LOGW(TAG, "vol %d > %d, skip VOLUP", vol, kVolMaxAllowed);
-        return;
-    }
-    send_at(pending == PendingVol::Up ? "AT+VOLUP\r\n" : "AT+VOLDOWN\r\n");
-}
-
 void handle_line(const std::string& line) {
     if (line.empty()) {
         return;
     }
     if (line.front() == '{') {
         handle_json_line(line);
-        return;
+    } else {
+        handle_play_state_line(line);
     }
-    int vol = 0;
-    if (parse_vol_reply(line, vol)) {
-        handle_vol_reply(vol);
-        return;
-    }
-    handle_play_state_line(line);
 }
 
 void on_uart_data(const std::vector<uint8_t>& data) {
@@ -446,14 +398,8 @@ void OnPlayClicked(lv_event_t* /*e*/) {
     sync_album_eaf(want_playing);
 }
 
-// 音量加减：先查询当前音量，等 AT+VOL=N 回包后再决定是否下发 VOLUP/VOLDOWN。
-void request_vol_change(PendingVol dir) {
-    s_pending_vol = dir;
-    send_at("AT+VOLUME=1\r\n");
-}
-
-void OnVolDownClicked(lv_event_t* /*e*/) { request_vol_change(PendingVol::Down); }
-void OnVolUpClicked(lv_event_t* /*e*/) { request_vol_change(PendingVol::Up); }
+void OnVolDownClicked(lv_event_t* /*e*/) { send_at("AT+VOLDOWN\r\n"); }
+void OnVolUpClicked(lv_event_t* /*e*/) { send_at("AT+VOLUP\r\n"); }
 
 void OnSwipeBack() {
     lv_obj_t* old_scr = lv_screen_active();
@@ -466,7 +412,6 @@ void OnSwipeBack() {
 
 void OnScreenUnloaded(lv_event_t* /*e*/) {
     s_screen_active = false;
-    s_pending_vol = PendingVol::None;
     s_ui = MusicUi{};
 }
 
@@ -686,7 +631,6 @@ void MusicScreen::LifecycleCallback(screen_lifecycle_event_t event) {
         SimpleUart::getInstance().registerCallback(
             std::function<void(const std::vector<uint8_t>&)>());
         s_screen_active = false;
-        s_pending_vol = PendingVol::None;
         s_rx_buffer.clear();
         // 切回模式 1 同样需要 700ms 间隔，放后台 task 异步执行。
         xTaskCreate(switch_to_mode1_task, "mus_mode1", 4096, nullptr, 5, nullptr);

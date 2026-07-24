@@ -2419,6 +2419,12 @@ void BuildGpsTabContent(lv_obj_t* parent) {
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_set_scroll_dir(scroll, LV_DIR_VER);
 
+    lv_obj_t* outdoor_hint = MakeLabel(
+        scroll, I18n::T("请到室外空旷位置，室内无法 GPS 定位"),
+        &font_puhui_20_4, lv_color_hex(kColorSubtle), LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_width(outdoor_hint, kCardWidth);
+    lv_label_set_long_mode(outdoor_hint, LV_LABEL_LONG_WRAP);
+
     lv_obj_t* card = lv_obj_create(scroll);
     StripChrome(card);
     lv_obj_set_size(card, kCardWidth, kCardHeight);

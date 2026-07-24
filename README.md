@@ -32,7 +32,7 @@
 14. [Compilation and Flashing](#14-compilation-and-flashing)
 15. [Debugging and Common Issues](#15-debugging-and-common-issues)
 
-> Recent additions: **runtime UI i18n**, **standby screen**, **Settings / Test**, **ESPClaw dual-boot**, **SD virtual USB drive**, and related sections below.
+> Recent additions: **runtime UI i18n**, **standby screen**, **Settings / Test**, **ESPClaw dual-boot**, **SD virtual USB drive**, **chat emotion mode**, **internet radio**, **recording (Opus + ASR transcription)**, and related sections below.
 
 ---
 
@@ -168,12 +168,12 @@ Metalio Claw4 ships with 20+ built‑in apps. Developers can **mix, trim, or sec
 
 | Scenario (example)                                                               | Related Apps / Capabilities                                |
 |:-------------------------------------------------------------------------------- |:---------------------------------------------------------- |
-| SC7A20HTR (three-axis accelerometer)        QMC6309 (three-axis magnetic sensor) | Camera, Digital Human, SD‑Card Resource Management         |
-| **Conference Recording**                                                         | Chat, OpenClaw, Bluetooth Audio, Phone                     |
+| **Photo Learning**                                                               | Camera, Digital Human, SD‑Card Resource Management         |
+| **Conference Recording**                                                         | Chat, Recording (Opus + cloud ASR), OpenClaw, Bluetooth Audio, Phone |
 | **Smart Controller**                                                             | Voice dialogue + MCP protocol to control IoT devices       |
 | **Outdoor Navigation**                                                           | GPS positioning (GPS / Wi‑Fi / Base‑Station tabs), 4G data |
-| **Entertainment**                                                                | Music (Bluetooth speaker mode), Game, Theme Switching      |
-| **Development Debug**                                                            | Pin test, System Info, Magnet / Magnet / Level apps        |
+| **Entertainment**                                                                | Music (Bluetooth speaker), Radio (HLS), Game, Theme Switching |
+| **Development Debug**                                                            | Pin test, System Info, Magnet / Level apps                 |
 
 ---
 
@@ -182,7 +182,7 @@ Metalio Claw4 ships with 20+ built‑in apps. Developers can **mix, trim, or sec
 ```mermaid
 flowchart TB
     ui["User Interaction Layer<br/>720x720 LVGL 9 Touch UI · Voice Wake-up · Power Key PWR_KEY"]
-    apps["Application Layer<br/>Chat · OpenClaw · Camera · GPS · Weather · Music · Digital Human · ..."]
+    apps["Application Layer<br/>Chat · Radio · Recording · OpenClaw · Camera · GPS · Weather · Music · Digital Human · ..."]
     svc["Service Layer<br/>AudioService · GpsService · SdCardManager · MCP Server"]
     proto["Protocol Layer<br/>WebSocket · MQTT+UDP · OpenClaw HTTP API"]
     board["Board Abstraction<br/>DualNetworkBoard · Display · AudioCodec · Backlight · Gauge"]
@@ -214,7 +214,7 @@ flowchart LR
     llm --> tts["TTS"]
     tts --> rx["Device receives audio stream"]
     rx --> spk["I2S speaker playback"]
-    rx --> lvgl["LVGL UI updates<br/>chat bubbles / digital-human expressions"]
+    rx --> lvgl["LVGL UI updates<br/>chat bubbles / chat emotion EAF / digital-human expressions"]
 ```
 
 ---
@@ -519,7 +519,7 @@ Home‑screen app list (`home_screen.cc` → `kApps[]`):
 
 | App            | ID               | Description                                                              |
 |:-------------- |:---------------- |:------------------------------------------------------------------------ |
-| Chat           | `chat`           | XiaoZhi AI voice conversation                                            |
+| Chat           | `chat`           | XiaoZhi AI voice chat; **text bubbles** or **EAF emotion** view (§11.1)  |
 | Network Config | `wifi`           | Wi‑Fi / 4G switch, SIM swap (internal / external)                        |
 | Digital Human  | `digital_people` | SD‑card SJPG expression animation                                        |
 | Phone          | `call`           | 4G calls (**external SIM only**)                                         |
@@ -541,6 +541,8 @@ Home‑screen app list (`home_screen.cc` → `kApps[]`):
 | Theme          | `theme`          | Four icon‑theme packs                                                    |
 | Test           | `test`           | Factory entry: auto test, stress test, hardware tests, etc.              |
 | Settings       | `settings`       | Volume / brightness / standby / **language (zh/en)** / Bluetooth modes |
+| Radio          | `radio`          | Internet HLS radio + spectrum visualizer (§11.2)                         |
+| Recording      | `recording`      | SD Opus record / list playback / cloud ASR (§11.3)                       |
 
 #### Settings
 
@@ -552,6 +554,27 @@ Home‑screen app list (`home_screen.cc` → `kApps[]`):
 #### Test
 
 Factory / stress entry (`test_screen`): auto tests (fuel gauge / wireless charge / camera, …), stress test (LVGL + BGM + motor + camera loop), hardware checks. Everyday users can ignore this.
+
+#### 11.1 Chat (`chat`)
+
+- Header toggles **Chat** / **Emotion** modes  
+- **Chat mode**: left/right text bubbles (assistant/system left, user right)  
+- **Emotion mode**: plays SD‑card EAF animations at `/sdcard/system/chat/{emotion}.eaf` (server emotion name; must match `[A-Za-z0-9_-]`); one shared white caption at the bottom shows the latest message  
+- Requires the SD card and files under that directory; emotion mode is unavailable without them  
+
+#### 11.2 Radio (`radio`)
+
+- Network **HLS (m3u8)** live streams; built‑in station table (`radio_stations.h`)  
+- Spectrum visualization while playing; entering the page pauses the system voice path and restores wake‑word on exit  
+- **Prefer Wi‑Fi**; 4G uses a lot of data (UI shows a warning)
+
+#### 11.3 Recording (`recording`)
+
+- **Requires SD card**: if unmounted, only a hint is shown  
+- **Record** tab: start / stop with timer; saves **Ogg Opus** to `/sdcard/recordings/REC_*.opus` (much smaller than PCM WAV)  
+- **List** tab: lists `.opus` (legacy `.wav` still supported); tap opens a **detail** page (does not play immediately)  
+- **Detail**: play / stop; **Transcribe** uploads the file as multipart to `POST /api/v1/asr/transcribe` (`X-Device-Id`) and shows full text, duration, dialogue lines, and summary  
+- API base paths live in `main/api_endpoints.h` (`kAsrTranscribe`)
 
 ---
 
@@ -788,6 +811,14 @@ The Bluetooth audio codec has its own USB‑UART (CH340K). Flashing must use tha
 
 Assets for features like the Digital Human are in the [`sd_images/`](sd_images/) folder. Copy the contents to the root of a FAT‑formatted SD card, preserving the directory structure. Details are in [sd_images/README.md](sd_images/README.md).
 
+Common paths:
+
+| Path | Purpose |
+|:---|:---|
+| `/sdcard/system/emotion/` | Digital‑human SJPG emotions |
+| `/sdcard/system/chat/` | Chat emotion‑mode `.eaf` (`{emotion}.eaf`) |
+| `/sdcard/recordings/` | Recording app Opus files (and legacy WAV) |
+
 #### Virtual USB Drive (USB MSC)
 
 The device can expose microSD as **USB Mass Storage** to a PC (`usb_virtual_disk`, TinyUSB MSC):
@@ -822,6 +853,9 @@ Partition‑table offset must be **`0x9000`** (same as edge_agent).
 | `GpsService`     | GPS NMEA parsing                  |
 | `CameraScreen`   | Camera preview                    |
 | `OpenClawScreen` | OpenClaw dialogue                 |
+| `ChatScreen`     | Chat / emotion mode               |
+| `RadioScreen`    | Internet radio                    |
+| `RecordingScreen`| Recording / ASR transcription     |
 | `System Monitor` | CPU / RAM / battery periodic logs |
 
 ### 15.2 System Monitor

@@ -1,9 +1,11 @@
 #include "radio_screen.h"
+#include "radio_stations.h"
 #include "i18n.h"
 
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -42,9 +44,6 @@ LV_FONT_DECLARE(font_puhui_30_4);
 namespace {
 
 constexpr const char* TAG = "RadioScreen";
-constexpr const char* kRadioStreamUrl =
-    "http://satellitepull.cnr.cn/live/wxszfy971/playlist.m3u8";
-constexpr const char* kStationNameMsgId = "深圳飞扬971";
 constexpr int kRadioSampleRate = 16000;
 
 constexpr int32_t kPanelSize = 720;
@@ -58,17 +57,22 @@ constexpr uint32_t kColorCtrlBtnBgPressed = 0x303644;
 constexpr uint32_t kColorPlayBtnBg = 0x3A4150;
 constexpr uint32_t kColorPlayBtnBgPressed = 0x4A5260;
 constexpr uint32_t kColorVizFloor = 0x1C2230;
+constexpr uint32_t kColorListItemBg = 0x1A1F28;
+constexpr uint32_t kColorListItemBgPressed = 0x2A3140;
+constexpr uint32_t kColorListItemActive = 0x2A3320;
+constexpr uint32_t kColorListBorder = 0x2E3542;
 
 constexpr int32_t kTitleY = 48;
 constexpr int32_t kStatusY = 100;
 constexpr int32_t kVizY = 150;
 constexpr int32_t kVizW = 520;
 constexpr int32_t kVizH = 280;
-constexpr int32_t kCtrlRowY = 560;
+constexpr int32_t kCtrlRowY = 530;
 constexpr int32_t kCtrlRowWidth = 520;
 constexpr int32_t kCtrlRowHeight = 120;
 constexpr int32_t kCtrlSideBtnSize = 80;
 constexpr int32_t kCtrlPlayBtnSize = 112;
+constexpr int32_t kHintBottomMargin = 16;
 constexpr int kVolStep = 5;
 
 constexpr int kFftN = 256;
@@ -100,10 +104,14 @@ struct RadioUi {
     lv_obj_t* bars[kBarCount] = {};
     lv_obj_t* lbl_volume = nullptr;
     lv_timer_t* viz_timer = nullptr;
+    lv_obj_t* list_overlay = nullptr;
+    lv_obj_t* list_scroll = nullptr;
+    lv_obj_t* list_rows[kRadioStationCount] = {};
 };
 
 RadioUi s_ui;
 lv_obj_t* s_bound_scr = nullptr;  // 仅当前前台页可改 UI / 响应 unload
+std::atomic<int> s_station_index{kDefaultRadioStationIndex};
 
 enum class LifeState : uint8_t {
     Idle = 0,
@@ -148,6 +156,7 @@ void SetStatusDirect(StatusKind kind);
 void SetPlayIconDirect(bool playing);
 void SyncStatusToUi();
 void UpdateVolumeLabel();
+void UpdateTitleLabel();
 void RequestPlayerStop();
 void RequestSessionStart();
 void RequestSessionStop(bool allow_restart);
@@ -158,6 +167,23 @@ void StartSpectrumAnalyzer();
 void StopSpectrumAnalyzer();
 void EnsureLifeMutex();
 void WaitTaskGone(TaskHandle_t* slot, int max_ms);
+void ShowStationList();
+void HideStationList();
+void RefreshStationListHighlight();
+void SwitchStation(int index);
+void OnStationRowClicked(lv_event_t* e);
+
+const RadioStation& CurrentStation() {
+    int idx = s_station_index.load(std::memory_order_relaxed);
+    if (idx < 0 || idx >= static_cast<int>(kRadioStationCount)) {
+        idx = kDefaultRadioStationIndex;
+    }
+    return kRadioStations[static_cast<size_t>(idx)];
+}
+
+const char* CurrentStreamUrl() {
+    return CurrentStation().url;
+}
 
 uint32_t LerpColor(uint32_t a, uint32_t b, float t) {
     if (t <= 0.f) {
@@ -863,9 +889,11 @@ void RadioPlayTask(void* arg) {
 
         s_reported_playing.store(false, std::memory_order_relaxed);
         SetStatus(StatusKind::Connecting);
-        ESP_LOGI(TAG, "start HLS gen=%u: %s", gen, kRadioStreamUrl);
-        const esp_gmf_err_t err = esp_audio_simple_player_run_to_end(
-            s_player, kRadioStreamUrl, nullptr);
+        const char* url = CurrentStreamUrl();
+        ESP_LOGI(TAG, "start HLS gen=%u idx=%d: %s", gen,
+                 s_station_index.load(std::memory_order_relaxed), url);
+        const esp_gmf_err_t err =
+            esp_audio_simple_player_run_to_end(s_player, url, nullptr);
 
         if (s_shutdown.load(std::memory_order_relaxed) ||
             s_session_gen.load(std::memory_order_relaxed) != gen) {
@@ -1209,7 +1237,118 @@ void UpdateVolumeLabel() {
     lv_label_set_text(s_ui.lbl_volume, buf);
 }
 
+void UpdateTitleLabel() {
+    if (s_ui.lbl_title == nullptr) {
+        return;
+    }
+    lv_label_set_text(s_ui.lbl_title, CurrentStation().name);
+}
+
+void HideStationList() {
+    if (s_ui.list_overlay == nullptr) {
+        return;
+    }
+    lv_obj_add_flag(s_ui.list_overlay, LV_OBJ_FLAG_HIDDEN);
+}
+
+void RefreshStationListHighlight() {
+    if (s_ui.list_overlay == nullptr) {
+        return;
+    }
+    const int cur = s_station_index.load(std::memory_order_relaxed);
+    for (size_t i = 0; i < kRadioStationCount; ++i) {
+        lv_obj_t* row = s_ui.list_rows[i];
+        if (row == nullptr) {
+            continue;
+        }
+        const bool active = (static_cast<int>(i) == cur);
+        lv_obj_set_style_bg_color(
+            row,
+            lv_color_hex(active ? kColorListItemActive : kColorListItemBg),
+            LV_PART_MAIN);
+        lv_obj_set_style_border_color(
+            row, lv_color_hex(active ? kColorAccent : kColorListBorder),
+            LV_PART_MAIN);
+        lv_obj_set_style_border_opa(row, active ? LV_OPA_COVER : LV_OPA_40,
+                                    LV_PART_MAIN);
+        if (lv_obj_get_child_cnt(row) > 0) {
+            lv_obj_t* lbl = lv_obj_get_child(row, 0);
+            if (lbl != nullptr) {
+                lv_obj_set_style_text_color(
+                    lbl, lv_color_hex(active ? kColorAccent : kColorTextPrimary),
+                    LV_PART_MAIN);
+            }
+        }
+    }
+}
+
+void ShowStationList() {
+    if (s_ui.list_overlay == nullptr) {
+        return;
+    }
+    RefreshStationListHighlight();
+    lv_obj_remove_flag(s_ui.list_overlay, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(s_ui.list_overlay);
+
+    const int cur = s_station_index.load(std::memory_order_relaxed);
+    if (cur >= 0 && cur < static_cast<int>(kRadioStationCount) &&
+        s_ui.list_rows[static_cast<size_t>(cur)] != nullptr &&
+        s_ui.list_scroll != nullptr) {
+        lv_obj_scroll_to_view(s_ui.list_rows[static_cast<size_t>(cur)],
+                              LV_ANIM_OFF);
+    }
+}
+
+void SwitchStation(int index) {
+    if (index < 0 || index >= static_cast<int>(kRadioStationCount)) {
+        return;
+    }
+    const int prev = s_station_index.load(std::memory_order_relaxed);
+    s_station_index.store(index, std::memory_order_release);
+    UpdateTitleLabel();
+    HideStationList();
+    ESP_LOGI(TAG, "switch station %d -> %d (%s)", prev, index,
+             CurrentStation().name);
+
+    if (prev == index) {
+        // 同台：若已暂停则恢复播；若在播则保持
+        if (!s_want_play.load(std::memory_order_relaxed) &&
+            s_life.load(std::memory_order_relaxed) == LifeState::Running &&
+            !s_shutdown.load(std::memory_order_relaxed)) {
+            s_want_play.store(true, std::memory_order_relaxed);
+            s_reported_playing.store(false, std::memory_order_relaxed);
+            SetStatusDirect(StatusKind::Connecting);
+            SetPlayIconDirect(true);
+        }
+        return;
+    }
+
+    // 切台：停掉当前流，PlayTask 循环会用新 URL 重连
+    s_want_play.store(true, std::memory_order_relaxed);
+    s_reported_playing.store(false, std::memory_order_relaxed);
+    SetStatusDirect(StatusKind::Connecting);
+    SetPlayIconDirect(true);
+
+    const LifeState st = s_life.load(std::memory_order_relaxed);
+    if (st == LifeState::Running || st == LifeState::Starting) {
+        RequestPlayerStop();
+    } else {
+        RequestSessionStart();
+    }
+}
+
+void OnStationRowClicked(lv_event_t* e) {
+    const intptr_t idx =
+        reinterpret_cast<intptr_t>(lv_event_get_user_data(e));
+    SwitchStation(static_cast<int>(idx));
+}
+
 void OnSwipeBack() {
+    if (s_ui.list_overlay != nullptr &&
+        !lv_obj_has_flag(s_ui.list_overlay, LV_OBJ_FLAG_HIDDEN)) {
+        HideStationList();
+        return;
+    }
     RequestSessionStop(false);
     lv_obj_t* old_scr = lv_screen_active();
     lv_obj_t* home = HomeScreen::Create();
@@ -1316,20 +1455,49 @@ void BuildBackButton(lv_obj_t* scr) {
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t* /*e*/) { OnSwipeBack(); }, LV_EVENT_CLICKED,
         nullptr);
+
+    // 右上角「列表」入口
+    lv_obj_t* list_btn = lv_button_create(scr);
+    lv_obj_remove_style_all(list_btn);
+    lv_obj_set_size(list_btn, 96, 72);
+    lv_obj_set_style_bg_opa(list_btn, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(list_btn, lv_color_hex(0xFFFFFF),
+                              Sel(LV_PART_MAIN, LV_STATE_PRESSED));
+    lv_obj_set_style_bg_opa(list_btn, LV_OPA_20,
+                            Sel(LV_PART_MAIN, LV_STATE_PRESSED));
+    lv_obj_set_style_radius(list_btn, 20, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(list_btn, 0, LV_PART_MAIN);
+    lv_obj_align(list_btn, LV_ALIGN_TOP_RIGHT, -24, 36);
+    screen_swipe_back_ignore(list_btn, true);
+
+    lv_obj_t* list_lbl = lv_label_create(list_btn);
+    lv_label_set_text(list_lbl, I18n::T("列表"));
+    lv_obj_set_style_text_font(list_lbl, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_set_style_text_color(list_lbl, lv_color_hex(kColorAccent),
+                                LV_PART_MAIN);
+    lv_obj_center(list_lbl);
+    lv_obj_add_event_cb(
+        list_btn, [](lv_event_t* /*e*/) { ShowStationList(); },
+        LV_EVENT_CLICKED, nullptr);
 }
 
 void BuildTitle(lv_obj_t* scr) {
     s_ui.lbl_title = lv_label_create(scr);
-    lv_label_set_text(s_ui.lbl_title, I18n::T(kStationNameMsgId));
+    lv_label_set_text(s_ui.lbl_title, CurrentStation().name);
     lv_obj_set_style_text_font(s_ui.lbl_title, &font_puhui_30_4, LV_PART_MAIN);
     lv_obj_set_style_text_color(s_ui.lbl_title, lv_color_hex(kColorTextPrimary),
                                 LV_PART_MAIN);
     lv_obj_set_style_text_align(s_ui.lbl_title, LV_TEXT_ALIGN_CENTER,
                                 LV_PART_MAIN);
     lv_label_set_long_mode(s_ui.lbl_title, LV_LABEL_LONG_DOT);
-    lv_obj_set_width(s_ui.lbl_title, kPanelSize - 80);
+    lv_obj_set_width(s_ui.lbl_title, kPanelSize - 220);
     lv_obj_align(s_ui.lbl_title, LV_ALIGN_TOP_MID, 0, kTitleY);
-    screen_make_input_passive(s_ui.lbl_title);
+    // 点标题也可打开台表
+    lv_obj_add_flag(s_ui.lbl_title, LV_OBJ_FLAG_CLICKABLE);
+    screen_swipe_back_ignore(s_ui.lbl_title, true);
+    lv_obj_add_event_cb(
+        s_ui.lbl_title, [](lv_event_t* /*e*/) { ShowStationList(); },
+        LV_EVENT_CLICKED, nullptr);
 
     s_ui.lbl_status = lv_label_create(scr);
     lv_label_set_text(s_ui.lbl_status, I18n::T("连接中"));
@@ -1341,6 +1509,111 @@ void BuildTitle(lv_obj_t* scr) {
     lv_obj_set_width(s_ui.lbl_status, kPanelSize - 80);
     lv_obj_align(s_ui.lbl_status, LV_ALIGN_TOP_MID, 0, kStatusY);
     screen_make_input_passive(s_ui.lbl_status);
+}
+
+void BuildStationListOverlay(lv_obj_t* scr) {
+    s_ui.list_overlay = lv_obj_create(scr);
+    lv_obj_set_size(s_ui.list_overlay, kPanelSize, kPanelSize);
+    lv_obj_align(s_ui.list_overlay, LV_ALIGN_TOP_LEFT, 0, 0);
+    screen_strip_obj_chrome(s_ui.list_overlay);
+    lv_obj_remove_flag(s_ui.list_overlay, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(s_ui.list_overlay, lv_color_hex(kColorBg),
+                              LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_color(s_ui.list_overlay, lv_color_hex(kColorBgGrad),
+                                   LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_dir(s_ui.list_overlay, LV_GRAD_DIR_VER,
+                                 LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(s_ui.list_overlay, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_add_flag(s_ui.list_overlay, LV_OBJ_FLAG_HIDDEN);
+    screen_swipe_back_ignore(s_ui.list_overlay, true);
+
+    lv_obj_t* header = lv_obj_create(s_ui.list_overlay);
+    lv_obj_set_size(header, kPanelSize, 88);
+    lv_obj_align(header, LV_ALIGN_TOP_LEFT, 0, 0);
+    screen_strip_obj_chrome(header);
+    lv_obj_remove_flag(header, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(header, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_bg_opa(header, LV_OPA_TRANSP, LV_PART_MAIN);
+
+    lv_obj_t* close_btn = lv_button_create(header);
+    lv_obj_remove_style_all(close_btn);
+    lv_obj_set_size(close_btn, 72, 72);
+    lv_obj_set_style_bg_opa(close_btn, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(close_btn, lv_color_hex(0xFFFFFF),
+                              Sel(LV_PART_MAIN, LV_STATE_PRESSED));
+    lv_obj_set_style_bg_opa(close_btn, LV_OPA_20,
+                            Sel(LV_PART_MAIN, LV_STATE_PRESSED));
+    lv_obj_set_style_radius(close_btn, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_align(close_btn, LV_ALIGN_LEFT_MID, 24, 0);
+    screen_swipe_back_ignore(close_btn, true);
+
+    lv_obj_t* close_icon = lv_image_create(close_btn);
+    lv_image_set_src(close_icon, "A:ic_app_back.spng");
+    lv_obj_remove_flag(close_icon, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_center(close_icon);
+    lv_obj_add_event_cb(
+        close_btn, [](lv_event_t* /*e*/) { HideStationList(); },
+        LV_EVENT_CLICKED, nullptr);
+
+    lv_obj_t* title = lv_label_create(header);
+    lv_label_set_text(title, I18n::T("选择电台"));
+    lv_obj_set_style_text_font(title, &font_puhui_30_4, LV_PART_MAIN);
+    lv_obj_set_style_text_color(title, lv_color_hex(kColorTextPrimary),
+                                LV_PART_MAIN);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, 0);
+    screen_make_input_passive(title);
+
+    s_ui.list_scroll = lv_obj_create(s_ui.list_overlay);
+    lv_obj_set_size(s_ui.list_scroll, kPanelSize - 48, kPanelSize - 108);
+    lv_obj_align(s_ui.list_scroll, LV_ALIGN_TOP_MID, 0, 96);
+    screen_strip_obj_chrome(s_ui.list_scroll);
+    lv_obj_add_flag(s_ui.list_scroll, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(s_ui.list_scroll, LV_DIR_VER);
+    lv_obj_set_style_bg_opa(s_ui.list_scroll, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(s_ui.list_scroll, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(s_ui.list_scroll, 10, LV_PART_MAIN);
+    lv_obj_set_flex_flow(s_ui.list_scroll, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(s_ui.list_scroll, LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_scrollbar_mode(s_ui.list_scroll, LV_SCROLLBAR_MODE_AUTO);
+    screen_swipe_back_ignore(s_ui.list_scroll, true);
+
+    for (size_t i = 0; i < kRadioStationCount; ++i) {
+        lv_obj_t* row = lv_obj_create(s_ui.list_scroll);
+        lv_obj_set_size(row, kPanelSize - 64, 64);
+        screen_strip_obj_chrome(row);
+        lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_style_bg_color(row, lv_color_hex(kColorListItemBg),
+                                  LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(row, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(row, lv_color_hex(kColorListItemBgPressed),
+                                  Sel(LV_PART_MAIN, LV_STATE_PRESSED));
+        lv_obj_set_style_radius(row, 16, LV_PART_MAIN);
+        lv_obj_set_style_border_width(row, 2, LV_PART_MAIN);
+        lv_obj_set_style_border_color(row, lv_color_hex(kColorListBorder),
+                                      LV_PART_MAIN);
+        lv_obj_set_style_border_opa(row, LV_OPA_40, LV_PART_MAIN);
+        lv_obj_set_style_pad_hor(row, 20, LV_PART_MAIN);
+        lv_obj_set_style_pad_ver(row, 0, LV_PART_MAIN);
+        screen_swipe_back_ignore(row, true);
+
+        lv_obj_t* name = lv_label_create(row);
+        lv_label_set_text(name, kRadioStations[i].name);
+        lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
+        lv_obj_set_width(name, kPanelSize - 120);
+        lv_obj_set_style_text_font(name, &font_puhui_20_4, LV_PART_MAIN);
+        lv_obj_set_style_text_color(name, lv_color_hex(kColorTextPrimary),
+                                    LV_PART_MAIN);
+        lv_obj_align(name, LV_ALIGN_LEFT_MID, 0, 0);
+        lv_obj_remove_flag(name, LV_OBJ_FLAG_CLICKABLE);
+
+        lv_obj_add_event_cb(row, OnStationRowClicked, LV_EVENT_CLICKED,
+                            reinterpret_cast<void*>(static_cast<intptr_t>(i)));
+        s_ui.list_rows[i] = row;
+    }
+
+    RefreshStationListHighlight();
 }
 
 void BuildVisualizer(lv_obj_t* scr) {
@@ -1418,6 +1691,20 @@ void BuildControls(lv_obj_t* scr) {
                       OnVolUpClicked);
 }
 
+void BuildUsageHint(lv_obj_t* scr) {
+    lv_obj_t* hint = lv_label_create(scr);
+    lv_label_set_text(
+        hint,
+        I18n::T("请勿在 4G 模式下使用电台，非常消耗流量，请在 WiFi 下使用"));
+    lv_obj_set_style_text_font(hint, &font_puhui_20_4, LV_PART_MAIN);
+    lv_obj_set_style_text_color(hint, lv_color_hex(kColorSubtle), LV_PART_MAIN);
+    lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_label_set_long_mode(hint, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(hint, kPanelSize - 64);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -kHintBottomMargin);
+    screen_make_input_passive(hint);
+}
+
 }  // namespace
 
 lv_obj_t* RadioScreen::Create() {
@@ -1441,7 +1728,9 @@ lv_obj_t* RadioScreen::Create() {
     BuildVisualizer(scr);
     BuildVolumeLabel(scr);
     BuildControls(scr);
+    BuildUsageHint(scr);
     BuildBackButton(scr);
+    BuildStationListOverlay(scr);
 
     lv_obj_add_event_cb(scr, OnScreenUnloaded, LV_EVENT_SCREEN_UNLOADED,
                         nullptr);

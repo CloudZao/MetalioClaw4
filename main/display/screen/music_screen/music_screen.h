@@ -14,8 +14,7 @@
 //       {"type":"lyrics","data":"人间共鸣 - 李健"}  -> 显示成当前歌词
 //   - 按钮通过 AT 命令控制播放：
 //       上一曲 AT+PREV / 下一曲 AT+NEXT / 播放暂停 AT+PP
-//       音量：先 AT+VOLUME=1 查询（回包 AT+VOL=0~15），再 AT+VOLUP / AT+VOLDOWN；
-//             当前音量 > 12 时禁止 VOLUP，VOLDOWN 仍可
+//       音量加 AT+VOLUP / 音量减 AT+VOLDOWN
 //   - 离开页面（LIFECYCLE_UNLOAD）时摘掉 UART 回调，避免在屏幕销毁后
 //     还往野指针上写 LVGL 操作。
 // ---------------------------------------------------------------------------

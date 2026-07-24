@@ -32,7 +32,7 @@
 14. [编译与烧录](#14-编译与烧录)
 15. [调试与常见问题](#15-调试与常见问题)
 
-> 近期补充：**UI 多语言**、**待机屏**、**设置 / 测试**、**ESPClaw 双系统**、**SD 虚拟 U 盘** 等，见对应章节。
+> 近期补充：**UI 多语言**、**待机屏**、**设置 / 测试**、**ESPClaw 双系统**、**SD 虚拟 U 盘**、**聊天表情模式**、**网络电台**、**录音（Opus + ASR 转写）** 等，见对应章节。
 
 ---
 
@@ -169,10 +169,10 @@ Metalio Claw4 自带 20+ 内置 App，开发者可基于现有硬件与软件能
 | 场景（示例）   | 可组合的相关 App / 能力                   |
 |:-------- |:--------------------------------- |
 | **拍照学习** | 相机、数字人、SD 卡资源管理                   |
-| **会议记录** | 聊天、OpenClaw、蓝牙音频、电话               |
+| **会议记录** | 聊天、录音（Opus + 云端转写）、OpenClaw、蓝牙音频、电话 |
 | **智能中控** | 语音对话 + MCP 协议控制 IoT 设备            |
 | **户外导航** | GPS 定位（GPS / WiFi / 基站 Tab）、4G 联网 |
-| **休闲娱乐** | 音乐（蓝牙音箱模式）、2048（小游戏）、主题切换         |
+| **休闲娱乐** | 音乐（蓝牙音箱模式）、电台（网络 HLS）、2048、主题切换 |
 | **开发调试** | 引脚测试、系统信息、磁场 / 水平仪                |
 
 ---
@@ -182,7 +182,7 @@ Metalio Claw4 自带 20+ 内置 App，开发者可基于现有硬件与软件能
 ```mermaid
 flowchart TB
     ui["用户交互层<br/>720×720 LVGL 9 触控 UI · 语音唤醒 · 按键 PWR_KEY"]
-    apps["应用层<br/>聊天 · OpenClaw · 相机 · GPS · 天气 · 音乐 · 数字人 · ..."]
+    apps["应用层<br/>聊天 · 电台 · 录音 · OpenClaw · 相机 · GPS · 天气 · 音乐 · 数字人 · ..."]
     svc["服务层<br/>AudioService · GpsService · SdCardManager · MCP Server"]
     proto["协议层<br/>WebSocket · MQTT+UDP · OpenClaw HTTP API"]
     board["板级抽象 Board<br/>DualNetworkBoard · Display · AudioCodec · Backlight · Gauge"]
@@ -214,7 +214,7 @@ flowchart LR
     llm --> tts["TTS"]
     tts --> rx["设备接收音频流"]
     rx --> spk["I2S 扬声器播放"]
-    rx --> lvgl["LVGL UI 更新<br/>聊天气泡 / 数字人表情"]
+    rx --> lvgl["LVGL UI 更新<br/>聊天气泡 / 聊天表情 EAF / 数字人表情"]
 ```
 
 ---
@@ -517,7 +517,7 @@ API 基址定义于 `main/api_endpoints.h`。
 
 | App | 标识 | 说明 |
 |:---|:---|:---|
-| 聊天 | chat | 小智 AI 语音对话 |
+| 聊天 | chat | 小智 AI 语音对话；支持**文字气泡**与 **EAF 表情**两种视图（§11.1） |
 | 网络配置 | wifi | Wi-Fi / 4G 切换、SIM 卡切换（内置卡 / 外置卡） |
 | 数字人 | digital_people | SD 卡 SJPG 表情动画 |
 | 电话 | call | 4G 通话（**仅外置卡**） |
@@ -539,6 +539,8 @@ API 基址定义于 `main/api_endpoints.h`。
 | 主题 | theme | 4 套图标主题 |
 | 测试 | test | 厂测入口：自动测试、压力测试、硬件测试等 |
 | 设置 | settings | 音量 / 亮度 / 待机 / **语言（中英）** / 蓝牙模式等 |
+| 电台 | radio | 网络 HLS 电台直播 + 频谱可视化（§11.2） |
+| 录音 | recording | SD 卡 Opus 录音 / 列表播放 / 云端 ASR 转写（§11.3） |
 
 #### 设置（settings）
 
@@ -550,6 +552,27 @@ API 基址定义于 `main/api_endpoints.h`。
 #### 测试（test）
 
 厂测与压测入口（`test_screen`），常见子项包括：自动测试（含电量计 / 无线充电 / 摄像头等）、压力测试（LVGL + 背景音乐 + 马达 + 摄像头循环）、硬件相关测试。日常用户可忽略。
+
+#### 11.1 聊天（chat）
+
+- Header 可在 **聊天** / **表情** 两种模式间切换
+- **聊天模式**：左右文字气泡（助手/系统在左，用户在右）
+- **表情模式**：播放 SD 卡上的 EAF 动画，路径为 `/sdcard/system/chat/{emotion}.eaf`（情绪名由服务端下发，需为合法 `[A-Za-z0-9_-]`）；底部一条白色字幕显示最新消息
+- 资源需放在 SD 卡对应目录；无卡或文件缺失时表情模式不可用
+
+#### 11.2 电台（radio）
+
+- 网络 **HLS（m3u8）** 直播电台；内置台表可切换流地址（`radio_stations.h`）
+- 播放时配合频谱可视化；进入页会暂停系统语音链路，离开后恢复唤醒词等
+- **请优先在 Wi‑Fi 下使用**；4G 模式流量消耗很大，界面有相应提示
+
+#### 11.3 录音（recording）
+
+- **依赖 SD 卡**：未挂载时仅提示，不可用
+- Tab **录音**：开始 / 结束录音并计时；保存为 **Ogg Opus**（`/sdcard/recordings/REC_*.opus`），体积远小于 PCM WAV
+- Tab **列表**：列出 `.opus`（兼容旧 `.wav`）；点击进入**详情页**（非直接播放）
+- **详情页**：播放 / 停止；**录音转写** 将文件 multipart 上传至 `POST /api/v1/asr/transcribe`（`X-Device-Id`），展示全文、时长、对话行、摘要
+- 接口基址见 `main/api_endpoints.h`（`kAsrTranscribe`）
 
 ---
 
@@ -801,6 +824,14 @@ idf.py -p /dev/ttyACM0 monitor
 
 数字人等功能的 SD 卡资源位于 [`sd_images/`](sd_images/) 目录。将内容复制到 SD 卡根目录即可（保持目录结构不变）。详细说明见 [sd_images/README.md](sd_images/README.md)。
 
+常见路径约定：
+
+| 路径 | 用途 |
+|:---|:---|
+| `/sdcard/system/emotion/` | 数字人 SJPG 表情 |
+| `/sdcard/system/chat/` | 聊天表情模式 `.eaf`（`{emotion}.eaf`） |
+| `/sdcard/recordings/` | 录音 App 保存的 Opus（及旧 WAV） |
+
 #### 虚拟 U 盘（USB MSC）
 
 设备可将 microSD 以 **USB 大容量存储** 形式挂到电脑（实现见 `usb_virtual_disk`，TinyUSB MSC）：
@@ -835,6 +866,9 @@ idf.py -p /dev/ttyACM0 monitor
 | `GpsService`     | GPS NMEA 解析       |
 | `CameraScreen`   | 摄像头预览             |
 | `OpenClawScreen` | OpenClaw 对话       |
+| `ChatScreen`     | 聊天 / 表情         |
+| `RadioScreen`    | 网络电台            |
+| `RecordingScreen`| 录音 / ASR 转写     |
 | `系统监控`           | CPU / 内存 / 电池周期日志 |
 
 ### 15.2 系统监控

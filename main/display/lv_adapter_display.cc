@@ -190,14 +190,16 @@ void LVAdapterDisplay::SetEmotion(const char* const emotion) {
     ESP_LOGI(TAG, "SetEmotion: %s -> %s",
              emotion != nullptr ? emotion : "<null>", category);
 
-    // 2) 转交给数字人屏。这把锁和 SetChatMessage 共用，确保 lv_eaf_set_src
-    //    与屏幕生命周期事件互斥。屏幕不在前台时 DigitalPeopleScreen::SetEmotion
-    //    也只是更新静态缓存，等下一次 Create() 时再加载，所以这里
-    //    无需判断 IsActive()，无条件转发即可。
+    // 2) 转交：数字人屏用 6 大类；聊天屏表情模式用服务器原始情绪名
+    //    （对应 S:/sdcard/system/chat/{emotion}.eaf）。这把锁和
+    //    SetChatMessage 共用，确保 lv_eaf_set_src 与屏幕生命周期互斥。
+    //    屏幕不在前台时 SetEmotion 只更新静态缓存，下次 Create / 切到
+    //    表情模式再加载，故无需判断 IsActive()。
     if (esp_lv_adapter_lock(-1) != ESP_OK) {
         return;
     }
     DigitalPeopleScreen::SetEmotion(category);
+    ChatScreen::SetEmotion(emotion != nullptr ? emotion : "neutral");
     esp_lv_adapter_unlock();
 }
 

@@ -3,6 +3,7 @@
 #include "application.h"
 #include "audio_codec.h"
 #include "assets/lang_config.h"
+#include "settings.h"
 #include <esp_log.h>
 #include <font_awesome.h>
 #include <cJSON.h>
@@ -17,7 +18,7 @@ constexpr uint32_t kWaitNetworkFailed = (1 << 1);
 constexpr uint32_t kWaitNetworkInFlight = (1 << 2);
 constexpr uint32_t kWaitNetworkAll =
     kWaitNetworkConnected | kWaitNetworkFailed | kWaitNetworkInFlight;
-constexpr uint32_t kNetworkWaitTimeoutMs = 60 * 1000;
+constexpr uint32_t kNetworkWaitTimeoutMs = 180 * 1000;
 
 }  // namespace
 
@@ -106,7 +107,14 @@ void Nt26Board::StartNetwork() {
 
     modem_ = std::make_unique<UartEthModem>(config);
     modem_->SetDebug(false);
-    modem_->SetPdpContext("eapn1.net", "IP");
+    // 根据 SIM 卡槽位选择 APN：内置卡(slot=1)用 eapn1.net，外置卡(slot=0)用 cmnet
+    {
+        Settings sim_settings("network", false);
+        int sim_slot = sim_settings.GetInt("sim_slot", 0);
+        const char* apn = (sim_slot == 1) ? "eapn1.net" : "cmnet";
+        ESP_LOGI(TAG, "SIM slot=%d, using APN: %s", sim_slot, apn);
+        modem_->SetPdpContext(apn, "IP");
+    }
     modem_->SetNetworkEventCallback([this](UartEthModem::UartEthModemEvent event) {
         ESP_LOGI(TAG, "Modem event: %s", UartEthModem::GetNetworkEventName(event));
         switch (event) {
@@ -127,7 +135,7 @@ void Nt26Board::StartNetwork() {
                 if (network_wait_event_) {
                     xEventGroupSetBits(network_wait_event_, kWaitNetworkFailed);
                 }
-                ScheduleAsyncStop();
+                // 不再调 ScheduleAsyncStop()：保留 AT 通道，允许用户切换 SIM 卡槽
                 OnNetworkEvent(NetworkEvent::ModemErrorNoSim);
                 break;
             case UartEthModem::UartEthModemEvent::ErrorRegistrationDenied:
@@ -135,7 +143,7 @@ void Nt26Board::StartNetwork() {
                 if (network_wait_event_) {
                     xEventGroupSetBits(network_wait_event_, kWaitNetworkFailed);
                 }
-                ScheduleAsyncStop();
+                // 不再调 ScheduleAsyncStop()：保留 AT 通道，允许用户切换 SIM 卡槽
                 OnNetworkEvent(NetworkEvent::ModemErrorRegDenied);
                 break;
             case UartEthModem::UartEthModemEvent::Connecting:
@@ -147,7 +155,7 @@ void Nt26Board::StartNetwork() {
                 if (network_wait_event_) {
                     xEventGroupSetBits(network_wait_event_, kWaitNetworkFailed);
                 }
-                ScheduleAsyncStop();
+                // 不再调 ScheduleAsyncStop()：保留 AT 通道，允许用户切换 SIM 卡槽
                 OnNetworkEvent(NetworkEvent::ModemErrorInitFailed);
                 break;
             case UartEthModem::UartEthModemEvent::InFlightMode:
@@ -168,7 +176,7 @@ void Nt26Board::StartNetwork() {
         return;
     }
 
-    esp_timer_start_once(network_ready_timer_, 30000 * 1000ULL);
+    esp_timer_start_once(network_ready_timer_, 180000 * 1000ULL);
     OnNetworkEvent(NetworkEvent::Connecting);
 
     auto display = Board::GetInstance().GetDisplay();
